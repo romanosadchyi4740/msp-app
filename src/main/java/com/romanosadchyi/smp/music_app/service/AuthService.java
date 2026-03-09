@@ -3,9 +3,11 @@ package com.romanosadchyi.smp.music_app.service;
 import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequest;
 import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequest;
 import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponse;
+import com.romanosadchyi.smp.music_app.model.entity.Author;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
+import com.romanosadchyi.smp.music_app.repository.AuthorRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -21,9 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     UserRepository userRepository;
+    AuthorRepository authorRepository;
     PasswordEncoder passwordEncoder;
     JwtService jwtService;
 
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
@@ -38,7 +43,15 @@ public class AuthService {
                 .avatarUrl("https://ui-avatars.com/api/?name=" + request.displayName())
                 .build();
 
-        userRepository.save(user);
+        user = userRepository.save(user);
+
+        Author author = Author.builder()
+                .id(user.getId())
+                .displayName(user.getDisplayName())
+                .avatarUrl(user.getAvatarUrl())
+                .build();
+
+        authorRepository.save(author);
 
         String token = jwtService.generateToken(user);
 

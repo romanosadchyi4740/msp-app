@@ -13,6 +13,7 @@ import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.AuthorRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
@@ -27,7 +28,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TrackService {
 
     TrackRepository trackRepository;

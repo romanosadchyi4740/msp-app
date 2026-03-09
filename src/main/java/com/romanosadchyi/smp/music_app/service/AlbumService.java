@@ -9,7 +9,9 @@ import com.romanosadchyi.smp.music_app.model.entity.Author;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.AuthorRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AlbumService {
 
     AlbumRepository albumRepository;

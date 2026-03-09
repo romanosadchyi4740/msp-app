@@ -4,10 +4,17 @@ import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.jspecify.annotations.NonNull;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -17,42 +24,73 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    UUID id;
 
     @Column(nullable = false, unique = true)
-    private String email;
+    String email;
 
     @Column(name = "password")
-    private String password;
+    String password;
 
     @Column(name = "display_name")
-    private String displayName;
+    String displayName;
 
     @Column(name = "avatar_url")
-    private String avatarUrl;
+    String avatarUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role;
+    UserRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider")
-    private AuthProvider provider;
+    AuthProvider provider;
 
     @Column(name = "provider_id")
-    private String providerId;
+    String providerId;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
+
+    @Override
+    public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+
+    @Override
+    public @NonNull String getUsername() {
+        return id.toString();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 
 }

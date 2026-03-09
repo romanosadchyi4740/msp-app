@@ -10,6 +10,7 @@ import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.PlaylistMappingService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PlaylistService {
 
     PlaylistRepository playlistRepository;

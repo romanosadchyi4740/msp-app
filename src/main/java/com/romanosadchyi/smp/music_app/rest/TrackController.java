@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.TrackService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,11 +29,11 @@ public class TrackController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public void createTrack(@RequestHeader(value = "X-User-Id") UUID authorId,
+    public void createTrack(@AuthenticationPrincipal User user,
                             @ModelAttribute TrackCreateDto dto,
                             @RequestParam("file") MultipartFile file) {
         log.debug("TaskCreateDto: {}", dto);
-        trackService.createTrack(authorId, dto, file);
+        trackService.createTrack(user.getId(), dto, file);
     }
 
     @GetMapping("/{id}/url")

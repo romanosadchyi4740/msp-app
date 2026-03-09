@@ -6,6 +6,7 @@ import io.minio.*;
 import io.minio.errors.MinioException;
 import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -22,7 +23,7 @@ import java.security.NoSuchAlgorithmException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MinioService {
 
     MinioClient minioClient;
@@ -33,7 +34,7 @@ public class MinioService {
 
     @NonFinal
     @Value("${minio.presigned-url-expiry-seconds}")
-    private int presignedUrlExpirySeconds;
+    int presignedUrlExpirySeconds;
 
     @PostConstruct
     public void init() throws MinioException, IOException, NoSuchAlgorithmException, InvalidKeyException {
