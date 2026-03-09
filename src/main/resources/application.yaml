@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: music-app
+
+  datasource:
+    url: ${DB_DATASOURCE_URL:jdbc:postgresql://localhost:5432/music_app_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+
+  jpa:
+    open-in-view: true
+    show-sql: false
+    generate-ddl: false
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+server.port: 8080
+
+minio:
+  url: http://localhost:9000
+  access-key: ${MINIO_USER:minio_user}
+  secret-key: ${MINIO_PASSWORD:minio_password}
+  bucket-name: music-files
+  presigned-url-expiry-seconds: 3600
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: ${JWT_EXPIRATION:86400000}
