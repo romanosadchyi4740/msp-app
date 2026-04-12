@@ -6,4 +6,4 @@ ALTER TABLE albums ADD CONSTRAINT author_id_fk FOREIGN KEY (author_id) REFERENCE
 ALTER TABLE tracks DROP CONSTRAINT author_id_fk;
 ALTER TABLE tracks ADD CONSTRAINT author_id_fk FOREIGN KEY (author_id) REFERENCES users(id);
 
-DROP TABLE authors;
+DROP TABLE IF EXISTS authors;
