@@ -1,16 +1,17 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.AlbumNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.AuthorNotFoundException;
+import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
-import com.romanosadchyi.smp.music_app.model.entity.Author;
+import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
-import com.romanosadchyi.smp.music_app.repository.AuthorRepository;
+import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
 import lombok.AccessLevel;
@@ -32,15 +33,19 @@ import java.util.UUID;
 public class TrackService {
 
     TrackRepository trackRepository;
-    AuthorRepository authorRepository;
+    UserRepository userRepository;
     AlbumRepository albumRepository;
     MinioService minioService;
     TrackMappingService trackMappingService;
 
     @Transactional
     public void createTrack(UUID authorId, TrackCreateDto dto, MultipartFile file) {
-        Author author = authorRepository.findById(authorId)
-                .orElseThrow(() -> new AuthorNotFoundException("Author not found with id: " + authorId));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + authorId));
+
+        if (author.getRole() != UserRole.ROLE_ARTIST) {
+            throw new UserNotAuthorizedException("Only artists can upload tracks");
+        }
 
         Album album = null;
         if (dto.albumId() != null) {

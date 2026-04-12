@@ -1,13 +1,15 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.AlbumNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.AuthorNotFoundException;
+import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.AlbumCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
-import com.romanosadchyi.smp.music_app.model.entity.Author;
+import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
-import com.romanosadchyi.smp.music_app.repository.AuthorRepository;
+import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +28,17 @@ import java.util.UUID;
 public class AlbumService {
 
     AlbumRepository albumRepository;
-    AuthorRepository authorRepository;
+    UserRepository userRepository;
     AlbumMappingService albumMappingService;
 
     @Transactional
     public AlbumResponseDto createAlbum(UUID authorId, AlbumCreateDto dto) {
-        Author author = authorRepository.findById(authorId)
-                .orElseThrow(() -> new AuthorNotFoundException("Author not found"));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (author.getRole() != UserRole.ROLE_ARTIST) {
+            throw new UserNotAuthorizedException("Only artists can create albums");
+        }
 
         Album album = Album.builder()
                 .title(dto.title())

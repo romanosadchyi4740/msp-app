@@ -13,9 +13,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "users")
@@ -43,6 +41,17 @@ public class User implements UserDetails {
 
     @Column(name = "avatar_url")
     String avatarUrl;
+
+    @Column(columnDefinition = "TEXT")
+    String biography;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    Set<Album> albums = new HashSet<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    Set<Track> tracks = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

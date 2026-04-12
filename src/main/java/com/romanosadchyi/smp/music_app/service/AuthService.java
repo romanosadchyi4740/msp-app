@@ -3,11 +3,9 @@ package com.romanosadchyi.smp.music_app.service;
 import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequest;
 import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequest;
 import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponse;
-import com.romanosadchyi.smp.music_app.model.entity.Author;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.repository.AuthorRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     UserRepository userRepository;
-    AuthorRepository authorRepository;
     PasswordEncoder passwordEncoder;
     JwtService jwtService;
 
@@ -44,14 +41,6 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
-
-        Author author = Author.builder()
-                .id(user.getId())
-                .displayName(user.getDisplayName())
-                .avatarUrl(user.getAvatarUrl())
-                .build();
-
-        authorRepository.save(author);
 
         String token = jwtService.generateToken(user);
 
