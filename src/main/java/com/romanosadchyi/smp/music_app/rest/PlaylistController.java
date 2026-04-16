@@ -8,12 +8,14 @@ import com.romanosadchyi.smp.music_app.service.PlaylistService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/playlists")
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class PlaylistController {
             @AuthenticationPrincipal User user,
             @RequestBody PlaylistCreateDto dto
     ) {
+        log.info("Creating playlist for user: {}", user.getId());
         return ResponseEntity.ok(playlistService.createPlaylist(user.getId(), dto));
     }
 
@@ -36,6 +39,7 @@ public class PlaylistController {
             @PathVariable UUID playlistId,
             @RequestBody AddTrackToPlaylistDto dto
     ) {
+        log.info("Adding track to playlist: {}", playlistId);
         return ResponseEntity.ok(playlistService.addTrackToPlaylist(user.getId(), playlistId, dto.trackId()));
     }
 
@@ -44,6 +48,7 @@ public class PlaylistController {
             @PathVariable UUID id,
             @AuthenticationPrincipal User user
     ) {
+        log.info("Getting playlist with ID: {}", id);
         UUID userId = (user != null) ? user.getId() : null;
         return ResponseEntity.ok(playlistService.getPlaylistById(id, userId));
     }

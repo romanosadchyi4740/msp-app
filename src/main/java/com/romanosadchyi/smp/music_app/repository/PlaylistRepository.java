@@ -9,5 +9,7 @@ import java.util.UUID;
 
 @Repository
 public interface PlaylistRepository extends JpaRepository<Playlist, UUID> {
+
     List<Playlist> findAllByOwnerId(UUID ownerId);
+
 }

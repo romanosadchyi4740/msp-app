@@ -32,13 +32,14 @@ public class TrackController {
     public void createTrack(@AuthenticationPrincipal User user,
                             @ModelAttribute TrackCreateDto dto,
                             @RequestParam("file") MultipartFile file) {
+        log.info("Creating track for user: {}", user.getId());
         log.debug("TaskCreateDto: {}", dto);
         trackService.createTrack(user.getId(), dto, file);
     }
 
     @GetMapping("/{id}/url")
     public ResponseEntity<String> getTrackUrl(@PathVariable UUID id) {
-        log.debug("Getting track URL for track with ID: {}", id);
+        log.info("Getting track URL for track with ID: {}", id);
         return ResponseEntity.ok(trackService.getTrackUrl(id));
     }
 
@@ -47,7 +48,7 @@ public class TrackController {
             @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
             @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize
     ) {
-        log.debug("Getting all tracks");
+        log.info("Getting all tracks");
         return ResponseEntity.ok(trackService.getAllTracks(pageNo, pageSize));
     }
 
