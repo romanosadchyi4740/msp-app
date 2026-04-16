@@ -32,7 +32,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/playlists/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tracks/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/albums/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
+                        .requestMatchers("/api/users/*").permitAll()
+                        .requestMatchers("/ws/**", "/ws-raw/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
