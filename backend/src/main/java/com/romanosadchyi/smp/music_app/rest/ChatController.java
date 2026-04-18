@@ -1,17 +1,18 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
+import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -21,6 +22,18 @@ import java.util.UUID;
 public class ChatController {
 
     private final ChatService chatService;
+
+    @GetMapping
+    public List<ChatResponseDto> getUserChats(@AuthenticationPrincipal User user) {
+        log.info("Getting chats for user: {}", user.getId());
+        return chatService.getUserChats(user.getId());
+    }
+
+    @PostMapping("/with/{recipientId}")
+    public ChatResponseDto getOrCreateChat(@AuthenticationPrincipal User user, @PathVariable UUID recipientId) {
+        log.info("Getting or creating chat between {} and {}", user.getId(), recipientId);
+        return chatService.getOrCreateChatDto(user.getId(), recipientId);
+    }
 
     @GetMapping("/{chatId}/messages")
     public Page<ChatMessageResponseDto> getMessageHistory(

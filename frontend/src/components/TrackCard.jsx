@@ -1,10 +1,24 @@
 import React from 'react';
-import { Play, Music } from 'lucide-react';
+import { Play, Music, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
+import useChatStore from '../store/chatStore';
 
 const TrackCard = ({ track }) => {
+  const navigate = useNavigate();
   const { playTrack, currentTrack, isPlaying } = usePlayerStore();
+  const { startChatWithUser } = useChatStore();
   const isCurrentTrack = currentTrack?.id === track.id;
+
+  const handleStartChat = async (e) => {
+    e.stopPropagation();
+    try {
+      await startChatWithUser(track.authorId);
+      navigate('/chat');
+    } catch (error) {
+      console.error("Could not start chat", error);
+    }
+  };
 
   return (
     <div className="group bg-white/5 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-white/10">
@@ -37,9 +51,18 @@ const TrackCard = ({ track }) => {
         <h3 className="font-semibold truncate text-white group-hover:text-primary transition-colors">
           {track.title}
         </h3>
-        <p className="text-sm text-gray-400 truncate">
-          {track.authorName}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-gray-400 truncate flex-1">
+            {track.authorName}
+          </p>
+          <button 
+            onClick={handleStartChat}
+            className="text-gray-500 hover:text-primary transition-colors p-1"
+            title="Message Artist"
+          >
+            <MessageCircle size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

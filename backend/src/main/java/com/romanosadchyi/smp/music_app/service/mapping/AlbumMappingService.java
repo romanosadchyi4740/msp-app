@@ -23,7 +23,7 @@ public class AlbumMappingService {
                 Optional.ofNullable(album.getTracks())
                         .orElseGet(List::of)
                         .stream()
-                        .map(trackMappingService::map)
+                        .map(t -> trackMappingService.map(t, album.getTitle(), album.getCoverUrl()))
                         .toList();
 
         return new AlbumResponseDto(

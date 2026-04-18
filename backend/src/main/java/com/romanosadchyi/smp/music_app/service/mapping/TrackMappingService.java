@@ -19,6 +19,13 @@ public class TrackMappingService {
 
     public TrackResponseDto map(Track track) {
         String albumTitle = track.getAlbum() != null ? track.getAlbum().getTitle() : null;
+        String coverUrl = track.getCoverUrl();
+        
+        // If track cover is null, check album cover
+        if (coverUrl == null && track.getAlbum() != null) {
+            coverUrl = track.getAlbum().getCoverUrl();
+        }
+        
         return TrackResponseDto.builder()
                 .id(track.getId())
                 .title(track.getTitle())
@@ -26,7 +33,24 @@ public class TrackMappingService {
                 .authorId(track.getAuthor().getId())
                 .albumTitle(albumTitle)
                 .duration(track.getDuration())
-                .coverUrl(track.getCoverUrl())
+                .coverUrl(coverUrl)
+                .build();
+    }
+
+    /**
+     * Specialized map method for when we already have the album context (avoids LAZY loading issues)
+     */
+    public TrackResponseDto map(Track track, String albumTitle, String albumCoverUrl) {
+        String coverUrl = track.getCoverUrl() != null ? track.getCoverUrl() : albumCoverUrl;
+        
+        return TrackResponseDto.builder()
+                .id(track.getId())
+                .title(track.getTitle())
+                .authorName(track.getAuthor().getDisplayName())
+                .authorId(track.getAuthor().getId())
+                .albumTitle(albumTitle)
+                .duration(track.getDuration())
+                .coverUrl(coverUrl)
                 .build();
     }
 

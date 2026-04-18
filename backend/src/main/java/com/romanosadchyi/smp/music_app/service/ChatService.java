@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
@@ -13,6 +14,7 @@ import com.romanosadchyi.smp.music_app.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.service.mapping.ChatMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMessageMappingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +24,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,6 +39,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final TrackRepository trackRepository;
     private final ChatMessageMappingService mappingService;
+    private final ChatMappingService chatMappingService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
@@ -58,6 +63,18 @@ public class ChatService {
     public Page<ChatMessageResponseDto> getMessageHistory(UUID chatId, Pageable pageable) {
         return messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable)
                 .map(mappingService::map);
+    }
+
+    @Transactional
+    public ChatResponseDto getOrCreateChatDto(UUID user1Id, UUID user2Id) {
+        return chatMappingService.map(getOrCreateChat(user1Id, user2Id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatResponseDto> getUserChats(UUID userId) {
+        return chatRepository.findAllByParticipantId(userId).stream()
+                .map(chatMappingService::map)
+                .collect(Collectors.toList());
     }
 
     private ChatMessageResponseDto saveMessage(ChatMessageRequestDto request, UUID senderId) {

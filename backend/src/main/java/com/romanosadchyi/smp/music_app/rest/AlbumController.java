@@ -8,6 +8,9 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +33,12 @@ public class AlbumController {
     ) {
         log.info("Creating album for user: {}", user.getId());
         return ResponseEntity.ok(albumService.createAlbum(user.getId(), dto));
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<AlbumResponseDto>> getAllAlbums(@PageableDefault(size = 10) Pageable pageable) {
+        log.info("Getting all albums");
+        return ResponseEntity.ok(albumService.getAllAlbums(pageable));
     }
 
     @GetMapping("/{id}")

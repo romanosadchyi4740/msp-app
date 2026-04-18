@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
+import ChatPage from './pages/ChatPage';
+import AlbumDetailsPage from './pages/AlbumDetailsPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,8 +24,9 @@ function App() {
           }
         >
           <Route path="/" element={<HomePage />} />
+          <Route path="/albums/:albumId" element={<AlbumDetailsPage />} />
           <Route path="/playlists" element={<div>Playlists Page (Coming Soon)</div>} />
-          <Route path="/chat" element={<div>Chat Page (Coming Soon)</div>} />
+          <Route path="/chat" element={<ChatPage />} />
         </Route>
 
         {/* Redirect unknown routes */}
