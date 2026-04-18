@@ -1,8 +1,8 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequest;
-import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequest;
-import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponse;
+import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
@@ -26,7 +26,7 @@ public class AuthService {
     JwtService jwtService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponseDto register(RegisterRequestDto request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
         }
@@ -44,10 +44,10 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
 
-        return new AuthResponse(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
+        return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponseDto login(LoginRequestDto request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
@@ -61,7 +61,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
 
-        return new AuthResponse(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
+        return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
     }
 
 }

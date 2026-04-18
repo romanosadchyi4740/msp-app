@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.rest;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponse;
+import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @GetMapping("/{chatId}/messages")
-    public Page<ChatMessageResponse> getMessageHistory(
+    public Page<ChatMessageResponseDto> getMessageHistory(
             @PathVariable UUID chatId,
             @PageableDefault(size = 20) Pageable pageable) {
         log.info("Getting message history for chat with ID: {}", chatId);

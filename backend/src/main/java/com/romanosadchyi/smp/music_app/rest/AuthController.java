@@ -1,8 +1,8 @@
 package com.romanosadchyi.smp.music_app.rest;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequest;
-import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequest;
-import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponse;
+import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.service.AuthService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +24,13 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponseDto> register(@RequestBody RegisterRequestDto request) {
         log.info("Registering new user with email: {}", request.email());
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto request) {
         log.info("Logging in user with email: {}", request.email());
         return ResponseEntity.ok(authService.login(request));
     }

@@ -3,8 +3,8 @@ package com.romanosadchyi.smp.music_app.service;
 import com.romanosadchyi.smp.music_app.exception.ChatNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
-import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequest;
-import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponse;
+import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
@@ -22,7 +22,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,8 +38,8 @@ public class ChatService {
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    public void processMessage(ChatMessageRequest request, UUID senderId) {
-        ChatMessageResponse savedMessage = saveMessage(request, senderId);
+    public void processMessage(ChatMessageRequestDto request, UUID senderId) {
+        ChatMessageResponseDto savedMessage = saveMessage(request, senderId);
         log.info("Message saved with ID: {} in chat: {}", savedMessage.id(), savedMessage.chatId());
 
         Chat chat = chatRepository.findById(savedMessage.chatId())
@@ -56,12 +55,12 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ChatMessageResponse> getMessageHistory(UUID chatId, Pageable pageable) {
+    public Page<ChatMessageResponseDto> getMessageHistory(UUID chatId, Pageable pageable) {
         return messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable)
                 .map(mappingService::map);
     }
 
-    private ChatMessageResponse saveMessage(ChatMessageRequest request, UUID senderId) {
+    private ChatMessageResponseDto saveMessage(ChatMessageRequestDto request, UUID senderId) {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + senderId));
 

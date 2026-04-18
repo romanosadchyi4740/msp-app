@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.service.mapping;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponse;
+import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -12,8 +12,8 @@ public class ChatMessageMappingService {
     private final UserMappingService userMappingService;
     private final TrackMappingService trackMappingService;
 
-    public ChatMessageResponse map(Message message) {
-        return ChatMessageResponse.builder()
+    public ChatMessageResponseDto map(Message message) {
+        return ChatMessageResponseDto.builder()
                 .id(message.getId())
                 .chatId(message.getChat().getId())
                 .sender(userMappingService.map(message.getSender()))

@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.model.dto.response;
 
-public record AuthResponse(
+public record AuthResponseDto(
         String accessToken,
         String displayName,
         String userId,

@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Builder
-public record ChatMessageResponse(
+public record ChatMessageResponseDto(
         UUID id,
         UUID chatId,
         UserResponseDto sender,

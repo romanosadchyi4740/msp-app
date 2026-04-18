@@ -1,8 +1,8 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequest;
-import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequest;
-import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponse;
+import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
@@ -37,14 +37,14 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
-    private RegisterRequest registerRequest;
-    private LoginRequest loginRequest;
+    private RegisterRequestDto registerRequestDto;
+    private LoginRequestDto loginRequestDto;
     private User testUser;
 
     @BeforeEach
     void setUp() {
-        registerRequest = new RegisterRequest("test@example.com", "password", "Test User");
-        loginRequest = new LoginRequest("test@example.com", "password");
+        registerRequestDto = new RegisterRequestDto("test@example.com", "password", "Test User");
+        loginRequestDto = new LoginRequestDto("test@example.com", "password");
         testUser = User.builder()
                 .id(UUID.randomUUID())
                 .email("test@example.com")
@@ -61,7 +61,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(testUser);
         when(jwtService.generateToken(any(User.class))).thenReturn("token");
 
-        AuthResponse response = authService.register(registerRequest);
+        AuthResponseDto response = authService.register(registerRequestDto);
 
         assertNotNull(response);
         assertEquals("token", response.accessToken());
@@ -73,7 +73,7 @@ class AuthServiceTest {
     void register_ShouldThrowException_WhenEmailExists() {
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> authService.register(registerRequest));
+        assertThrows(ResponseStatusException.class, () -> authService.register(registerRequestDto));
     }
 
     @Test
@@ -82,7 +82,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(jwtService.generateToken(any(User.class))).thenReturn("token");
 
-        AuthResponse response = authService.login(loginRequest);
+        AuthResponseDto response = authService.login(loginRequestDto);
 
         assertNotNull(response);
         assertEquals("token", response.accessToken());
@@ -92,7 +92,7 @@ class AuthServiceTest {
     void login_ShouldThrowException_WhenUserNotFound() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> authService.login(loginRequest));
+        assertThrows(ResponseStatusException.class, () -> authService.login(loginRequestDto));
     }
 
 }

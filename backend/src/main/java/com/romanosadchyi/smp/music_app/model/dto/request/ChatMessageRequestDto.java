@@ -5,7 +5,7 @@ import lombok.Builder;
 import java.util.UUID;
 
 @Builder
-public record ChatMessageRequest(
+public record ChatMessageRequestDto(
         UUID chatId,
         UUID recipientId,
         String content,

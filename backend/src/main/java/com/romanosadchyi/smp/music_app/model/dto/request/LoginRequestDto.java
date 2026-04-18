@@ -1,7 +1,6 @@
 package com.romanosadchyi.smp.music_app.model.dto.request;
 
-public record RegisterRequest(
+public record LoginRequestDto(
         String email,
-        String password,
-        String displayName
+        String password
 ) {}
