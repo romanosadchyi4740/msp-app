@@ -22,12 +22,12 @@ const useAuthStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await axiosClient.post('/auth/login', { email, password });
-      const { token, user } = response.data;
+      const { accessToken, ...user } = response.data;
       
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -42,12 +42,12 @@ const useAuthStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await axiosClient.post('/auth/register', userData);
-      const { token, user } = response.data;
+      const { accessToken, ...user } = response.data;
       
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, loading: false });
       return true;
     } catch (error) {
       set({ 
