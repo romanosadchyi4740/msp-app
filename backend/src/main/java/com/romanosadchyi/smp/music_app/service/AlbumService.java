@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -58,6 +60,13 @@ public class AlbumService {
     public Page<AlbumResponseDto> getAllAlbums(Pageable pageable) {
         return albumRepository.findAll(pageable)
                 .map(albumMappingService::map);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlbumResponseDto> getAlbumsByAuthor(UUID authorId) {
+        return albumRepository.findAllByAuthorId(authorId).stream()
+                .map(albumMappingService::map)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

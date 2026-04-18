@@ -47,14 +47,15 @@ public class TrackService {
             throw new UserNotAuthorizedException("Only artists can upload tracks");
         }
 
-        Album album = null;
-        if (dto.albumId() != null) {
-            album = albumRepository.findById(dto.albumId())
-                    .orElseThrow(() -> new AlbumNotFoundException("Album not found"));
+        if (dto.albumId() == null) {
+            throw new IllegalArgumentException("Album ID is required. Every track must belong to an album.");
+        }
 
-            if (!album.getAuthor().getId().equals(authorId)) {
-                throw new UserNotAuthorizedException("You can only add tracks to your own albums");
-            }
+        Album album = albumRepository.findById(dto.albumId())
+                .orElseThrow(() -> new AlbumNotFoundException("Album not found"));
+
+        if (!album.getAuthor().getId().equals(authorId)) {
+            throw new UserNotAuthorizedException("You can only add tracks to your own albums");
         }
 
         String originalFilename = file.getOriginalFilename();

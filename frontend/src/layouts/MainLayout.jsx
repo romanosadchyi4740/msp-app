@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Library, MessageCircle, LogOut, Music, User } from 'lucide-react';
+import { Home, Library, MessageCircle, LogOut, Music, User, Upload } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import AudioPlayer from '../components/AudioPlayer';
 
@@ -19,6 +19,10 @@ const MainLayout = () => {
     { icon: Library, label: 'Playlists', path: '/playlists' },
     { icon: MessageCircle, label: 'Chat', path: '/chat' },
   ];
+
+  if (user?.role === 'ROLE_ARTIST') {
+    navItems.push({ icon: Upload, label: 'Upload', path: '/upload' });
+  }
 
   return (
     <div className="flex h-screen bg-black text-white overflow-hidden">

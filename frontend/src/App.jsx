@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
 import AlbumDetailsPage from './pages/AlbumDetailsPage';
+import UploadPage from './pages/UploadPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="/albums/:albumId" element={<AlbumDetailsPage />} />
           <Route path="/playlists" element={<div>Playlists Page (Coming Soon)</div>} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/upload" element={<UploadPage />} />
         </Route>
 
         {/* Redirect unknown routes */}

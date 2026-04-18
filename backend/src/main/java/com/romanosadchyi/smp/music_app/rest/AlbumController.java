@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -39,6 +40,12 @@ public class AlbumController {
     public ResponseEntity<Page<AlbumResponseDto>> getAllAlbums(@PageableDefault(size = 10) Pageable pageable) {
         log.info("Getting all albums");
         return ResponseEntity.ok(albumService.getAllAlbums(pageable));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<AlbumResponseDto>> getMyAlbums(@AuthenticationPrincipal User user) {
+        log.info("Getting albums for user: {}", user.getId());
+        return ResponseEntity.ok(albumService.getAlbumsByAuthor(user.getId()));
     }
 
     @GetMapping("/{id}")
