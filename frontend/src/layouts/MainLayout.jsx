@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Library, MessageCircle, LogOut, Music, User } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import AudioPlayer from '../components/AudioPlayer';
 
 const MainLayout = () => {
   const { user, logout } = useAuthStore();
@@ -76,36 +77,8 @@ const MainLayout = () => {
         </div>
       </main>
 
-      {/* Player Placeholder */}
-      <div className="fixed bottom-0 left-0 right-0 h-24 bg-dark border-t border-white/5 px-6 flex items-center justify-between z-40">
-        <div className="flex items-center gap-4 w-1/3">
-           <div className="w-14 h-14 bg-white/10 rounded flex items-center justify-center">
-             <Music className="text-gray-500" />
-           </div>
-           <div>
-             <p className="text-sm font-medium">Select a track</p>
-             <p className="text-xs text-gray-500">No artist selected</p>
-           </div>
-        </div>
-        
-        <div className="flex flex-col items-center gap-2 w-1/3">
-          <div className="flex items-center gap-6 text-gray-400">
-            {/* Playback controls icons here */}
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition cursor-pointer">
-               <Music size={20} fill="currentColor" />
-            </div>
-          </div>
-          <div className="w-full max-w-md h-1 bg-white/10 rounded-full">
-            <div className="w-1/3 h-full bg-primary rounded-full"></div>
-          </div>
-        </div>
-
-        <div className="w-1/3 flex justify-end items-center gap-4 text-gray-400">
-          <div className="w-24 h-1 bg-white/10 rounded-full">
-            <div className="w-2/3 h-full bg-white/40 rounded-full"></div>
-          </div>
-        </div>
-      </div>
+      {/* Global Audio Player */}
+      <AudioPlayer />
     </div>
   );
 };
