@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1 } from 'lucide-react';
 import usePlayerStore from '../store/playerStore';
 
 const AudioPlayer = () => {
@@ -14,7 +14,9 @@ const AudioPlayer = () => {
     setIsPlaying,
     playNext,
     playPrevious,
-    queue
+    queue,
+    loopMode,
+    toggleLoopMode
   } = usePlayerStore();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -68,8 +70,37 @@ const AudioPlayer = () => {
   if (!currentTrack) return null;
 
   const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-  const hasNext = currentIndex !== -1 && currentIndex < queue.length - 1;
-  const hasPrevious = currentIndex > 0;
+  const hasNext = loopMode === 'all' || (currentIndex !== -1 && currentIndex < queue.length - 1);
+  const hasPrevious = loopMode === 'all' || currentIndex > 0;
+
+  const isLooping = loopMode === 'one' || (loopMode === 'all' && queue.length === 1);
+
+  const handleManualSkipNext = () => {
+    const beforeId = currentTrack?.id;
+    playNext(true);
+    // If the track didn't change (e.g. single track queue), manual restart
+    if (usePlayerStore.getState().currentTrack?.id === beforeId) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    }
+  };
+
+  const handleManualSkipPrevious = () => {
+    const beforeId = currentTrack?.id;
+    playPrevious();
+    if (usePlayerStore.getState().currentTrack?.id === beforeId) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    }
+  };
+
+  const renderLoopIcon = () => {
+    switch (loopMode) {
+      case 'one': return <Repeat1 size={20} className="text-primary" />;
+      case 'all': return <Repeat size={20} className="text-primary" />;
+      default: return <Repeat size={20} className="text-gray-400" />;
+    }
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-24 bg-dark border-t border-white/5 px-6 flex items-center justify-between z-50">
@@ -78,7 +109,8 @@ const AudioPlayer = () => {
         src={audioUrl}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={playNext}
+        onEnded={() => playNext(false)}
+        loop={isLooping}
       />
 
       {/* Track Info */}
@@ -104,7 +136,15 @@ const AudioPlayer = () => {
       <div className="flex flex-col items-center gap-2 w-1/3">
         <div className="flex items-center gap-6">
           <button 
-            onClick={playPrevious}
+            onClick={toggleLoopMode}
+            className="hover:scale-110 transition active:scale-95"
+            title={`Loop: ${loopMode}`}
+          >
+            {renderLoopIcon()}
+          </button>
+
+          <button 
+            onClick={handleManualSkipPrevious}
             disabled={!hasPrevious}
             className={`transition ${hasPrevious ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
           >
@@ -119,7 +159,7 @@ const AudioPlayer = () => {
           </button>
 
           <button 
-            onClick={playNext}
+            onClick={handleManualSkipNext}
             disabled={!hasNext}
             className={`transition ${hasNext ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
           >

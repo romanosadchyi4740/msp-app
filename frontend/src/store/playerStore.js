@@ -7,6 +7,7 @@ const usePlayerStore = create((set, get) => ({
   volume: 0.5,
   audioUrl: null,
   queue: [],
+  loopMode: 'none', // 'none', 'one', 'all'
 
   playTrack: async (track, newQueue = []) => {
     // If a new queue is provided, update it
@@ -36,26 +37,42 @@ const usePlayerStore = create((set, get) => ({
     }
   },
 
-  playNext: () => {
-    const { currentTrack, queue } = get();
+  playNext: (force = false) => {
+    const { currentTrack, queue, loopMode } = get();
     if (!currentTrack || queue.length === 0) return;
+
+    if (!force && loopMode === 'one') {
+      get().playTrack(currentTrack);
+      return;
+    }
 
     const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
     if (currentIndex !== -1 && currentIndex < queue.length - 1) {
       get().playTrack(queue[currentIndex + 1]);
+    } else if (loopMode === 'all') {
+      get().playTrack(queue[0]);
     } else {
       set({ isPlaying: false }); // Stop at the end of the queue
     }
   },
 
   playPrevious: () => {
-    const { currentTrack, queue } = get();
+    const { currentTrack, queue, loopMode } = get();
     if (!currentTrack || queue.length === 0) return;
 
     const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
     if (currentIndex > 0) {
       get().playTrack(queue[currentIndex - 1]);
+    } else if (loopMode === 'all') {
+      get().playTrack(queue[queue.length - 1]);
     }
+  },
+
+  toggleLoopMode: () => {
+    const modes = ['none', 'all', 'one'];
+    const currentMode = get().loopMode;
+    const nextMode = modes[(modes.indexOf(currentMode) + 1) % modes.length];
+    set({ loopMode: nextMode });
   },
 
   togglePlayPause: () => {
