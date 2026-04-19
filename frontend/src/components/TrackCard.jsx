@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useChatStore from '../store/chatStore';
 
-const TrackCard = ({ track }) => {
+const TrackCard = ({ track, queue = [] }) => {
   const navigate = useNavigate();
   const { playTrack, currentTrack, isPlaying } = usePlayerStore();
   const { startChatWithUser } = useChatStore();
@@ -37,7 +37,7 @@ const TrackCard = ({ track }) => {
         
         {/* Play Button Overlay */}
         <button
-          onClick={() => playTrack(track)}
+          onClick={() => playTrack(track, queue)}
           className={`absolute bottom-2 right-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center text-black shadow-xl 
             transition-all duration-300 transform 
             ${isCurrentTrack && isPlaying ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-90 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'}

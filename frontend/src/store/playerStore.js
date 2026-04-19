@@ -6,8 +6,14 @@ const usePlayerStore = create((set, get) => ({
   isPlaying: false,
   volume: 0.5,
   audioUrl: null,
+  queue: [],
 
-  playTrack: async (track) => {
+  playTrack: async (track, newQueue = []) => {
+    // If a new queue is provided, update it
+    if (newQueue.length > 0) {
+      set({ queue: newQueue });
+    }
+
     // If it's the same track and it's already playing, do nothing
     // If it's the same track and it's paused, toggle play
     if (get().currentTrack?.id === track.id) {
@@ -27,6 +33,28 @@ const usePlayerStore = create((set, get) => ({
       });
     } catch (error) {
       console.error('Failed to get track URL:', error);
+    }
+  },
+
+  playNext: () => {
+    const { currentTrack, queue } = get();
+    if (!currentTrack || queue.length === 0) return;
+
+    const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex !== -1 && currentIndex < queue.length - 1) {
+      get().playTrack(queue[currentIndex + 1]);
+    } else {
+      set({ isPlaying: false }); // Stop at the end of the queue
+    }
+  },
+
+  playPrevious: () => {
+    const { currentTrack, queue } = get();
+    if (!currentTrack || queue.length === 0) return;
+
+    const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex > 0) {
+      get().playTrack(queue[currentIndex - 1]);
     }
   },
 

@@ -124,7 +124,7 @@ const AlbumDetailsPage = () => {
                   {index + 1}
                 </div>
                 <button 
-                  onClick={() => playTrack(track)}
+                  onClick={() => playTrack(track, album.tracks)}
                   className="w-8 hidden group-hover:flex items-center justify-center text-primary"
                 >
                   <Play size={16} fill="currentColor" />

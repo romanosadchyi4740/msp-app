@@ -4,7 +4,18 @@ import usePlayerStore from '../store/playerStore';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
-  const { currentTrack, isPlaying, volume, audioUrl, togglePlayPause, setVolume, setIsPlaying } = usePlayerStore();
+  const { 
+    currentTrack, 
+    isPlaying, 
+    volume, 
+    audioUrl, 
+    togglePlayPause, 
+    setVolume, 
+    setIsPlaying,
+    playNext,
+    playPrevious,
+    queue
+  } = usePlayerStore();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -56,6 +67,10 @@ const AudioPlayer = () => {
 
   if (!currentTrack) return null;
 
+  const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
+  const hasNext = currentIndex !== -1 && currentIndex < queue.length - 1;
+  const hasPrevious = currentIndex > 0;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 h-24 bg-dark border-t border-white/5 px-6 flex items-center justify-between z-50">
       <audio
@@ -63,7 +78,7 @@ const AudioPlayer = () => {
         src={audioUrl}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={playNext}
       />
 
       {/* Track Info */}
@@ -88,7 +103,11 @@ const AudioPlayer = () => {
       {/* Controls */}
       <div className="flex flex-col items-center gap-2 w-1/3">
         <div className="flex items-center gap-6">
-          <button className="text-gray-400 hover:text-white transition cursor-not-allowed">
+          <button 
+            onClick={playPrevious}
+            disabled={!hasPrevious}
+            className={`transition ${hasPrevious ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
+          >
             <SkipBack size={20} fill="currentColor" />
           </button>
           
@@ -99,7 +118,11 @@ const AudioPlayer = () => {
             {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
           </button>
 
-          <button className="text-gray-400 hover:text-white transition cursor-not-allowed">
+          <button 
+            onClick={playNext}
+            disabled={!hasNext}
+            className={`transition ${hasNext ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
+          >
             <SkipForward size={20} fill="currentColor" />
           </button>
         </div>
