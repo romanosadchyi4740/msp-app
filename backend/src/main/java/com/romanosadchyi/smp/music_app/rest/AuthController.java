@@ -35,6 +35,4 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    // Google логін додамо наступним кроком
-
 }

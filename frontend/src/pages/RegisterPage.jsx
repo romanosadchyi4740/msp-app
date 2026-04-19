@@ -5,8 +5,7 @@ import useAuthStore from '../store/authStore';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    displayName: '',
     email: '',
     password: ''
   });
@@ -47,30 +46,17 @@ const RegisterPage = () => {
             </div>
           )}
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-              <input
-                name="firstName"
-                type="text"
-                required
-                className="w-full bg-dark border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                placeholder="First Name"
-                value={formData.firstName}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="relative">
-              <input
-                name="lastName"
-                type="text"
-                required
-                className="w-full bg-dark border border-gray-700 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                placeholder="Last Name"
-                value={formData.lastName}
-                onChange={handleChange}
-              />
-            </div>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+            <input
+              name="displayName"
+              type="text"
+              required
+              className="w-full bg-dark border border-gray-700 rounded-lg py-3 px-10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition"
+              placeholder="Display Name"
+              value={formData.displayName}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="relative">

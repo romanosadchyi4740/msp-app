@@ -53,13 +53,13 @@ public class ChatService {
         Chat chat = chatRepository.findById(savedMessage.chatId())
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found"));
 
-        chat.getParticipants().forEach(participant -> {
-            messagingTemplate.convertAndSendToUser(
-                    participant.getId().toString(),
-                    "/queue/messages",
-                    savedMessage
-            );
-        });
+        chat.getParticipants().forEach(participant ->
+                messagingTemplate.convertAndSendToUser(
+                        participant.getId().toString(),
+                        "/queue/messages",
+                        savedMessage
+                )
+        );
     }
 
     @Transactional(readOnly = true)
