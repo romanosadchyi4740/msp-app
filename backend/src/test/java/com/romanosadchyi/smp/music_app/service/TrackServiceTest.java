@@ -64,7 +64,7 @@ class TrackServiceTest {
                 .role(UserRole.ROLE_USER)
                 .build();
 
-        trackDto = new TrackCreateDto("Song", 180, null, null, 1);
+        trackDto = new TrackCreateDto("Song", 210, null, null, 1);
         mockFile = mock(MultipartFile.class);
 //        when(mockFile.getOriginalFilename()).thenReturn("song.mp3");
     }

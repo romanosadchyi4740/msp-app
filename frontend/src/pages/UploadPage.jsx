@@ -15,6 +15,7 @@ const UploadPage = () => {
   // Track Form State
   const [trackTitle, setTrackTitle] = useState('');
   const [trackFile, setTrackFile] = useState(null);
+  const [trackDuration, setTrackDuration] = useState(0);
   const [selectedAlbumId, setSelectedAlbumId] = useState('');
   const [uploadingTrack, setUploadingTrack] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -24,6 +25,20 @@ const UploadPage = () => {
   useEffect(() => {
     fetchMyAlbums();
   }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setTrackFile(file);
+      
+      const audio = new Audio();
+      audio.src = URL.createObjectURL(file);
+      audio.onloadedmetadata = () => {
+        setTrackDuration(Math.round(audio.duration));
+        URL.revokeObjectURL(audio.src);
+      };
+    }
+  };
 
   const fetchMyAlbums = async () => {
     setLoadingAlbums(true);
@@ -70,8 +85,7 @@ const UploadPage = () => {
     formData.append('file', trackFile);
     formData.append('title', trackTitle);
     formData.append('albumId', selectedAlbumId);
-    // duration and trackNumber could be added here if we had them from client-side processing
-    formData.append('duration', 180); // Placeholder duration
+    formData.append('duration', trackDuration);
 
     try {
       await axiosClient.post('/api/tracks', formData, {
@@ -86,6 +100,7 @@ const UploadPage = () => {
       setMessage({ type: 'success', text: 'Track uploaded successfully!' });
       setTrackTitle('');
       setTrackFile(null);
+      setTrackDuration(0);
       setUploadProgress(0);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to upload track.' });
@@ -202,7 +217,7 @@ const UploadPage = () => {
                   required
                   type="file"
                   accept="audio/*"
-                  onChange={(e) => setTrackFile(e.target.files[0])}
+                  onChange={handleFileChange}
                   className="hidden"
                   id="track-upload"
                 />
