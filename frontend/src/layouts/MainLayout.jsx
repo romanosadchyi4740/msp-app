@@ -1,17 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Library, MessageCircle, LogOut, Music, User, Upload } from 'lucide-react';
+import { Home, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import AudioPlayer from '../components/AudioPlayer';
 
 const MainLayout = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, becomeArtist, loading } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isArtistLoading, setIsArtistLoading] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleBecomeArtist = async () => {
+    setIsArtistLoading(true);
+    const success = await becomeArtist();
+    if (success) {
+      navigate('/upload');
+    }
+    setIsArtistLoading(false);
   };
 
   const navItems = [
@@ -53,6 +63,26 @@ const MainLayout = () => {
             );
           })}
         </nav>
+
+        {/* Become Artist Promo */}
+        {user?.role !== 'ROLE_ARTIST' && (
+          <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 space-y-3">
+            <div className="flex items-center gap-2 text-primary">
+              <Star size={18} fill="currentColor" />
+              <span className="text-xs font-bold uppercase tracking-wider">Artist Mode</span>
+            </div>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Want to share your music? Become an artist today!
+            </p>
+            <button
+              onClick={handleBecomeArtist}
+              disabled={isArtistLoading}
+              className="w-full py-2 bg-primary text-black text-xs font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isArtistLoading ? <Loader2 size={14} className="animate-spin" /> : 'Join the stage'}
+            </button>
+          </div>
+        )}
 
         <div className="p-4 border-t border-white/5 space-y-4">
           <div className="flex items-center gap-3 px-4 py-2">

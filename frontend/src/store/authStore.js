@@ -58,6 +58,28 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  becomeArtist: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axiosClient.post('/api/users/me/become-artist');
+      const updatedUser = response.data;
+      
+      // Update local storage and state with the new role
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      const newUser = { ...currentUser, role: updatedUser.role };
+      
+      localStorage.setItem('user', JSON.stringify(newUser));
+      set({ user: newUser, loading: false });
+      return true;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to become an artist', 
+        loading: false 
+      });
+      return false;
+    }
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
