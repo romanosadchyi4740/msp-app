@@ -2,7 +2,9 @@ package com.romanosadchyi.smp.music_app.config;
 
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.JwtService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Configuration;
@@ -26,10 +28,11 @@ import java.util.UUID;
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    private final JwtService jwtService;
-    private final UserRepository userRepository;
+    JwtService jwtService;
+    UserRepository userRepository;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {

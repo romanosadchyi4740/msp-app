@@ -6,6 +6,8 @@ import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,23 +25,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 class AuthServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    UserRepository userRepository;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    PasswordEncoder passwordEncoder;
 
     @Mock
-    private JwtService jwtService;
+    JwtService jwtService;
 
     @InjectMocks
-    private AuthService authService;
+    AuthService authService;
 
-    private RegisterRequestDto registerRequestDto;
-    private LoginRequestDto loginRequestDto;
-    private User testUser;
+    RegisterRequestDto registerRequestDto;
+    LoginRequestDto loginRequestDto;
+    User testUser;
 
     @BeforeEach
     void setUp() {

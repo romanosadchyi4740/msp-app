@@ -4,7 +4,9 @@ import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.ChatService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,9 +21,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/chats")
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatController {
 
-    private final ChatService chatService;
+    ChatService chatService;
 
     @GetMapping
     public List<ChatResponseDto> getUserChats(@AuthenticationPrincipal User user) {

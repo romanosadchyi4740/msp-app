@@ -3,6 +3,7 @@ package com.romanosadchyi.smp.music_app.service;
 import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
+import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
@@ -10,6 +11,8 @@ import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,30 +29,31 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 class TrackServiceTest {
 
     @Mock
-    private TrackRepository trackRepository;
+    TrackRepository trackRepository;
 
     @Mock
-    private UserRepository userRepository;
+    UserRepository userRepository;
 
     @Mock
-    private AlbumRepository albumRepository;
+    AlbumRepository albumRepository;
 
     @Mock
-    private MinioService minioService;
+    MinioService minioService;
 
     @Mock
-    private TrackMappingService trackMappingService;
+    TrackMappingService trackMappingService;
 
     @InjectMocks
-    private TrackService trackService;
+    TrackService trackService;
 
-    private User artist;
-    private User listener;
-    private TrackCreateDto trackDto;
-    private MultipartFile mockFile;
+    User artist;
+    User listener;
+    TrackCreateDto trackDto;
+    MultipartFile mockFile;
 
     @BeforeEach
     void setUp() {
@@ -64,7 +68,7 @@ class TrackServiceTest {
                 .role(UserRole.ROLE_USER)
                 .build();
 
-        trackDto = new TrackCreateDto("Song", 210, null, null, 1);
+        trackDto = new TrackCreateDto("Song", 210, null, UUID.randomUUID(), 1);
         mockFile = mock(MultipartFile.class);
 //        when(mockFile.getOriginalFilename()).thenReturn("song.mp3");
     }
@@ -74,6 +78,7 @@ class TrackServiceTest {
         when(userRepository.findById(artist.getId())).thenReturn(Optional.of(artist));
         when(trackMappingService.map(any(TrackCreateDto.class))).thenReturn(new Track());
         when(trackRepository.save(any(Track.class))).thenReturn(Track.builder().id(UUID.randomUUID()).build());
+        when(albumRepository.findById(any())).thenReturn(Optional.of(new Album().toBuilder().author(artist).build()));
 
         trackService.createTrack(artist.getId(), trackDto, mockFile);
 

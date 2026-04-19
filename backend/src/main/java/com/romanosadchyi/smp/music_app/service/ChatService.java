@@ -16,7 +16,9 @@ import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMessageMappingService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,15 +34,16 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatService {
 
-    private final ChatRepository chatRepository;
-    private final MessageRepository messageRepository;
-    private final UserRepository userRepository;
-    private final TrackRepository trackRepository;
-    private final ChatMessageMappingService mappingService;
-    private final ChatMappingService chatMappingService;
-    private final SimpMessagingTemplate messagingTemplate;
+    ChatRepository chatRepository;
+    MessageRepository messageRepository;
+    UserRepository userRepository;
+    TrackRepository trackRepository;
+    ChatMessageMappingService mappingService;
+    ChatMappingService chatMappingService;
+    SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public void processMessage(ChatMessageRequestDto request, UUID senderId) {

@@ -3,7 +3,9 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -11,10 +13,11 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatMappingService {
 
-    private final UserMappingService userMappingService;
-    private final ChatMessageMappingService messageMappingService;
+    UserMappingService userMappingService;
+    ChatMessageMappingService messageMappingService;
 
     public ChatResponseDto map(Chat chat) {
         return ChatResponseDto.builder()
