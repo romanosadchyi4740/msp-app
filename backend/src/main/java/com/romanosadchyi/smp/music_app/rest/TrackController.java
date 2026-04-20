@@ -55,11 +55,12 @@ public class TrackController {
     @GetMapping("/search")
     public ResponseEntity<Page<TrackResponseDto>> searchTracks(
             @RequestParam("query") String query,
+            @RequestParam(value = "userId", required = false) UUID userId,
             @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
             @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize
     ) {
-        log.info("Searching tracks with query: {}", query);
-        return ResponseEntity.ok(trackService.searchTracks(query, pageNo, pageSize));
+        log.info("Searching tracks with query: {} and userId: {}", query, userId);
+        return ResponseEntity.ok(trackService.searchTracks(query, userId, pageNo, pageSize));
     }
 
 }

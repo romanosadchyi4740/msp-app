@@ -77,7 +77,11 @@ public class AlbumService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AlbumResponseDto> searchAlbums(String query, Pageable pageable) {
+    public Page<AlbumResponseDto> searchAlbums(String query, UUID authorId, Pageable pageable) {
+        if (authorId != null) {
+            return albumRepository.findAllByAuthorIdAndTitleContainingIgnoreCase(authorId, query, pageable)
+                    .map(albumMappingService::map);
+        }
         return albumRepository.findAllByTitleContainingIgnoreCase(query, pageable)
                 .map(albumMappingService::map);
     }

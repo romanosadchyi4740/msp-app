@@ -99,8 +99,12 @@ public class TrackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<TrackResponseDto> searchTracks(String query, int pageNo, int pageSize) {
+    public Page<TrackResponseDto> searchTracks(String query, UUID authorId, int pageNo, int pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
+        if (authorId != null) {
+            return trackRepository.findAllByAuthorIdAndTitleContainingIgnoreCase(authorId, query, pageable)
+                    .map(trackMappingService::map);
+        }
         return trackRepository.findAllByTitleContainingIgnoreCase(query, pageable)
                 .map(trackMappingService::map);
     }

@@ -57,10 +57,11 @@ public class AlbumController {
     @GetMapping("/search")
     public ResponseEntity<Page<AlbumResponseDto>> searchAlbums(
             @RequestParam("query") String query,
+            @RequestParam(value = "userId", required = false) UUID userId,
             @PageableDefault(size = 10) Pageable pageable
     ) {
-        log.info("Searching albums with query: {}", query);
-        return ResponseEntity.ok(albumService.searchAlbums(query, pageable));
+        log.info("Searching albums with query: {} and userId: {}", query, userId);
+        return ResponseEntity.ok(albumService.searchAlbums(query, userId, pageable));
     }
 
 }

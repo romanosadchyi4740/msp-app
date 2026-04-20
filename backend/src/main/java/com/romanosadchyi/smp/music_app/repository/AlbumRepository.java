@@ -13,4 +13,5 @@ import java.util.UUID;
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
     List<Album> findAllByAuthorId(UUID artistId);
     Page<Album> findAllByTitleContainingIgnoreCase(String title, Pageable pageable);
+    Page<Album> findAllByAuthorIdAndTitleContainingIgnoreCase(UUID authorId, String title, Pageable pageable);
 }
