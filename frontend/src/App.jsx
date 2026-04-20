@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import ChatPage from './pages/ChatPage';
 import UserProfilePage from './pages/UserProfilePage';
+import SettingsPage from './pages/SettingsPage';
 import AlbumDetailsPage from './pages/AlbumDetailsPage';
 import UploadPage from './pages/UploadPage';
 import MainLayout from './layouts/MainLayout';
@@ -29,6 +30,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/users/:userId" element={<UserProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/albums/:albumId" element={<AlbumDetailsPage />} />
           <Route path="/playlists" element={<div>Playlists Page (Coming Soon)</div>} />
           <Route path="/chat" element={<ChatPage />} />

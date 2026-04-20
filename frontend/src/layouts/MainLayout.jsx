@@ -29,6 +29,7 @@ const MainLayout = () => {
     { icon: Search, label: 'Search', path: '/search' },
     { icon: Library, label: 'Playlists', path: '/playlists' },
     { icon: MessageCircle, label: 'Chat', path: '/chat' },
+    { icon: User, label: 'Settings', path: '/settings' },
   ];
 
   if (user?.role === 'ROLE_ARTIST') {

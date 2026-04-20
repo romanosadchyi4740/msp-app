@@ -66,7 +66,12 @@ const useAuthStore = create((set) => ({
       
       // Update local storage and state with the new role
       const currentUser = JSON.parse(localStorage.getItem('user'));
-      const newUser = { ...currentUser, role: updatedUser.role };
+      const normalizedUpdatedUser = {
+        ...updatedUser,
+        userId: updatedUser.id || updatedUser.userId || currentUser.userId
+      };
+      
+      const newUser = { ...currentUser, ...normalizedUpdatedUser };
       
       localStorage.setItem('user', JSON.stringify(newUser));
       set({ user: newUser, loading: false });
@@ -74,6 +79,33 @@ const useAuthStore = create((set) => ({
     } catch (error) {
       set({ 
         error: error.response?.data?.message || 'Failed to become an artist', 
+        loading: false 
+      });
+      return false;
+    }
+  },
+
+  updateProfile: async (profileData) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axiosClient.put('/api/users/me', profileData);
+      const updatedUser = response.data;
+      
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      // Normalize: ensure userId is always available even if backend returns 'id'
+      const normalizedUpdatedUser = {
+        ...updatedUser,
+        userId: updatedUser.id || updatedUser.userId || currentUser.userId
+      };
+      
+      const newUser = { ...currentUser, ...normalizedUpdatedUser };
+      
+      localStorage.setItem('user', JSON.stringify(newUser));
+      set({ user: newUser, loading: false });
+      return true;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to update profile', 
         loading: false 
       });
       return false;
