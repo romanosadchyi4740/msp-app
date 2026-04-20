@@ -10,6 +10,9 @@ import com.romanosadchyi.smp.music_app.service.mapping.UserMappingService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,13 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         return userMappingService.map(user);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> searchUsers(String query, int pageNo, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        return userRepository.findAllByDisplayNameContainingIgnoreCase(query, pageable)
+                .map(userMappingService::map);
     }
 
     @Transactional

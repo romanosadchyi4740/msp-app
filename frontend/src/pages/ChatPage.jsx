@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Send, MessageCircle, Search, Music, Loader2 } from 'lucide-react';
+import { Send, MessageCircle, Search, Music, Loader2, Plus } from 'lucide-react';
 import useChatStore from '../store/chatStore';
 import useAuthStore from '../store/authStore';
+import NewChatModal from '../components/chat/NewChatModal';
 
 const ChatPage = () => {
   const { user: currentUser } = useAuthStore();
   const { 
     chats, activeChat, messages, loading, messagesLoading,
-    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket 
+    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket, startChatWithUser 
   } = useChatStore();
   const [messageText, setMessageText] = useState('');
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Initialize socket on mount
@@ -47,7 +49,15 @@ const ChatPage = () => {
       {/* Chats Sidebar */}
       <div className="w-80 border-r border-border flex flex-col bg-background/50">
         <div className="p-8 border-b border-border">
-          <h2 className="text-sm font-black uppercase tracking-[0.3em] mb-6">Archive</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-sm font-black uppercase tracking-[0.3em]">Archive</h2>
+            <button 
+              onClick={() => setIsNewChatModalOpen(true)}
+              className="p-2 border border-border hover:border-white transition-colors text-muted hover:text-white"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
             <input 
@@ -192,6 +202,16 @@ const ChatPage = () => {
           </div>
         )}
       </div>
+
+      {isNewChatModalOpen && (
+        <NewChatModal 
+          onClose={() => setIsNewChatModalOpen(false)}
+          onSelectUser={async (userId) => {
+            setIsNewChatModalOpen(false);
+            await startChatWithUser(userId);
+          }}
+        />
+      )}
     </div>
   );
 };

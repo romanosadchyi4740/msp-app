@@ -1,22 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Music, Disc, Loader2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Music, Disc, Loader2, X, User as UserIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import TrackCard from '../components/TrackCard';
 import AlbumCard from '../components/AlbumCard';
 
 const SearchPage = () => {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState({ tracks: [], albums: [] });
+  const [results, setResults] = useState({ tracks: [], albums: [], users: [] });
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (query.trim()) {
         performSearch(query);
       } else {
-        setResults({ tracks: [], albums: [] });
+        setResults({ tracks: [], albums: [], users: [] });
         setHasSearched(false);
       }
     }, 400);
@@ -27,14 +28,11 @@ const SearchPage = () => {
   const performSearch = async (searchTerm) => {
     setLoading(true);
     try {
-      const [tracksRes, albumsRes] = await Promise.all([
-        axiosClient.get('/api/tracks/search', { params: { query: searchTerm, pageSize: 6 } }),
-        axiosClient.get('/api/albums/search', { params: { query: searchTerm, size: 6 } })
-      ]);
-
+      const response = await axiosClient.get('/api/search', { params: { q: searchTerm } });
       setResults({
-        tracks: tracksRes.data.content || [],
-        albums: albumsRes.data.content || []
+        tracks: response.data.tracks.content || [],
+        albums: response.data.albums.content || [],
+        users: response.data.users.content || []
       });
       setHasSearched(true);
     } catch (error) {
@@ -59,10 +57,7 @@ const SearchPage = () => {
             className="w-full bg-surface border border-border px-16 py-6 text-xl font-black uppercase tracking-tighter text-white placeholder-zinc-800 focus:outline-none focus:border-white transition-all"
           />
           {query && (
-            <button 
-              onClick={() => setQuery('')}
-              className="absolute right-6 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors"
-            >
+            <button onClick={() => setQuery('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-muted hover:text-white transition-colors">
               <X size={24} />
             </button>
           )}
@@ -79,20 +74,50 @@ const SearchPage = () => {
         </div>
       ) : hasSearched ? (
         <div className="space-y-24">
+          {/* Users Results */}
+          {results.users.length > 0 && (
+            <section>
+              <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
+                <h3 className="text-xs font-black uppercase tracking-[0.4em]">Identities Identified</h3>
+                <span className="text-[10px] font-medium text-muted tabular-nums">{results.users.length.toString().padStart(2, '0')}</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
+                {results.users.map((user) => (
+                  <div 
+                    key={`user-${user.id}`} 
+                    onClick={() => navigate(`/users/${user.id}`)}
+                    className="group cursor-pointer space-y-4"
+                  >
+                    <div className="aspect-square bg-surface border border-border overflow-hidden">
+                      {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 transition-all duration-700" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <UserIcon size={32} className="text-zinc-800" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{user.displayName}</p>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted">{user.role === 'ROLE_ARTIST' ? 'Artist' : 'Member'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Tracks Results */}
           <section>
             <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
               <h3 className="text-xs font-black uppercase tracking-[0.4em]">Transmissions Found</h3>
               <span className="text-[10px] font-medium text-muted tabular-nums">{results.tracks.length.toString().padStart(2, '0')}</span>
             </div>
-            
             {results.tracks.length === 0 ? (
               <p className="text-[10px] font-black uppercase tracking-widest text-muted py-12">No audio data matching query.</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
-                {results.tracks.map((track) => (
-                  <TrackCard key={track.id} track={track} queue={results.tracks} />
-                ))}
+                {results.tracks.map((track) => <TrackCard key={`track-${track.id}`} track={track} queue={results.tracks} />)}
               </div>
             )}
           </section>
@@ -103,14 +128,11 @@ const SearchPage = () => {
               <h3 className="text-xs font-black uppercase tracking-[0.4em]">Collections Found</h3>
               <span className="text-[10px] font-medium text-muted tabular-nums">{results.albums.length.toString().padStart(2, '0')}</span>
             </div>
-
             {results.albums.length === 0 ? (
               <p className="text-[10px] font-black uppercase tracking-widest text-muted py-12">No archive data matching query.</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-                {results.albums.map((album) => (
-                  <AlbumCard key={album.id} album={album} />
-                ))}
+                {results.albums.map((album) => <AlbumCard key={`album-${album.id}`} album={album} />)}
               </div>
             )}
           </section>
@@ -118,9 +140,7 @@ const SearchPage = () => {
       ) : (
         <div className="py-24 border border-border border-dashed flex flex-col items-center justify-center text-center opacity-50">
           <Music className="mb-6 text-zinc-800" size={48} />
-          <p className="max-w-xs text-[10px] font-black uppercase tracking-[0.3em] leading-loose text-muted">
-            Enter search criteria to begin discovery protocol.
-          </p>
+          <p className="max-w-xs text-[10px] font-black uppercase tracking-[0.3em] leading-loose text-muted">Enter search criteria to begin discovery protocol.</p>
         </div>
       )}
     </div>

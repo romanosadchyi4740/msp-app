@@ -50,4 +50,14 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<org.springframework.data.domain.Page<UserResponseDto>> searchUsers(
+            @RequestParam("q") String query,
+            @RequestParam(value = "pageNo", defaultValue = "0") int pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
+    ) {
+        log.info("Searching users with query: {}", query);
+        return ResponseEntity.ok(userService.searchUsers(query, pageNo, pageSize));
+    }
+
 }
