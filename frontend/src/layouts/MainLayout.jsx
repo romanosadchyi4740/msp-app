@@ -83,15 +83,20 @@ const MainLayout = () => {
         )}
 
         <div className="p-6 border-t border-border space-y-6">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
+          <Link 
+            to={`/users/${user?.userId}`}
+            className="flex items-center gap-3 px-2 hover:opacity-80 transition-opacity group"
+          >
+            <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center text-[10px] font-bold group-hover:bg-zinc-700 transition-colors">
               {user?.displayName?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-bold truncate uppercase tracking-tight">{user?.displayName || 'Unknown User'}</p>
+              <p className="text-xs font-bold truncate uppercase tracking-tight group-hover:text-accent transition-colors">
+                {user?.displayName || 'Unknown User'}
+              </p>
               <p className="text-[10px] text-muted truncate">{user?.userId}</p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-muted hover:text-white transition-all"
