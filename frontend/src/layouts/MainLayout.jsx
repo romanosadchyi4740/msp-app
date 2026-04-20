@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
+import { Home, Search, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import AudioPlayer from '../components/AudioPlayer';
 
@@ -26,6 +26,7 @@ const MainLayout = () => {
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/' },
+    { icon: Search, label: 'Search', path: '/search' },
     { icon: Library, label: 'Playlists', path: '/playlists' },
     { icon: MessageCircle, label: 'Chat', path: '/chat' },
   ];

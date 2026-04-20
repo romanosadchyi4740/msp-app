@@ -98,4 +98,11 @@ public class TrackService {
                 .map(trackMappingService::map);
     }
 
+    @Transactional(readOnly = true)
+    public Page<TrackResponseDto> searchTracks(String query, int pageNo, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        return trackRepository.findAllByTitleContainingIgnoreCase(query, pageable)
+                .map(trackMappingService::map);
+    }
+
 }

@@ -54,4 +54,13 @@ public class AlbumController {
         return ResponseEntity.ok(albumService.getAlbumById(id));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<AlbumResponseDto>> searchAlbums(
+            @RequestParam("query") String query,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+        log.info("Searching albums with query: {}", query);
+        return ResponseEntity.ok(albumService.searchAlbums(query, pageable));
+    }
+
 }
