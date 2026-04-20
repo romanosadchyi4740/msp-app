@@ -8,28 +8,27 @@ const AlbumCard = ({ album }) => {
   return (
     <div 
       onClick={() => navigate(`/albums/${album.id}`)}
-      className="group bg-white/5 p-4 rounded-2xl hover:bg-white/10 transition-all duration-300 cursor-pointer border border-transparent hover:border-white/10"
+      className="group cursor-pointer transition-all duration-300"
     >
-      <div className="relative aspect-square mb-4 rounded-xl overflow-hidden shadow-2xl">
+      <div className="relative aspect-square mb-4 overflow-hidden bg-surface">
         {album.coverUrl ? (
           <img 
             src={album.coverUrl} 
             alt={album.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-105 transition-all duration-700"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
-            <Disc size={64} className="text-white/20" />
+          <div className="w-full h-full flex items-center justify-center border border-border">
+            <Disc size={48} className="text-zinc-800" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
       <div className="space-y-1">
-        <h3 className="font-bold truncate text-white group-hover:text-primary transition-colors text-lg">
+        <h3 className="text-sm font-black uppercase tracking-tight text-white truncate">
           {album.title}
         </h3>
-        <p className="text-sm text-gray-400 truncate">
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted truncate">
           {album.authorName}
         </p>
       </div>

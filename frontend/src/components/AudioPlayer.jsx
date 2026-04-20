@@ -96,14 +96,14 @@ const AudioPlayer = () => {
 
   const renderLoopIcon = () => {
     switch (loopMode) {
-      case 'one': return <Repeat1 size={20} className="text-primary" />;
-      case 'all': return <Repeat size={20} className="text-primary" />;
-      default: return <Repeat size={20} className="text-gray-400" />;
+      case 'one': return <Repeat1 size={16} className="text-white" />;
+      case 'all': return <Repeat size={16} className="text-white" />;
+      default: return <Repeat size={16} className="text-muted" />;
     }
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-24 bg-dark border-t border-white/5 px-6 flex items-center justify-between z-50">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-6xl bg-surface/90 backdrop-blur-xl border border-border px-8 py-3 flex items-center justify-between z-50 rounded-none shadow-2xl">
       <audio
         ref={audioRef}
         src={audioUrl}
@@ -114,97 +114,108 @@ const AudioPlayer = () => {
       />
 
       {/* Track Info */}
-      <div className="flex items-center gap-4 w-1/3">
+      <div className="flex items-center gap-4 w-1/4">
         {currentTrack.coverUrl ? (
           <img 
             src={currentTrack.coverUrl} 
             alt={currentTrack.title} 
-            className="w-14 h-14 rounded object-cover shadow-lg"
+            className="w-10 h-10 object-cover grayscale brightness-90 hover:grayscale-0 transition-all duration-500"
           />
         ) : (
-          <div className="w-14 h-14 bg-white/10 rounded flex items-center justify-center">
-            <Music className="text-gray-500" />
+          <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center">
+            <Music size={16} className="text-muted" />
           </div>
         )}
         <div className="overflow-hidden">
-          <p className="text-sm font-medium truncate text-white">{currentTrack.title}</p>
-          <p className="text-xs text-gray-400 truncate">{currentTrack.authorName}</p>
+          <p className="text-[11px] font-black uppercase tracking-tight truncate text-white">{currentTrack.title}</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted truncate">{currentTrack.authorName}</p>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col items-center gap-2 w-1/3">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-col items-center gap-1 w-2/4 px-8">
+        <div className="flex items-center gap-8 mb-1">
           <button 
             onClick={toggleLoopMode}
-            className="hover:scale-110 transition active:scale-95"
+            className="hover:text-white transition-colors"
             title={`Loop: ${loopMode}`}
           >
-            {renderLoopIcon()}
+            {loopMode !== 'none' ? <Repeat size={16} className="text-white" /> : <Repeat size={16} className="text-muted" />}
           </button>
 
           <button 
             onClick={handleManualSkipPrevious}
             disabled={!hasPrevious}
-            className={`transition ${hasPrevious ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
+            className={`transition-colors ${hasPrevious ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
           >
-            <SkipBack size={20} fill="currentColor" />
+            <SkipBack size={18} />
           </button>
           
           <button 
             onClick={togglePlayPause}
-            className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black hover:scale-105 transition"
+            className="text-white hover:scale-110 transition-transform p-2"
           >
-            {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+            {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
           </button>
 
           <button 
             onClick={handleManualSkipNext}
             disabled={!hasNext}
-            className={`transition ${hasNext ? 'text-gray-400 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
+            className={`transition-colors ${hasNext ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
           >
-            <SkipForward size={20} fill="currentColor" />
+            <SkipForward size={18} />
+          </button>
+
+          <button className="text-muted hover:text-white transition-colors">
+            <Volume2 size={16} />
           </button>
         </div>
 
-        <div className="w-full flex items-center gap-2 max-w-md">
-          <span className="text-[10px] text-gray-400 w-8 text-right">
+        <div className="w-full flex items-center gap-3">
+          <span className="text-[9px] font-medium text-muted w-10 text-right tabular-nums">
             {formatTime(audioRef.current?.currentTime)}
           </span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={progress || 0}
-            onChange={handleSeek}
-            className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary"
-            style={{
-              background: `linear-gradient(to right, #1DB954 ${progress}%, #333 ${progress}%)`
-            }}
-          />
-          <span className="text-[10px] text-gray-400 w-8">
+          <div className="flex-1 relative group h-4 flex items-center">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={progress || 0}
+              onChange={handleSeek}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+            <div className="w-full h-[1px] bg-zinc-800 relative">
+              <div 
+                className="absolute h-full bg-white transition-all duration-100" 
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-[9px] font-medium text-muted w-10 tabular-nums">
             {formatTime(duration)}
           </span>
         </div>
       </div>
 
-      {/* Volume */}
-      <div className="w-1/3 flex justify-end items-center gap-3">
-        <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="text-gray-400 hover:text-white">
-          {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-        </button>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={(e) => setVolume(parseFloat(e.target.value))}
-          className="w-24 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white hover:accent-primary"
-          style={{
-            background: `linear-gradient(to right, #fff ${volume * 100}%, #333 ${volume * 100}%)`
-          }}
-        />
+      {/* Volume - Simplified for slim look */}
+      <div className="w-1/4 flex justify-end items-center gap-4">
+        <div className="w-24 relative group h-4 flex items-center">
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          />
+          <div className="w-full h-[1px] bg-zinc-800 relative">
+            <div 
+              className="absolute h-full bg-white transition-all duration-100" 
+              style={{ width: `${volume * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Music, MessageCircle } from 'lucide-react';
+import { Play, Pause, Music, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useChatStore from '../store/chatStore';
@@ -21,46 +21,45 @@ const TrackCard = ({ track, queue = [] }) => {
   };
 
   return (
-    <div className="group bg-white/5 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 relative overflow-hidden border border-transparent hover:border-white/10">
-      <div className="relative aspect-square mb-4">
+    <div className="group transition-all duration-300 relative">
+      <div className="relative aspect-square mb-3 overflow-hidden bg-surface">
         {track.coverUrl ? (
           <img 
             src={track.coverUrl} 
             alt={track.title} 
-            className="w-full h-full object-cover rounded-lg shadow-2xl"
+            className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700"
           />
         ) : (
-          <div className="w-full h-full bg-white/5 rounded-lg flex items-center justify-center">
-            <Music size={48} className="text-white/20" />
+          <div className="w-full h-full flex items-center justify-center border border-border">
+            <Music size={32} className="text-zinc-800" />
           </div>
         )}
         
-        {/* Play Button Overlay */}
+        {/* Minimal Play Overlay */}
         <button
           onClick={() => playTrack(track, queue)}
-          className={`absolute bottom-2 right-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center text-black shadow-xl 
-            transition-all duration-300 transform 
-            ${isCurrentTrack && isPlaying ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-90 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'}
-            hover:scale-110 active:scale-95`}
+          className={`absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-sm transition-opacity duration-300
+            ${isCurrentTrack && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
         >
-          <Play size={24} fill="currentColor" className="ml-1" />
+          <div className="w-12 h-12 border border-white flex items-center justify-center text-white">
+            {isCurrentTrack && isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
+          </div>
         </button>
       </div>
 
-      <div className="space-y-1">
-        <h3 className="font-semibold truncate text-white group-hover:text-primary transition-colors">
+      <div className="space-y-0.5">
+        <h3 className="text-[11px] font-black uppercase tracking-tight text-white truncate">
           {track.title}
         </h3>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-gray-400 truncate flex-1">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-muted truncate">
             {track.authorName}
           </p>
           <button 
             onClick={handleStartChat}
-            className="text-gray-500 hover:text-primary transition-colors p-1"
-            title="Message Artist"
+            className="text-muted hover:text-white transition-colors"
           >
-            <MessageCircle size={16} />
+            <MessageCircle size={12} />
           </button>
         </div>
       </div>

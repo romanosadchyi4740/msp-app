@@ -110,108 +110,100 @@ const UploadPage = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 pb-20">
-      <header>
-        <h1 className="text-4xl font-black mb-2 tracking-tight">Artist Studio</h1>
-        <p className="text-gray-400">Manage your discography and share your latest creations.</p>
+    <div className="max-w-6xl mx-auto space-y-24 pb-32">
+      <header className="border-b border-border pb-12">
+        <h1 className="text-6xl font-black mb-6 tracking-tighter uppercase">Studio</h1>
+        <p className="text-muted text-xs font-bold uppercase tracking-[0.2em]">Manage discography / Digital transmissions</p>
       </header>
 
       {message.text && (
-        <div className={`p-4 rounded-xl flex items-center gap-3 border ${
+        <div className={`p-6 border text-[10px] font-black uppercase tracking-widest ${
           message.type === 'success' 
-            ? 'bg-primary/10 border-primary/20 text-primary' 
-            : 'bg-red-500/10 border-red-500/20 text-red-500'
+            ? 'border-white bg-white/5 text-white' 
+            : 'border-red-500/50 bg-red-500/5 text-red-500'
         }`}>
-          <CheckCircle2 size={20} />
-          <p className="font-medium text-sm">{message.text}</p>
+          {message.text}
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-10">
+      <div className="grid md:grid-cols-2 gap-16">
         {/* Create Album Form */}
-        <section className="bg-white/5 p-8 rounded-[32px] border border-white/5 backdrop-blur-sm space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-              <Plus size={24} />
-            </div>
-            <h2 className="text-2xl font-bold">New Album</h2>
+        <section className="bg-surface p-10 border border-border space-y-10">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-black uppercase tracking-tighter">New Collection</h2>
           </div>
 
-          <form onSubmit={handleCreateAlbum} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1">Album Title</label>
+          <form onSubmit={handleCreateAlbum} className="space-y-8">
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Title</label>
               <input 
                 required
                 value={albumTitle}
                 onChange={(e) => setAlbumTitle(e.target.value)}
-                placeholder="Give your album a name"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-primary/50 transition-all text-sm"
+                placeholder="INPUT TITLE..."
+                className="w-full bg-background border border-border px-6 py-4 focus:outline-none focus:border-white transition-all text-xs font-bold uppercase tracking-widest"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1">Description</label>
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Description</label>
               <textarea 
                 value={albumDesc}
                 onChange={(e) => setAlbumDesc(e.target.value)}
-                placeholder="Tell us about this album"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-primary/50 transition-all text-sm h-24 resize-none"
+                placeholder="INPUT DATA..."
+                className="w-full bg-background border border-border px-6 py-4 focus:outline-none focus:border-white transition-all text-xs font-bold uppercase tracking-widest h-32 resize-none"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1">Cover Image URL</label>
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Cover URL</label>
               <input 
                 value={albumCoverUrl}
                 onChange={(e) => setAlbumCoverUrl(e.target.value)}
-                placeholder="https://example.com/cover.jpg"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-primary/50 transition-all text-sm"
+                placeholder="HTTPS://IMAGE.SOURCE"
+                className="w-full bg-background border border-border px-6 py-4 focus:outline-none focus:border-white transition-all text-xs font-bold uppercase tracking-widest"
               />
             </div>
             <button 
               disabled={creatingAlbum}
-              className="w-full bg-primary text-black font-bold py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+              className="w-full bg-white text-black text-[11px] font-black uppercase tracking-[0.3em] py-5 hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >
-              {creatingAlbum ? <Loader2 className="animate-spin" /> : <Disc size={20} />}
-              Create Album
+              {creatingAlbum ? <Loader2 className="animate-spin" /> : 'Execute Creation'}
             </button>
           </form>
         </section>
 
         {/* Upload Track Form */}
-        <section className="bg-white/5 p-8 rounded-[32px] border border-white/5 backdrop-blur-sm space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-              <Upload size={24} />
-            </div>
-            <h2 className="text-2xl font-bold">Upload Track</h2>
+        <section className="bg-surface p-10 border border-border space-y-10">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-black uppercase tracking-tighter">Transmit Track</h2>
           </div>
 
-          <form onSubmit={handleUploadTrack} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1">Select Album</label>
+          <form onSubmit={handleUploadTrack} className="space-y-8">
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Target Collection</label>
               <select 
                 required
                 value={selectedAlbumId}
                 onChange={(e) => setSelectedAlbumId(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-primary/50 transition-all text-sm appearance-none"
+                className="w-full bg-background border border-border px-6 py-4 focus:outline-none focus:border-white transition-all text-[10px] font-bold uppercase tracking-widest appearance-none rounded-none"
               >
-                <option value="">Choose an album...</option>
+                <option value="" className="bg-surface">SELECT ARCHIVE...</option>
                 {myAlbums.map(album => (
-                  <option key={album.id} value={album.id}>{album.title}</option>
+                  <option key={album.id} value={album.id} className="bg-surface">{album.title.toUpperCase()}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1">Track Title</label>
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Track Title</label>
               <input 
                 required
                 value={trackTitle}
                 onChange={(e) => setTrackTitle(e.target.value)}
-                placeholder="Track name"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none focus:border-primary/50 transition-all text-sm"
+                placeholder="INPUT TITLE..."
+                className="w-full bg-background border border-border px-6 py-4 focus:outline-none focus:border-white transition-all text-xs font-bold uppercase tracking-widest"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2 ml-1">Audio File</label>
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Source File</label>
               <div className="relative">
                 <input 
                   required
@@ -223,18 +215,18 @@ const UploadPage = () => {
                 />
                 <label 
                   htmlFor="track-upload"
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 focus:outline-none border-dashed hover:border-primary/50 transition-all text-sm flex items-center justify-center gap-3 cursor-pointer text-gray-400"
+                  className="w-full bg-background border border-border px-6 py-5 focus:outline-none border-dashed hover:border-white transition-all text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 cursor-pointer text-muted"
                 >
-                  <Music size={18} />
-                  {trackFile ? trackFile.name : 'Choose MP3 file'}
+                  <Music size={14} />
+                  {trackFile ? trackFile.name.toUpperCase() : 'UPLOAD AUDIO (.MP3)'}
                 </label>
               </div>
             </div>
 
             {uploadingTrack && (
-              <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mt-2">
+              <div className="w-full bg-zinc-800 h-[1px] mt-4">
                 <div 
-                  className="bg-primary h-full transition-all duration-300" 
+                  className="bg-white h-full transition-all duration-300" 
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -242,13 +234,12 @@ const UploadPage = () => {
 
             <button 
               disabled={uploadingTrack || loadingAlbums || myAlbums.length === 0}
-              className="w-full bg-primary text-black font-bold py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+              className="w-full bg-white text-black text-[11px] font-black uppercase tracking-[0.3em] py-5 hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
             >
-              {uploadingTrack ? <Loader2 className="animate-spin" /> : <Upload size={20} />}
-              Upload Track
+              {uploadingTrack ? <Loader2 className="animate-spin" /> : 'Execute Upload'}
             </button>
             {myAlbums.length === 0 && !loadingAlbums && (
-              <p className="text-[10px] text-center text-red-400 mt-2 font-medium">Create an album first before uploading tracks.</p>
+              <p className="text-[9px] text-center text-red-500 mt-4 font-black uppercase tracking-widest">Archive required for transmission.</p>
             )}
           </form>
         </section>

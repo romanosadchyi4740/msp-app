@@ -34,26 +34,27 @@ const HomePage = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <Loader2 className="animate-spin text-primary h-12 w-12" />
-        <div className="mt-6 flex flex-col items-center gap-2">
-          <p className="text-gray-400 font-medium animate-pulse text-lg italic">Gathering melodies...</p>
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="w-12 h-12 border border-border flex items-center justify-center relative">
+          <div className="w-full h-[1px] bg-white absolute animate-[ping_2s_infinite]"></div>
+          <Music size={16} className="text-muted" />
         </div>
+        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-muted animate-pulse">Loading Archive</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] px-4">
-        <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-8 rounded-3xl max-w-md text-center backdrop-blur-md">
-          <p className="font-bold text-xl mb-2">Oops!</p>
-          <p className="opacity-80 leading-relaxed">{error}</p>
+      <div className="flex items-center justify-center h-[60vh] px-4">
+        <div className="border border-border p-12 max-w-md text-center">
+          <p className="text-xs font-black uppercase tracking-widest mb-4">Connection Error</p>
+          <p className="text-muted text-[11px] leading-relaxed mb-8">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-6 px-8 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all font-bold shadow-lg shadow-red-500/20 active:scale-95"
+            className="px-8 py-3 border border-white text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
           >
-            Try Again
+            Retry
           </button>
         </div>
       </div>
@@ -61,42 +62,41 @@ const HomePage = () => {
   }
 
   return (
-    <div className="space-y-16 pb-20">
-      {/* Hero / Header Section */}
-      <header className="relative py-16 px-10 rounded-[40px] bg-gradient-to-br from-primary/30 via-primary/5 to-transparent border border-white/5 overflow-hidden shadow-2xl">
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-6">
-            <PlayCircle size={14} />
-            New on MusicSocial
+    <div className="space-y-32 pb-32">
+      {/* Editorial Hero */}
+      <header className="py-24 border-b border-border">
+        <div className="max-w-4xl">
+          <div className="inline-block px-3 py-1 border border-border text-[9px] font-black uppercase tracking-[0.3em] text-muted mb-12">
+            Status: Live
           </div>
-          <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tight leading-[1.1]">
-            Your Daily <br/> <span className="text-primary italic">Soundtrack</span>
+          <h2 className="text-7xl md:text-8xl font-black mb-12 tracking-tighter leading-[0.85] uppercase">
+            The Digital <br/> <span className="text-muted">Soundscape</span>
           </h2>
-          <p className="text-gray-400 text-lg max-w-lg leading-relaxed font-medium">
-            Explore fresh albums and trending tracks from the creative souls in your community.
-          </p>
+          <div className="flex flex-col md:flex-row gap-12 items-start">
+            <p className="text-muted text-sm max-w-sm leading-relaxed font-medium uppercase tracking-tight">
+              Curated audio experiences from the independent community. High-fidelity social interaction through sound.
+            </p>
+            <div className="h-px w-24 bg-border mt-3 hidden md:block"></div>
+            <p className="text-muted text-[10px] max-w-[200px] leading-loose uppercase tracking-widest">
+              Available 24/7. Updated in real-time. Join the conversation.
+            </p>
+          </div>
         </div>
-        
-        {/* Animated Background Orbs */}
-        <div className="absolute -top-20 -right-20 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/5 rounded-full blur-[100px]"></div>
       </header>
 
       {/* Featured Albums Section */}
       <section>
-        <div className="flex items-center gap-4 mb-8">
-          <Disc size={28} className="text-primary" />
-          <h3 className="text-3xl font-black tracking-tight">Featured Albums</h3>
-          <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent ml-4"></div>
+        <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
+          <h3 className="text-xs font-black uppercase tracking-[0.4em]">Featured Collections</h3>
+          <span className="text-[10px] font-medium text-muted tabular-nums">01 — 06</span>
         </div>
 
         {albums.length === 0 ? (
-          <div className="bg-white/5 border border-white/5 rounded-3xl p-16 text-center backdrop-blur-sm">
-            <Disc className="h-12 w-12 text-gray-700 mx-auto mb-4 opacity-40" />
-            <h3 className="text-xl font-bold text-gray-400">No albums available</h3>
+          <div className="border border-border p-24 text-center">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted">Empty Collection</h3>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
             {albums.map((album) => (
               <AlbumCard key={album.id} album={album} />
             ))}
@@ -106,19 +106,17 @@ const HomePage = () => {
 
       {/* Recent Tracks Section */}
       <section>
-        <div className="flex items-center gap-4 mb-8">
-          <Music size={28} className="text-primary" />
-          <h3 className="text-3xl font-black tracking-tight">Recent Releases</h3>
-          <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent ml-4"></div>
+        <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
+          <h3 className="text-xs font-black uppercase tracking-[0.4em]">Recent Transmissions</h3>
+          <span className="text-[10px] font-medium text-muted tabular-nums">01 — 12</span>
         </div>
 
         {tracks.length === 0 ? (
-          <div className="bg-white/5 border border-white/5 rounded-3xl p-16 text-center backdrop-blur-sm">
-            <Music className="h-12 w-12 text-gray-700 mx-auto mb-4 opacity-40" />
-            <h3 className="text-xl font-bold text-gray-400">No tracks found</h3>
+          <div className="border border-border p-24 text-center">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted">No Audio Found</h3>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
             {tracks.map((track) => (
               <TrackCard key={track.id} track={track} queue={tracks} />
             ))}

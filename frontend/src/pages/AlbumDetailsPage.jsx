@@ -54,61 +54,66 @@ const AlbumDetailsPage = () => {
   }
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in duration-500">
+    <div className="space-y-24 pb-32">
       <button 
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4 group"
+        className="flex items-center gap-2 text-muted hover:text-white transition-colors group text-[10px] font-black uppercase tracking-widest"
       >
-        <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="font-medium">Back</span>
+        <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+        <span>Return</span>
       </button>
 
-      {/* Album Header */}
-      <div className="flex flex-col md:flex-row gap-10 items-end">
-        <div className="relative w-64 h-64 md:w-80 md:h-80 flex-shrink-0 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden group">
+      {/* Editorial Album Header */}
+      <div className="flex flex-col md:flex-row gap-16 items-start">
+        <div className="relative w-64 h-64 md:w-96 md:h-96 flex-shrink-0 bg-surface border border-border overflow-hidden">
           {album.coverUrl ? (
             <img 
               src={album.coverUrl} 
               alt={album.title} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover grayscale brightness-90"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
-              <Disc size={120} className="text-white/10" />
+            <div className="w-full h-full flex items-center justify-center">
+              <Disc size={100} className="text-zinc-800" />
             </div>
           )}
         </div>
 
-        <div className="flex-1 space-y-4">
-          <p className="text-sm font-bold uppercase tracking-widest text-primary">Album</p>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white">{album.title}</h1>
-          <div className="flex items-center gap-4 text-gray-300">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] text-black font-bold">
+        <div className="flex-1 space-y-8 pt-4">
+          <div className="inline-block px-3 py-1 border border-border text-[9px] font-black uppercase tracking-[0.3em] text-muted">
+            Archive Mode
+          </div>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.85]">{album.title}</h1>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center text-[10px] text-white font-black">
                 {album.authorName.charAt(0)}
               </div>
-              <span className="font-bold hover:underline cursor-pointer">{album.authorName}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-white">{album.authorName}</span>
             </div>
-            <span className="text-gray-600">•</span>
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar size={14} />
-              <span>{new Date(album.releaseDate).getFullYear()}</span>
+            
+            <div className="flex flex-wrap gap-x-8 gap-y-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
+              <div className="flex items-center gap-2">
+                <Calendar size={12} />
+                <span>{new Date(album.releaseDate).getFullYear()}</span>
+              </div>
+              <span>{album.tracks.length} Transmissions</span>
+              <span>High Fidelity</span>
             </div>
-            <span className="text-gray-600">•</span>
-            <span className="text-sm font-medium">{album.tracks.length} tracks</span>
           </div>
         </div>
       </div>
 
-      {/* Tracks List */}
-      <div className="mt-12 bg-white/5 rounded-3xl overflow-hidden border border-white/5 backdrop-blur-sm">
-        <div className="grid grid-cols-[auto_1fr_auto] gap-4 px-8 py-4 border-b border-white/10 text-xs font-bold uppercase tracking-widest text-gray-500">
-          <div className="w-8 text-center">#</div>
-          <div>Title</div>
-          <div className="pr-4"><Clock size={16} /></div>
+      {/* Tracks List - Minimalist Row Design */}
+      <div className="border-t border-border">
+        <div className="grid grid-cols-[4rem_1fr_6rem] gap-4 py-6 border-b border-border text-[9px] font-black uppercase tracking-[0.3em] text-muted px-4">
+          <div>ID</div>
+          <div>Transmission Title</div>
+          <div className="text-right">Time</div>
         </div>
 
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-border/30">
           {album.tracks.map((track, index) => {
             const isCurrent = currentTrack?.id === track.id;
             const active = isCurrent && isPlaying;
@@ -116,29 +121,23 @@ const AlbumDetailsPage = () => {
             return (
               <div 
                 key={track.id}
-                className={`grid grid-cols-[auto_1fr_auto] gap-4 px-8 py-4 items-center hover:bg-white/10 transition-colors group ${
-                  isCurrent ? 'text-primary' : 'text-white'
+                className={`grid grid-cols-[4rem_1fr_6rem] gap-4 py-6 px-4 items-center hover:bg-white/[0.02] transition-colors group cursor-pointer ${
+                  isCurrent ? 'bg-white/5' : ''
                 }`}
+                onClick={() => playTrack(track, album.tracks)}
               >
-                <div className="w-8 text-center text-sm font-medium text-gray-500 group-hover:hidden">
-                  {index + 1}
+                <div className="text-[10px] font-bold text-muted tabular-nums">
+                  {(index + 1).toString().padStart(2, '0')}
                 </div>
-                <button 
-                  onClick={() => playTrack(track, album.tracks)}
-                  className="w-8 hidden group-hover:flex items-center justify-center text-primary"
-                >
-                  <Play size={16} fill="currentColor" />
-                </button>
 
                 <div className="flex flex-col min-w-0">
-                  <span className={`font-semibold truncate ${isCurrent ? 'text-primary' : ''}`}>
+                  <span className={`text-xs font-black uppercase tracking-tight truncate ${isCurrent ? 'text-white' : 'text-zinc-400 group-hover:text-white transition-colors'}`}>
                     {track.title}
                   </span>
-                  <span className="text-xs text-gray-500 truncate">{track.authorName}</span>
                 </div>
 
-                <div className="flex items-center gap-6">
-                   <span className="text-sm text-gray-500 font-medium w-12 text-right">
+                <div className="text-right">
+                   <span className="text-[10px] font-bold text-muted tabular-nums">
                      {formatDuration(track.duration)}
                    </span>
                 </div>
