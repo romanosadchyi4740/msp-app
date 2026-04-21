@@ -40,6 +40,31 @@ const useChatStore = create((set, get) => ({
     }
   },
 
+  acceptChat: async (chatId) => {
+    try {
+      const response = await axiosClient.put(`/api/chats/${chatId}/accept`);
+      const updatedChat = response.data;
+      set(state => ({
+        chats: state.chats.map(c => c.id === chatId ? updatedChat : c),
+        activeChat: state.activeChat?.id === chatId ? updatedChat : state.activeChat
+      }));
+    } catch (error) {
+      console.error('Failed to accept chat:', error);
+    }
+  },
+
+  rejectChat: async (chatId) => {
+    try {
+      await axiosClient.put(`/api/chats/${chatId}/reject`);
+      set(state => ({
+        chats: state.chats.filter(c => c.id !== chatId),
+        activeChat: state.activeChat?.id === chatId ? null : state.activeChat
+      }));
+    } catch (error) {
+      console.error('Failed to reject chat:', error);
+    }
+  },
+
   startChatWithUser: async (recipientId) => {
     try {
       const response = await axiosClient.post(`/api/chats/with/${recipientId}`);

@@ -44,6 +44,42 @@ const ChatPage = () => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const chatsList = chats.filter(c => c.status !== 'REJECTED' && (c.status === 'ACCEPTED' || c.initiatorId === currentUser?.userId || !c.initiatorId));
+  const requestsList = chats.filter(c => c.status === 'PENDING' && c.initiatorId && c.initiatorId !== currentUser?.userId);
+
+  const renderChat = (chat) => {
+    const otherUser = getOtherParticipant(chat);
+    const isActive = activeChat?.id === chat.id;
+    return (
+      <button
+        key={chat.id}
+        onClick={() => setActiveChat(chat)}
+        className={`w-full p-6 flex items-center gap-4 transition-all border-b border-border/50 ${
+          isActive ? 'bg-white/5' : 'hover:bg-white/[0.02]'
+        }`}
+      >
+        <div className="relative flex-shrink-0">
+          <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white">
+            {otherUser?.displayName?.charAt(0)}
+          </div>
+        </div>
+        <div className="flex-1 text-left overflow-hidden">
+          <div className="flex justify-between items-baseline mb-1">
+            <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{otherUser?.displayName}</p>
+            {chat.lastMessage && (
+              <span className="text-[9px] font-medium text-muted tabular-nums">
+                {formatTime(chat.lastMessage.timestamp)}
+              </span>
+            )}
+          </div>
+          <p className={`text-[10px] font-medium uppercase tracking-wider truncate ${isActive ? 'text-zinc-300' : 'text-muted'}`}>
+            {chat.lastMessage?.content || 'New Connection'}
+          </p>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className="flex h-[calc(100vh-160px)] bg-surface border border-border overflow-hidden">
       {/* Chats Sidebar */}
@@ -79,38 +115,24 @@ const ChatPage = () => {
               <p className="text-[10px] font-black uppercase tracking-widest text-muted">No transmissions found</p>
             </div>
           ) : (
-            chats.map((chat) => {
-              const otherUser = getOtherParticipant(chat);
-              const isActive = activeChat?.id === chat.id;
-              return (
-                <button
-                  key={chat.id}
-                  onClick={() => setActiveChat(chat)}
-                  className={`w-full p-6 flex items-center gap-4 transition-all border-b border-border/50 ${
-                    isActive ? 'bg-white/5' : 'hover:bg-white/[0.02]'
-                  }`}
-                >
-                  <div className="relative flex-shrink-0">
-                    <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white">
-                      {otherUser?.displayName?.charAt(0)}
-                    </div>
+            <>
+              {requestsList.length > 0 && (
+                <div className="mb-4">
+                  <div className="px-6 py-2 bg-white/5 border-y border-border/50 text-[9px] font-black uppercase tracking-widest text-muted">
+                    Pending Requests ({requestsList.length})
                   </div>
-                  <div className="flex-1 text-left overflow-hidden">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{otherUser?.displayName}</p>
-                      {chat.lastMessage && (
-                        <span className="text-[9px] font-medium text-muted tabular-nums">
-                          {formatTime(chat.lastMessage.timestamp)}
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-[10px] font-medium uppercase tracking-wider truncate ${isActive ? 'text-zinc-300' : 'text-muted'}`}>
-                      {chat.lastMessage?.content || 'New Connection'}
-                    </p>
+                  {requestsList.map(chat => renderChat(chat))}
+                </div>
+              )}
+              {chatsList.length > 0 && (
+                <div>
+                  <div className="px-6 py-2 bg-white/5 border-y border-border/50 text-[9px] font-black uppercase tracking-widest text-muted">
+                    Active Connections
                   </div>
-                </button>
-              );
-            })
+                  {chatsList.map(chat => renderChat(chat))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -172,26 +194,50 @@ const ChatPage = () => {
             </div>
 
             {/* Input Area */}
-            <div className="p-8 bg-transparent border-t border-border">
-              <form 
-                onSubmit={handleSend}
-                className="flex items-center gap-4 border border-border p-1 bg-surface"
-              >
-                <input 
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="INPUT TRANSMISSION..." 
-                  className="flex-1 bg-transparent px-5 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none text-white placeholder-zinc-700"
-                />
-                <button 
-                  type="submit"
-                  disabled={!messageText.trim()}
-                  className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-30"
+            {activeChat.status === 'PENDING' && activeChat.initiatorId !== currentUser?.userId ? (
+              <div className="p-8 bg-transparent border-t border-border">
+                <div className="border border-border p-6 bg-surface text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-6">
+                    {getOtherParticipant(activeChat)?.displayName} wants to connect and send you transmissions.
+                  </p>
+                  <div className="flex justify-center gap-4">
+                    <button 
+                      onClick={() => useChatStore.getState().acceptChat(activeChat.id)}
+                      className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all"
+                    >
+                      Accept
+                    </button>
+                    <button 
+                      onClick={() => useChatStore.getState().rejectChat(activeChat.id)}
+                      className="px-8 py-3 border border-border text-white text-[10px] font-black uppercase tracking-widest hover:border-white transition-all"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 bg-transparent border-t border-border">
+                <form 
+                  onSubmit={handleSend}
+                  className="flex items-center gap-4 border border-border p-1 bg-surface"
                 >
-                  Send
-                </button>
-              </form>
-            </div>
+                  <input 
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder="INPUT TRANSMISSION..." 
+                    className="flex-1 bg-transparent px-5 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none text-white placeholder-zinc-700"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!messageText.trim()}
+                    className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-30"
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted text-center p-12">

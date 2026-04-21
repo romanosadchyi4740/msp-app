@@ -1,0 +1,3 @@
+ALTER TABLE chats ADD COLUMN status VARCHAR(20) DEFAULT 'PENDING' NOT NULL;
+ALTER TABLE chats ADD COLUMN initiator_id UUID;
+ALTER TABLE chats ADD CONSTRAINT fk_chat_initiator FOREIGN KEY (initiator_id) REFERENCES users(id);

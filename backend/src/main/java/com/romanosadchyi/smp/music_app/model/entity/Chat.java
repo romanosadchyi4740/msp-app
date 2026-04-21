@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.model.entity;
 
+import com.romanosadchyi.smp.music_app.model.enums.ChatStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -38,6 +39,15 @@ public class Chat {
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     Set<Message> messages = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "initiator_id")
+    User initiator;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    ChatStatus status = ChatStatus.PENDING;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

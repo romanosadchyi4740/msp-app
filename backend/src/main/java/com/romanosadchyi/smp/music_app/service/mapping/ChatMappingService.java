@@ -29,6 +29,8 @@ public class ChatMappingService {
                         .max(Comparator.comparing(Message::getTimestamp))
                         .map(messageMappingService::map)
                         .orElse(null))
+                .initiatorId(chat.getInitiator() != null ? chat.getInitiator().getId() : null)
+                .status(chat.getStatus() != null ? chat.getStatus().name() : "PENDING")
                 .build();
     }
 }

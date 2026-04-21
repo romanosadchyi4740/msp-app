@@ -46,4 +46,16 @@ public class ChatController {
         return chatService.getMessageHistory(chatId, pageable);
     }
 
+    @PutMapping("/{chatId}/accept")
+    public ChatResponseDto acceptChat(@AuthenticationPrincipal User user, @PathVariable UUID chatId) {
+        log.info("User {} accepting chat {}", user.getId(), chatId);
+        return chatService.acceptChat(chatId, user.getId());
+    }
+
+    @PutMapping("/{chatId}/reject")
+    public void rejectChat(@AuthenticationPrincipal User user, @PathVariable UUID chatId) {
+        log.info("User {} rejecting chat {}", user.getId(), chatId);
+        chatService.rejectChat(chatId, user.getId());
+    }
+
 }

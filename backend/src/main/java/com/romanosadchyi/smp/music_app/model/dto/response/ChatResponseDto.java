@@ -8,5 +8,7 @@ import java.util.UUID;
 public record ChatResponseDto(
         UUID id,
         List<UserResponseDto> participants,
-        ChatMessageResponseDto lastMessage
+        ChatMessageResponseDto lastMessage,
+        UUID initiatorId,
+        String status
 ) {}
