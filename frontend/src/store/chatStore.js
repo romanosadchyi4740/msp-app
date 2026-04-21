@@ -6,8 +6,12 @@ const useChatStore = create((set, get) => ({
   chats: [],
   messages: [], // Current active chat messages
   activeChat: null,
+  activeAttachment: null,
   loading: false,
   messagesLoading: false,
+
+  setAttachment: (track) => set({ activeAttachment: track }),
+  clearAttachment: () => set({ activeAttachment: null }),
 
   fetchChats: async () => {
     set({ loading: true });
@@ -119,16 +123,17 @@ const useChatStore = create((set, get) => ({
   },
 
   sendMessage: (content) => {
-    const { activeChat } = get();
+    const { activeChat, activeAttachment } = get();
     if (!activeChat) return;
 
     const messageDto = {
       chatId: activeChat.id,
       content: content,
-      // recipientId can be used for new chats, but here we have activeChat.id
+      sharedTrackId: activeAttachment?.id || null
     };
 
     socketClient.sendMessage('/chat', messageDto);
+    get().clearAttachment();
   }
 }));
 

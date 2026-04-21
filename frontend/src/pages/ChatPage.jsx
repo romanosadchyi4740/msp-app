@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Send, MessageCircle, Search, Music, Loader2, Plus } from 'lucide-react';
+import { Send, MessageCircle, Search, Music, Loader2, Plus, X, Play } from 'lucide-react';
 import useChatStore from '../store/chatStore';
 import useAuthStore from '../store/authStore';
+import usePlayerStore from '../store/playerStore';
 import NewChatModal from '../components/chat/NewChatModal';
 
 const ChatPage = () => {
   const { user: currentUser } = useAuthStore();
   const { 
-    chats, activeChat, messages, loading, messagesLoading,
-    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket, startChatWithUser 
+    chats, activeChat, messages, loading, messagesLoading, activeAttachment,
+    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket, startChatWithUser, clearAttachment
   } = useChatStore();
+  const { playTrack } = usePlayerStore();
   const [messageText, setMessageText] = useState('');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
@@ -35,7 +37,7 @@ const ChatPage = () => {
 
   const handleSend = (e) => {
     e.preventDefault();
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && !activeAttachment) return;
     sendMessage(messageText);
     setMessageText('');
   };
@@ -175,13 +177,33 @@ const ChatPage = () => {
                   return (
                     <div key={msg.id || idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%]`}>
-                        <div className={`px-5 py-3 text-sm transition-all ${
-                          isOwn 
-                            ? 'bg-white text-black font-medium' 
-                            : 'bg-surface text-white border border-border'
-                        }`}>
-                          {msg.content}
-                        </div>
+                        {msg.sharedTrack && (
+                          <div className={`mb-2 p-2 flex items-center gap-3 transition-colors cursor-pointer border ${isOwn ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-surface border-border hover:bg-zinc-800'}`} onClick={() => playTrack(msg.sharedTrack)}>
+                            <div className="relative w-10 h-10 flex-shrink-0">
+                              {msg.sharedTrack.coverUrl ? (
+                                <img src={msg.sharedTrack.coverUrl} alt="Cover" className="w-full h-full object-cover grayscale" />
+                              ) : (
+                                <div className="w-full h-full bg-zinc-800 flex items-center justify-center"><Music size={12} className="text-muted" /></div>
+                              )}
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
+                                <Play size={14} className="text-white ml-0.5" />
+                              </div>
+                            </div>
+                            <div className="overflow-hidden">
+                              <p className={`text-[10px] font-black uppercase tracking-tight truncate ${isOwn ? 'text-white' : 'text-white'}`}>{msg.sharedTrack.title}</p>
+                              <p className={`text-[9px] font-medium uppercase tracking-widest truncate ${isOwn ? 'text-zinc-400' : 'text-muted'}`}>{msg.sharedTrack.authorName}</p>
+                            </div>
+                          </div>
+                        )}
+                        {msg.content && (
+                          <div className={`px-5 py-3 text-sm transition-all ${
+                            isOwn 
+                              ? 'bg-white text-black font-medium' 
+                              : 'bg-surface text-white border border-border'
+                          }`}>
+                            {msg.content}
+                          </div>
+                        )}
                         <p className={`text-[9px] mt-2 font-medium text-muted tabular-nums uppercase tracking-widest ${isOwn ? 'text-right' : 'text-left'}`}>
                           {formatTime(msg.timestamp || new Date())}
                         </p>
@@ -217,10 +239,29 @@ const ChatPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-8 bg-transparent border-t border-border">
+              <div className="bg-transparent border-t border-border relative">
+                {/* Active Attachment Preview */}
+                {activeAttachment && (
+                  <div className="absolute bottom-full left-0 right-0 p-3 bg-white/10 backdrop-blur-md border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {activeAttachment.coverUrl ? (
+                        <img src={activeAttachment.coverUrl} className="w-8 h-8 object-cover grayscale" alt="attachment" />
+                      ) : (
+                        <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center"><Music size={12} className="text-muted" /></div>
+                      )}
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-tight text-white">{activeAttachment.title}</p>
+                        <p className="text-[9px] font-medium uppercase tracking-widest text-zinc-400">{activeAttachment.authorName}</p>
+                      </div>
+                    </div>
+                    <button onClick={clearAttachment} className="text-zinc-400 hover:text-white p-1">
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
                 <form 
                   onSubmit={handleSend}
-                  className="flex items-center gap-4 border border-border p-1 bg-surface"
+                  className="flex items-center gap-4 border border-border p-1 bg-surface m-8 mt-6"
                 >
                   <input 
                     value={messageText}
@@ -230,7 +271,7 @@ const ChatPage = () => {
                   />
                   <button 
                     type="submit"
-                    disabled={!messageText.trim()}
+                    disabled={!messageText.trim() && !activeAttachment}
                     className="px-6 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-30"
                   >
                     Send

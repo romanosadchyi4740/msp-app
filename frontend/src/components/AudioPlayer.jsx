@@ -1,10 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useLikeStore from '../store/likeStore';
+import useChatStore from '../store/chatStore';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
+  const navigate = useNavigate();
   const { 
     currentTrack, 
     isPlaying, 
@@ -23,6 +26,7 @@ const AudioPlayer = () => {
   const [duration, setDuration] = useState(0);
 
   const { likedTrackIds, toggleLike } = useLikeStore();
+  const { setAttachment, startChatWithUser } = useChatStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
 
   // Sync isPlaying with audio element
@@ -69,6 +73,17 @@ const AudioPlayer = () => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleShareToChat = async () => {
+    if (!currentTrack) return;
+    setAttachment(currentTrack);
+    try {
+      await startChatWithUser(currentTrack.authorId);
+      navigate('/chat');
+    } catch (error) {
+      console.error("Could not start chat for sharing", error);
+    }
   };
 
   if (!currentTrack) return null;
@@ -130,16 +145,24 @@ const AudioPlayer = () => {
             <Music size={16} className="text-muted" />
           </div>
         )}
-        <div className="overflow-hidden">
+        <div className="overflow-hidden flex-1">
           <p className="text-[11px] font-black uppercase tracking-tight truncate text-white">{currentTrack.title}</p>
           <p className="text-[10px] uppercase tracking-widest text-muted truncate">{currentTrack.authorName}</p>
         </div>
-        <button 
-          onClick={() => toggleLike(currentTrack.id)}
-          className={`ml-2 transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
-        >
-          <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => toggleLike(currentTrack.id)}
+            className={`transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
+          >
+            <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
+          </button>
+          <button 
+            onClick={handleShareToChat}
+            className="text-muted hover:text-white transition-colors"
+          >
+            <MessageSquare size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Controls */}
