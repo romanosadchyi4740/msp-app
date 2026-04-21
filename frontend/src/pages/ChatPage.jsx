@@ -243,7 +243,7 @@ const ChatPage = () => {
           <div className="flex-1 flex flex-col items-center justify-center text-muted text-center p-12">
             <h3 className="text-xl font-black text-white mb-4 uppercase tracking-tighter">Secure Messaging</h3>
             <p className="max-w-xs text-[10px] font-bold uppercase tracking-widest leading-loose">
-              Establish a connection with artists in the network. End-to-end digital transmission active.
+              Establish a connection with artists in the network. Server-side encrypted digital transmission active.
             </p>
           </div>
         )}

@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.model.entity;
 
+import com.romanosadchyi.smp.music_app.model.converter.MessageEncryptionConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -31,6 +32,7 @@ public class Message {
     @JoinColumn(name = "sender_id", nullable = false)
     User sender;
 
+    @Convert(converter = MessageEncryptionConverter.class)
     @Column(columnDefinition = "TEXT", nullable = false)
     String content;
 
