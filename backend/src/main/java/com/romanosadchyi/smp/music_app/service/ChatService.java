@@ -26,6 +26,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -140,6 +141,7 @@ public class ChatService {
                 .content(request.content())
                 .sharedTrack(sharedTrack)
                 .fileUrl(request.fileUrl())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         return mappingService.map(messageRepository.save(message));

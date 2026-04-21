@@ -100,7 +100,9 @@ const ChatPage = () => {
             )}
           </div>
           <p className={`text-[10px] font-medium uppercase tracking-wider truncate ${isActive ? 'text-zinc-300' : 'text-muted'}`}>
-            {chat.lastMessage?.content || 'New Connection'}
+            {chat.lastMessage 
+              ? (chat.lastMessage.content || (chat.lastMessage.fileUrl ? 'Recording' : (chat.lastMessage.sharedTrack ? 'Shared Track' : 'Connection Initialized')))
+              : 'New Connection'}
           </p>
         </div>
       </button>
