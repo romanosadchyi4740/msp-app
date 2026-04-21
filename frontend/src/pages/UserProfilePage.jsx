@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Settings, Music, Disc, Loader2, User as UserIcon } from 'lucide-react';
+import { MessageCircle, Settings, Music, Disc, Loader2, User as UserIcon, UserPlus, UserMinus } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import useAuthStore from '../store/authStore';
 import useChatStore from '../store/chatStore';
+import useFollowStore from '../store/followStore';
 import TrackCard from '../components/TrackCard';
 import AlbumCard from '../components/AlbumCard';
 
@@ -12,6 +13,7 @@ const UserProfilePage = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const { startChatWithUser } = useChatStore();
+  const { followingIds, toggleFollow } = useFollowStore();
   
   const [profile, setProfile] = useState(null);
   const [albums, setAlbums] = useState([]);
@@ -20,6 +22,7 @@ const UserProfilePage = () => {
   const [isMessaging, setIsMessaging] = useState(false);
 
   const isOwnProfile = currentUser?.userId === userId || currentUser?.id === userId;
+  const isFollowing = !!followingIds[userId];
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -56,6 +59,16 @@ const UserProfilePage = () => {
     }
   };
 
+  const handleFollowToggle = () => {
+    toggleFollow(userId);
+    setProfile(prev => ({
+      ...prev,
+      followersCount: isFollowing 
+        ? Math.max(0, (prev.followersCount || 0) - 1) 
+        : (prev.followersCount || 0) + 1
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
@@ -90,6 +103,11 @@ const UserProfilePage = () => {
           </div>
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.85]">{profile.displayName}</h1>
           
+          <div className="flex gap-6 text-[10px] font-black uppercase tracking-widest text-muted">
+            <span><span className="text-white">{profile.followersCount || 0}</span> Followers</span>
+            <span><span className="text-white">{profile.followingCount || 0}</span> Following</span>
+          </div>
+
           <p className="text-muted text-sm max-w-xl leading-relaxed font-medium uppercase tracking-tight">
             {profile.biography || 'NO DATA TRANSMITTED FOR THIS BIOGRAPHY.'}
           </p>
@@ -104,14 +122,27 @@ const UserProfilePage = () => {
                 Edit Profile
               </button>
             ) : (
-              <button 
-                onClick={handleMessage}
-                disabled={isMessaging}
-                className="flex items-center gap-3 px-8 py-4 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all disabled:opacity-50"
-              >
-                {isMessaging ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
-                Send Transmission
-              </button>
+              <>
+                <button
+                  onClick={handleFollowToggle}
+                  className={`flex items-center gap-3 px-8 py-4 border text-[10px] font-black uppercase tracking-widest transition-all ${
+                    isFollowing 
+                      ? 'border-border text-white hover:border-white' 
+                      : 'border-white bg-white text-black hover:bg-zinc-200 hover:border-zinc-200'
+                  }`}
+                >
+                  {isFollowing ? <UserMinus size={14} /> : <UserPlus size={14} />}
+                  {isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+                <button 
+                  onClick={handleMessage}
+                  disabled={isMessaging}
+                  className="flex items-center gap-3 px-8 py-4 border border-border text-white text-[10px] font-black uppercase tracking-widest hover:border-white transition-all disabled:opacity-50"
+                >
+                  {isMessaging ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />}
+                  Send Transmission
+                </button>
+              </>
             )}
           </div>
         </div>

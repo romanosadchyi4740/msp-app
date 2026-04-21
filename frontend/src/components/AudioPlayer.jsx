@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart } from 'lucide-react';
 import usePlayerStore from '../store/playerStore';
+import useLikeStore from '../store/likeStore';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
@@ -20,6 +21,9 @@ const AudioPlayer = () => {
   } = usePlayerStore();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  const { likedTrackIds, toggleLike } = useLikeStore();
+  const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
 
   // Sync isPlaying with audio element
   useEffect(() => {
@@ -130,6 +134,12 @@ const AudioPlayer = () => {
           <p className="text-[11px] font-black uppercase tracking-tight truncate text-white">{currentTrack.title}</p>
           <p className="text-[10px] uppercase tracking-widest text-muted truncate">{currentTrack.authorName}</p>
         </div>
+        <button 
+          onClick={() => toggleLike(currentTrack.id)}
+          className={`ml-2 transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
+        >
+          <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
+        </button>
       </div>
 
       {/* Controls */}

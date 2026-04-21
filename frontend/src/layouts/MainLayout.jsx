@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import useLikeStore from '../store/likeStore';
+import useFollowStore from '../store/followStore';
 import AudioPlayer from '../components/AudioPlayer';
 
 const MainLayout = () => {
   const { user, logout, becomeArtist, loading } = useAuthStore();
+  const { fetchLikedTracks, initialized } = useLikeStore();
+  const { fetchFollowing, initialized: followInitialized } = useFollowStore();
+
+  useEffect(() => {
+    if (!initialized) {
+      fetchLikedTracks();
+    }
+    if (!followInitialized) {
+      fetchFollowing();
+    }
+  }, [fetchLikedTracks, initialized, fetchFollowing, followInitialized]);
   const navigate = useNavigate();
   const location = useLocation();
   const [isArtistLoading, setIsArtistLoading] = useState(false);

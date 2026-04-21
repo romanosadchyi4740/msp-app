@@ -67,4 +67,38 @@ public class UserService {
         return userMappingService.map(userRepository.save(user));
     }
 
+    @Transactional
+    public void followUser(UUID followerId, UUID followingId) {
+        if (followerId.equals(followingId)) {
+            throw new IllegalArgumentException("User cannot follow themselves");
+        }
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new UserNotFoundException("Follower not found"));
+        User following = userRepository.findById(followingId)
+                .orElseThrow(() -> new UserNotFoundException("User to follow not found"));
+
+        follower.getFollowing().add(following);
+        userRepository.save(follower);
+    }
+
+    @Transactional
+    public void unfollowUser(UUID followerId, UUID followingId) {
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new UserNotFoundException("Follower not found"));
+        User following = userRepository.findById(followingId)
+                .orElseThrow(() -> new UserNotFoundException("User to unfollow not found"));
+
+        follower.getFollowing().remove(following);
+        userRepository.save(follower);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<UserResponseDto> getFollowing(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return user.getFollowing().stream()
+                .map(userMappingService::map)
+                .toList();
+    }
+
 }

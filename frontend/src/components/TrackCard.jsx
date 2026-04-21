@@ -1,14 +1,17 @@
 import React from 'react';
-import { Play, Pause, Music, MessageCircle } from 'lucide-react';
+import { Play, Pause, Music, MessageCircle, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useChatStore from '../store/chatStore';
+import useLikeStore from '../store/likeStore';
 
 const TrackCard = ({ track, queue = [] }) => {
   const navigate = useNavigate();
   const { playTrack, currentTrack, isPlaying } = usePlayerStore();
   const { startChatWithUser } = useChatStore();
+  const { likedTrackIds, toggleLike } = useLikeStore();
   const isCurrentTrack = currentTrack?.id === track.id;
+  const isLiked = !!likedTrackIds[track.id];
 
   const handleStartChat = async (e) => {
     e.stopPropagation();
@@ -18,6 +21,11 @@ const TrackCard = ({ track, queue = [] }) => {
     } catch (error) {
       console.error("Could not start chat", error);
     }
+  };
+
+  const handleLike = (e) => {
+    e.stopPropagation();
+    toggleLike(track.id);
   };
 
   return (
@@ -55,12 +63,20 @@ const TrackCard = ({ track, queue = [] }) => {
           <p className="text-[10px] font-medium uppercase tracking-widest text-muted truncate">
             {track.authorName}
           </p>
-          <button 
-            onClick={handleStartChat}
-            className="text-muted hover:text-white transition-colors"
-          >
-            <MessageCircle size={12} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleLike}
+              className={`transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
+            >
+              <Heart size={12} fill={isLiked ? "currentColor" : "none"} />
+            </button>
+            <button 
+              onClick={handleStartChat}
+              className="text-muted hover:text-white transition-colors"
+            >
+              <MessageCircle size={12} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

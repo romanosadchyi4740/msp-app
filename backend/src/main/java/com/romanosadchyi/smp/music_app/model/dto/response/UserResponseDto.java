@@ -13,5 +13,7 @@ public record UserResponseDto(
         String avatarUrl,
         String biography,
         String role,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Integer followersCount,
+        Integer followingCount
 ) {}

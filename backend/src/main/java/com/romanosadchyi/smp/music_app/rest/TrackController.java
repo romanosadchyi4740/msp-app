@@ -63,4 +63,24 @@ public class TrackController {
         return ResponseEntity.ok(trackService.searchTracks(query, userId, pageNo, pageSize));
     }
 
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Void> likeTrack(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+        log.info("User {} liking track {}", user.getId(), id);
+        trackService.likeTrack(user.getId(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<Void> unlikeTrack(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+        log.info("User {} unliking track {}", user.getId(), id);
+        trackService.unlikeTrack(user.getId(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/liked")
+    public ResponseEntity<java.util.List<TrackResponseDto>> getLikedTracks(@AuthenticationPrincipal User user) {
+        log.info("Getting liked tracks for user {}", user.getId());
+        return ResponseEntity.ok(trackService.getLikedTracks(user.getId()));
+    }
+
 }

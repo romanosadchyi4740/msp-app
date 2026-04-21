@@ -109,4 +109,36 @@ public class TrackService {
                 .map(trackMappingService::map);
     }
 
+    @Transactional
+    public void likeTrack(UUID userId, UUID trackId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Track track = trackRepository.findById(trackId)
+                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
+
+        user.getLikedTracks().add(track);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void unlikeTrack(UUID userId, UUID trackId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Track track = trackRepository.findById(trackId)
+                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
+
+        user.getLikedTracks().remove(track);
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<TrackResponseDto> getLikedTracks(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return user.getLikedTracks().stream()
+                .map(trackMappingService::map)
+                .toList();
+    }
+
 }

@@ -16,6 +16,8 @@ public class UserMappingService {
                 .biography(user.getBiography())
                 .role(user.getRole().name())
                 .createdAt(user.getCreatedAt())
+                .followersCount(user.getFollowers() != null ? user.getFollowers().size() : 0)
+                .followingCount(user.getFollowing() != null ? user.getFollowing().size() : 0)
                 .build();
     }
 

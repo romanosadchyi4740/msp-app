@@ -60,4 +60,24 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsers(query, pageNo, pageSize));
     }
 
+    @PostMapping("/{id}/follow")
+    public ResponseEntity<Void> followUser(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+        log.info("User {} following user {}", user.getId(), id);
+        userService.followUser(user.getId(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/follow")
+    public ResponseEntity<Void> unfollowUser(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+        log.info("User {} unfollowing user {}", user.getId(), id);
+        userService.unfollowUser(user.getId(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/following")
+    public ResponseEntity<java.util.List<UserResponseDto>> getFollowing(@AuthenticationPrincipal User user) {
+        log.info("Getting following for user {}", user.getId());
+        return ResponseEntity.ok(userService.getFollowing(user.getId()));
+    }
+
 }
