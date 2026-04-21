@@ -12,5 +12,6 @@ public record ChatMessageResponseDto(
         UserResponseDto sender,
         String content,
         LocalDateTime timestamp,
-        TrackResponseDto sharedTrack
+        TrackResponseDto sharedTrack,
+        String fileUrl
 ) {}

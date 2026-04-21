@@ -139,6 +139,7 @@ public class ChatService {
                 .sender(sender)
                 .content(request.content())
                 .sharedTrack(sharedTrack)
+                .fileUrl(request.fileUrl())
                 .build();
 
         return mappingService.map(messageRepository.save(message));

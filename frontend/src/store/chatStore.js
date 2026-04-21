@@ -122,14 +122,15 @@ const useChatStore = create((set, get) => ({
     socketClient.disconnect();
   },
 
-  sendMessage: (content) => {
+  sendMessage: (content, fileUrl = null) => {
     const { activeChat, activeAttachment } = get();
     if (!activeChat) return;
 
     const messageDto = {
       chatId: activeChat.id,
       content: content,
-      sharedTrackId: activeAttachment?.id || null
+      sharedTrackId: activeAttachment?.id || null,
+      fileUrl: fileUrl
     };
 
     socketClient.sendMessage('/chat', messageDto);

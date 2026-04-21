@@ -36,6 +36,9 @@ public class Message {
     @Column(columnDefinition = "TEXT", nullable = false)
     String content;
 
+    @Column(name = "file_url", length = 1024)
+    String fileUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shared_track_id")
     Track sharedTrack;

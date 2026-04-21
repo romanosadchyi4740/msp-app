@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Send, MessageCircle, Search, Music, Loader2, Plus, X, Play } from 'lucide-react';
+import { Send, MessageCircle, Search, Music, Loader2, Plus, X, Play, Paperclip } from 'lucide-react';
 import useChatStore from '../store/chatStore';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
 import NewChatModal from '../components/chat/NewChatModal';
+import ChatAudioPlayer from '../components/chat/ChatAudioPlayer';
+import axiosClient from '../api/axiosClient';
 
 const ChatPage = () => {
   const { user: currentUser } = useAuthStore();
@@ -14,7 +16,9 @@ const ChatPage = () => {
   const { playTrack } = usePlayerStore();
   const [messageText, setMessageText] = useState('');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Initialize socket on mount
   useEffect(() => {
@@ -44,6 +48,27 @@ const ChatPage = () => {
 
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await axiosClient.post('/api/messages/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      sendMessage("", res.data);
+    } catch (error) {
+      console.error("Failed to upload audio", error);
+    } finally {
+      setUploading(false);
+      e.target.value = null; // reset input
+    }
   };
 
   const chatsList = chats.filter(c => c.status !== 'REJECTED' && (c.status === 'ACCEPTED' || c.initiatorId === currentUser?.userId || !c.initiatorId));
@@ -204,6 +229,11 @@ const ChatPage = () => {
                             {msg.content}
                           </div>
                         )}
+                        {msg.fileUrl && (
+                          <div className="mt-2">
+                            <ChatAudioPlayer url={msg.fileUrl} id={msg.id} />
+                          </div>
+                        )}
                         <p className={`text-[9px] mt-2 font-medium text-muted tabular-nums uppercase tracking-widest ${isOwn ? 'text-right' : 'text-left'}`}>
                           {formatTime(msg.timestamp || new Date())}
                         </p>
@@ -264,10 +294,25 @@ const ChatPage = () => {
                   className="flex items-center gap-4 border border-border p-1 bg-surface m-8 mt-6"
                 >
                   <input 
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="p-3 text-muted hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                  </button>
+                  <input 
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="INPUT TRANSMISSION..." 
-                    className="flex-1 bg-transparent px-5 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none text-white placeholder-zinc-700"
+                    className="flex-1 bg-transparent px-2 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none text-white placeholder-zinc-700"
                   />
                   <button 
                     type="submit"

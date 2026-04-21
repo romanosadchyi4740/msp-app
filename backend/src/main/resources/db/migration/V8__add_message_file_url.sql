@@ -1,0 +1,1 @@
+ALTER TABLE messages ADD COLUMN file_url VARCHAR(1024);

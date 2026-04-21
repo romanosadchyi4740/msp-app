@@ -81,6 +81,10 @@ const usePlayerStore = create((set, get) => ({
     set((state) => ({ isPlaying: !state.isPlaying }));
   },
 
+  pauseForGlobalAudio: () => {
+    set({ isPlaying: false });
+  },
+
   setVolume: (volume) => set({ volume }),
   
   toggleMute: () => {
