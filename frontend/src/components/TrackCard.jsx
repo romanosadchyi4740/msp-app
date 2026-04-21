@@ -7,14 +7,15 @@ import useLikeStore from '../store/likeStore';
 
 const TrackCard = ({ track, queue = [] }) => {
   const navigate = useNavigate();
-  const { playTrack, currentTrack, isPlaying } = usePlayerStore();
-  const { startChatWithUser } = useChatStore();
+  const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayerStore();
+  const { startChatWithUser, setAttachment } = useChatStore();
   const { likedTrackIds, toggleLike } = useLikeStore();
   const isCurrentTrack = currentTrack?.id === track.id;
   const isLiked = !!likedTrackIds[track.id];
 
   const handleStartChat = async (e) => {
     e.stopPropagation();
+    setAttachment(track);
     try {
       await startChatWithUser(track.authorId);
       navigate('/chat');
@@ -45,7 +46,14 @@ const TrackCard = ({ track, queue = [] }) => {
         
         {/* Minimal Play Overlay */}
         <button
-          onClick={() => playTrack(track, queue)}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isCurrentTrack && isPlaying) {
+              togglePlayPause();
+            } else {
+              playTrack(track, queue);
+            }
+          }}
           className={`absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-sm transition-opacity duration-300
             ${isCurrentTrack && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
         >

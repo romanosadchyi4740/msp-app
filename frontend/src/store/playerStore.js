@@ -5,6 +5,7 @@ const usePlayerStore = create((set, get) => ({
   currentTrack: null,
   isPlaying: false,
   volume: 0.5,
+  previousVolume: 0.5,
   audioUrl: null,
   queue: [],
   loopMode: 'none', // 'none', 'one', 'all'
@@ -82,6 +83,15 @@ const usePlayerStore = create((set, get) => ({
 
   setVolume: (volume) => set({ volume }),
   
+  toggleMute: () => {
+    const { volume, previousVolume } = get();
+    if (volume > 0) {
+      set({ volume: 0, previousVolume: volume });
+    } else {
+      set({ volume: previousVolume > 0 ? previousVolume : 0.5 });
+    }
+  },
+
   setIsPlaying: (isPlaying) => set({ isPlaying }),
 }));
 

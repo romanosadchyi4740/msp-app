@@ -14,7 +14,8 @@ const AudioPlayer = () => {
     volume, 
     audioUrl, 
     togglePlayPause, 
-    setVolume, 
+    setVolume,
+    toggleMute,
     setIsPlaying,
     playNext,
     playPrevious,
@@ -199,14 +200,17 @@ const AudioPlayer = () => {
             <SkipForward size={18} />
           </button>
 
-          <button className="text-muted hover:text-white transition-colors">
-            <Volume2 size={16} />
+          <button 
+            onClick={toggleMute} 
+            className="text-muted hover:text-white transition-colors"
+          >
+            {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
         </div>
 
         <div className="w-full flex items-center gap-3">
           <span className="text-[9px] font-medium text-muted w-10 text-right tabular-nums">
-            {formatTime(audioRef.current?.currentTime)}
+            {formatTime((progress / 100) * duration || 0)}
           </span>
           <div className="flex-1 relative group h-4 flex items-center">
             <input
@@ -255,3 +259,4 @@ const AudioPlayer = () => {
 };
 
 export default AudioPlayer;
+AudioPlayer;
