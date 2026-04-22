@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Loader2 } from 'lucide-react';
+import { Play, Pause, Loader2, Download } from 'lucide-react';
 import usePlayerStore from '../../store/playerStore';
 import useChatAudioStore from '../../store/chatAudioStore';
 import axiosClient from '../../api/axiosClient';
@@ -104,8 +104,28 @@ const ChatAudioPlayer = ({ url, id }) => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleDownload = async () => {
+    if (!presignedUrl) return;
+    try {
+      const response = await fetch(presignedUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const filename = url.split('/').pop() || 'audio-message.mp3';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Failed to download audio via fetch, falling back to window.open", err);
+      window.open(presignedUrl, '_blank');
+    }
+  };
+
   return (
-    <div className="flex items-center gap-3 bg-surface border border-border p-2 rounded-sm w-64">
+    <div className="flex items-center gap-3 bg-surface border border-border p-2 rounded-sm w-[280px]">
       {presignedUrl && (
         <audio
           ref={audioRef}
@@ -142,9 +162,18 @@ const ChatAudioPlayer = ({ url, id }) => {
         </div>
       </div>
       
-      <span className="text-[9px] font-medium text-muted tabular-nums flex-shrink-0 w-8">
+      <span className="text-[9px] font-medium text-muted tabular-nums flex-shrink-0 w-7 text-right">
         {formatTime((progress / 100) * duration || 0)}
       </span>
+
+      <button 
+        onClick={handleDownload}
+        disabled={loading || !presignedUrl}
+        className="text-muted hover:text-white transition-colors disabled:opacity-50 p-1 flex-shrink-0"
+        title="Download Audio"
+      >
+        <Download size={14} />
+      </button>
     </div>
   );
 };
