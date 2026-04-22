@@ -43,6 +43,9 @@ public class Message {
     @JoinColumn(name = "shared_track_id")
     Track sharedTrack;
 
+    @Column(name = "shared_track_timestamp")
+    Integer sharedTrackTimestamp;
+
     @CreationTimestamp
     @Column(name = "timestamp", updatable = false)
     LocalDateTime timestamp;

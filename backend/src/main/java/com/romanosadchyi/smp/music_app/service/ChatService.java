@@ -134,12 +134,12 @@ public class ChatService {
             sharedTrack = trackRepository.findById(request.sharedTrackId())
                     .orElseThrow(() -> new TrackNotFoundException("Track not found: " + request.sharedTrackId()));
         }
-
         Message message = Message.builder()
                 .chat(chat)
                 .sender(sender)
                 .content(request.content())
                 .sharedTrack(sharedTrack)
+                .sharedTrackTimestamp(request.sharedTrackTimestamp())
                 .fileUrl(request.fileUrl())
                 .timestamp(LocalDateTime.now())
                 .build();

@@ -50,6 +50,13 @@ const ChatPage = () => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatAudioTime = (time) => {
+    if (isNaN(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -205,7 +212,7 @@ const ChatPage = () => {
                     <div key={msg.id || idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%]`}>
                         {msg.sharedTrack && (
-                          <div className={`mb-2 p-2 flex items-center gap-3 transition-colors cursor-pointer border ${isOwn ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-surface border-border hover:bg-zinc-800'}`} onClick={() => playTrack(msg.sharedTrack)}>
+                          <div className={`mb-2 p-2 flex items-center gap-3 transition-colors cursor-pointer border ${isOwn ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-surface border-border hover:bg-zinc-800'}`} onClick={() => playTrack(msg.sharedTrack, [], msg.sharedTrackTimestamp != null ? msg.sharedTrackTimestamp : null)}>
                             <div className="relative w-10 h-10 flex-shrink-0">
                               {msg.sharedTrack.coverUrl ? (
                                 <img src={msg.sharedTrack.coverUrl} alt="Cover" className="w-full h-full object-cover grayscale" />
@@ -217,7 +224,10 @@ const ChatPage = () => {
                               </div>
                             </div>
                             <div className="overflow-hidden">
-                              <p className={`text-[10px] font-black uppercase tracking-tight truncate ${isOwn ? 'text-white' : 'text-white'}`}>{msg.sharedTrack.title}</p>
+                              <p className={`text-[10px] font-black uppercase tracking-tight truncate ${isOwn ? 'text-white' : 'text-white'}`}>
+                                {msg.sharedTrack.title}
+                                {msg.sharedTrackTimestamp != null && <span className="text-zinc-400 font-medium ml-1">[{formatAudioTime(msg.sharedTrackTimestamp)}]</span>}
+                              </p>
                               <p className={`text-[9px] font-medium uppercase tracking-widest truncate ${isOwn ? 'text-zinc-400' : 'text-muted'}`}>{msg.sharedTrack.authorName}</p>
                             </div>
                           </div>

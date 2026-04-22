@@ -3,6 +3,7 @@ import axiosClient from '../api/axiosClient';
 
 const usePlayerStore = create((set, get) => ({
   currentTrack: null,
+  initialSeekTime: null,
   isPlaying: false,
   volume: 0.5,
   previousVolume: 0.5,
@@ -10,7 +11,7 @@ const usePlayerStore = create((set, get) => ({
   queue: [],
   loopMode: 'none', // 'none', 'one', 'all'
 
-  playTrack: async (track, newQueue = []) => {
+  playTrack: async (track, newQueue = [], seekTime = null) => {
     // If a new queue is provided, update it
     if (newQueue.length > 0) {
       set({ queue: newQueue });
@@ -19,6 +20,9 @@ const usePlayerStore = create((set, get) => ({
     // If it's the same track and it's already playing, do nothing
     // If it's the same track and it's paused, toggle play
     if (get().currentTrack?.id === track.id) {
+      if (seekTime !== null) {
+        set({ initialSeekTime: seekTime });
+      }
       set({ isPlaying: true });
       return;
     }
@@ -28,16 +32,16 @@ const usePlayerStore = create((set, get) => ({
       const response = await axiosClient.get(`/api/tracks/${track.id}/url`);
       const url = response.data;
 
-      set({ 
-        currentTrack: track, 
+      set({
+        currentTrack: track,
         audioUrl: url,
-        isPlaying: true 
+        isPlaying: true,
+        initialSeekTime: seekTime
       });
     } catch (error) {
       console.error('Failed to get track URL:', error);
     }
   },
-
   playNext: (force = false) => {
     const { currentTrack, queue, loopMode } = get();
     if (!currentTrack || queue.length === 0) return;

@@ -130,6 +130,7 @@ const useChatStore = create((set, get) => ({
       chatId: activeChat.id,
       content: content,
       sharedTrackId: activeAttachment?.id || null,
+      sharedTrackTimestamp: activeAttachment?.shareTimestamp || null,
       fileUrl: fileUrl
     };
 

@@ -23,6 +23,7 @@ public class ChatMessageMappingService {
                 .content(message.getContent())
                 .timestamp(message.getTimestamp())
                 .sharedTrack(message.getSharedTrack() != null ? trackMappingService.map(message.getSharedTrack()) : null)
+                .sharedTrackTimestamp(message.getSharedTrackTimestamp())
                 .fileUrl(message.getFileUrl())
                 .build();
     }

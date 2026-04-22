@@ -13,6 +13,7 @@ const AudioPlayer = () => {
     isPlaying, 
     volume, 
     audioUrl, 
+    initialSeekTime,
     togglePlayPause, 
     setVolume,
     toggleMute,
@@ -40,6 +41,26 @@ const AudioPlayer = () => {
       audioRef.current.pause();
     }
   }, [isPlaying, audioUrl]);
+
+  // Handle initialSeekTime
+  useEffect(() => {
+    if (audioRef.current && initialSeekTime !== null) {
+      const attemptSeek = () => {
+        if (audioRef.current.readyState >= 1) { // HAVE_METADATA or higher
+          audioRef.current.currentTime = initialSeekTime;
+          usePlayerStore.setState({ initialSeekTime: null });
+        } else {
+          const handleCanPlay = () => {
+            audioRef.current.currentTime = initialSeekTime;
+            usePlayerStore.setState({ initialSeekTime: null });
+            audioRef.current.removeEventListener('loadedmetadata', handleCanPlay);
+          };
+          audioRef.current.addEventListener('loadedmetadata', handleCanPlay);
+        }
+      };
+      attemptSeek();
+    }
+  }, [audioUrl, initialSeekTime]);
 
   // Sync volume with audio element
   useEffect(() => {
@@ -78,7 +99,8 @@ const AudioPlayer = () => {
 
   const handleShareToChat = async () => {
     if (!currentTrack) return;
-    setAttachment(currentTrack);
+    const currentAudioTime = audioRef.current ? Math.floor(audioRef.current.currentTime) : 0;
+    setAttachment({ ...currentTrack, shareTimestamp: currentAudioTime });
     try {
       await startChatWithUser(currentTrack.authorId);
       navigate('/chat');
