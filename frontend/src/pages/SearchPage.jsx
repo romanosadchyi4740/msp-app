@@ -90,7 +90,7 @@ const SearchPage = () => {
                   >
                     <div className="aspect-square bg-surface border border-border overflow-hidden">
                       {user.avatarUrl ? (
-                        <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 transition-all duration-700" />
+                        <img src={user.avatarUrl} alt={user.displayName} referrerPolicy="no-referrer" className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 transition-all duration-700" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <UserIcon size={32} className="text-zinc-800" />

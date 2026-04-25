@@ -85,7 +85,7 @@ const SettingsPage = () => {
           <div className="flex items-center gap-8 p-8 border border-border bg-surface/50">
             <div className="w-20 h-20 bg-zinc-800 flex items-center justify-center">
               {formData.avatarUrl ? (
-                <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover grayscale" />
+                <img src={formData.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover grayscale" />
               ) : (
                 <UserIcon size={32} className="text-muted" />
               )}

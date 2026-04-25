@@ -89,7 +89,7 @@ const UserProfilePage = () => {
       <header className="flex flex-col md:flex-row gap-16 items-start border-b border-border pb-24">
         <div className="w-48 h-48 md:w-64 md:h-64 bg-surface border border-border overflow-hidden relative group">
           {profile.avatarUrl ? (
-            <img src={profile.avatarUrl} alt={profile.displayName} className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 transition-all duration-700" />
+            <img src={profile.avatarUrl} alt={profile.displayName} referrerPolicy="no-referrer" className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 transition-all duration-700" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <UserIcon size={64} className="text-zinc-800" />

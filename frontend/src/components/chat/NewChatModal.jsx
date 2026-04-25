@@ -69,7 +69,7 @@ const NewChatModal = ({ onClose, onSelectUser }) => {
                 >
                   <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white">
                     {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="" className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0" />
+                      <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0" />
                     ) : user.displayName.charAt(0)}
                   </div>
                   <div>

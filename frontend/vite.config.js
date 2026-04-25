@@ -7,4 +7,9 @@ export default defineConfig({
   define: {
     global: 'window',
   },
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
 })
