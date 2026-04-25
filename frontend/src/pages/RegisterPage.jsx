@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Music, User, Mail, Lock, Loader2 } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../store/authStore';
 
 const RegisterPage = () => {
@@ -9,7 +10,7 @@ const RegisterPage = () => {
     email: '',
     password: ''
   });
-  const { register, loading, error } = useAuthStore();
+  const { register, loginWithGoogle, loading, error } = useAuthStore();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -24,9 +25,18 @@ const RegisterPage = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (credentialResponse.credential) {
+      const success = await loginWithGoogle(credentialResponse.credential);
+      if (success) {
+        navigate('/');
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="max-w-md w-full space-y-12 bg-surface p-12 border border-border shadow-2xl">
+      <div className="max-w-md w-full space-y-8 bg-surface p-12 border border-border shadow-2xl">
         <div className="text-center">
           <div className="flex justify-center">
             <Music className="h-10 w-10 text-white" />
@@ -87,7 +97,29 @@ const RegisterPage = () => {
           </button>
         </form>
 
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted">
+        <div className="relative mt-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-surface text-muted text-[10px] font-bold uppercase tracking-widest">Or register with</span>
+          </div>
+        </div>
+
+        <div className="flex justify-center mt-6">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              console.error('Google Login Failed');
+            }}
+            theme="filled_black"
+            shape="rectangular"
+            text="signup_with"
+            size="large"
+          />
+        </div>
+
+        <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-muted">
           Already Registered?{' '}
           <Link to="/login" className="text-white hover:underline underline-offset-4">
             Access Account

@@ -36,3 +36,7 @@ jwt:
 
 encryption:
   secret-key: ${ENCRYPTION_SECRET:12345678901234567890123456789012}
+
+google:
+  client:
+    id: 125635909882-acg0l3mbe76auvijfdru8oc1dbdbetjq.apps.googleusercontent.com

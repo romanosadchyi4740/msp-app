@@ -38,6 +38,26 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  loginWithGoogle: async (googleToken) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axiosClient.post('/auth/google', { googleToken });
+      const { accessToken, ...user } = response.data;
+      
+      localStorage.setItem('token', accessToken);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      return true;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.message || 'Google login failed', 
+        loading: false 
+      });
+      return false;
+    }
+  },
+
   register: async (userData) => {
     set({ loading: true, error: null });
     try {

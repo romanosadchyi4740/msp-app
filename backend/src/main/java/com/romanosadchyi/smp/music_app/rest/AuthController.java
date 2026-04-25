@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.rest;
 
+import com.romanosadchyi.smp.music_app.model.dto.request.GoogleAuthRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
@@ -33,6 +34,12 @@ public class AuthController {
     public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto request) {
         log.info("Logging in user with email: {}", request.email());
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponseDto> loginWithGoogle(@RequestBody GoogleAuthRequestDto request) {
+        log.info("Authenticating user via Google");
+        return ResponseEntity.ok(authService.authenticateWithGoogle(request.googleToken()));
     }
 
 }
