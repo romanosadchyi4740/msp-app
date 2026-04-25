@@ -6,22 +6,15 @@ import useChatStore from '../store/chatStore';
 import useLikeStore from '../store/likeStore';
 
 const TrackCard = ({ track, queue = [] }) => {
-  const navigate = useNavigate();
   const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayerStore();
-  const { startChatWithUser, setAttachment } = useChatStore();
+  const { openShareModal } = useChatStore();
   const { likedTrackIds, toggleLike } = useLikeStore();
   const isCurrentTrack = currentTrack?.id === track.id;
   const isLiked = !!likedTrackIds[track.id];
 
-  const handleStartChat = async (e) => {
+  const handleStartChat = (e) => {
     e.stopPropagation();
-    setAttachment(track);
-    try {
-      await startChatWithUser(track.authorId);
-      navigate('/chat');
-    } catch (error) {
-      console.error("Could not start chat", error);
-    }
+    openShareModal(track, null);
   };
 
   const handleLike = (e) => {

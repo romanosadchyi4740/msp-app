@@ -28,7 +28,7 @@ const AudioPlayer = () => {
   const [duration, setDuration] = useState(0);
 
   const { likedTrackIds, toggleLike } = useLikeStore();
-  const { setAttachment, startChatWithUser } = useChatStore();
+  const { setAttachment, startChatWithUser, openShareModal } = useChatStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
 
   // Sync isPlaying with audio element
@@ -100,13 +100,7 @@ const AudioPlayer = () => {
   const handleShareToChat = async () => {
     if (!currentTrack) return;
     const currentAudioTime = audioRef.current ? Math.floor(audioRef.current.currentTime) : 0;
-    setAttachment({ ...currentTrack, shareTimestamp: currentAudioTime });
-    try {
-      await startChatWithUser(currentTrack.authorId);
-      navigate('/chat');
-    } catch (error) {
-      console.error("Could not start chat for sharing", error);
-    }
+    openShareModal(currentTrack, currentAudioTime);
   };
 
   if (!currentTrack) return null;

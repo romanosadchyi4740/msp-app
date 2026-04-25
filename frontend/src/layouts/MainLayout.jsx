@@ -5,6 +5,7 @@ import useAuthStore from '../store/authStore';
 import useLikeStore from '../store/likeStore';
 import useFollowStore from '../store/followStore';
 import AudioPlayer from '../components/AudioPlayer';
+import ShareTrackModal from '../components/modals/ShareTrackModal';
 
 const MainLayout = () => {
   const { user, logout, becomeArtist, loading } = useAuthStore();
@@ -130,6 +131,9 @@ const MainLayout = () => {
 
       {/* Global Audio Player */}
       <AudioPlayer />
+      
+      {/* Share Track Modal */}
+      <ShareTrackModal />
     </div>
   );
 };

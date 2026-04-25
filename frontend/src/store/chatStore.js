@@ -10,6 +10,15 @@ const useChatStore = create((set, get) => ({
   loading: false,
   messagesLoading: false,
 
+  shareModal: {
+    isOpen: false,
+    track: null,
+    timestamp: null
+  },
+
+  openShareModal: (track, timestamp) => set({ shareModal: { isOpen: true, track, timestamp } }),
+  closeShareModal: () => set({ shareModal: { isOpen: false, track: null, timestamp: null } }),
+
   setAttachment: (track) => set({ activeAttachment: track }),
   clearAttachment: () => set({ activeAttachment: null }),
 
