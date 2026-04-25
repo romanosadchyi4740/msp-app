@@ -3,8 +3,8 @@ package com.romanosadchyi.smp.music_app.service;
 import com.romanosadchyi.smp.music_app.exception.MinioGetPresignedObjectUrlException;
 import com.romanosadchyi.smp.music_app.exception.MinioUploadException;
 import io.minio.*;
+import io.minio.Http.Method;
 import io.minio.errors.MinioException;
-import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 @Slf4j
 @Service
@@ -37,7 +34,7 @@ public class MinioService {
     int presignedUrlExpirySeconds;
 
     @PostConstruct
-    public void init() throws MinioException, IOException, NoSuchAlgorithmException, InvalidKeyException {
+    public void init() throws MinioException {
         boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
         if (!found) {
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
@@ -50,7 +47,7 @@ public class MinioService {
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectName)
-                            .stream(inputStream, file.getSize(), -1)
+                            .stream(inputStream, file.getSize(), -1L)
                             .contentType(file.getContentType())
                             .build()
             );

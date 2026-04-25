@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.5</version>
+		<version>4.0.6</version>
 		<relativePath/> <!-- lookup parent from a repository -->
 	</parent>
 	<groupId>com.romanosadchyi.smp</groupId>
@@ -29,9 +29,9 @@
 	<properties>
 		<java.version>25</java.version>
 		<jjwt.version>0.13.0</jjwt.version>
-		<minio.version>8.6.0</minio.version>
+		<minio.version>9.0.0</minio.version>
 		<google-api-client.version>2.9.0</google-api-client.version>
-		<flyway.version>12.0.3</flyway.version>
+		<flyway.version>12.4.0</flyway.version>
 	</properties>
 
 	<dependencyManagement>
