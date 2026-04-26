@@ -18,6 +18,7 @@ const UserProfilePage = () => {
   const [profile, setProfile] = useState(null);
   const [albums, setAlbums] = useState([]);
   const [tracks, setTracks] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMessaging, setIsMessaging] = useState(false);
 
@@ -28,15 +29,17 @@ const UserProfilePage = () => {
     const fetchProfileData = async () => {
       setLoading(true);
       try {
-        const [userRes, albumsRes, tracksRes] = await Promise.all([
+        const [userRes, albumsRes, tracksRes, playlistsRes] = await Promise.all([
           axiosClient.get(`/api/users/${userId}`),
           axiosClient.get(`/api/albums/search`, { params: { query: '', userId: userId } }), 
-          axiosClient.get(`/api/tracks/search`, { params: { query: '', userId: userId } })
+          axiosClient.get(`/api/tracks/search`, { params: { query: '', userId: userId } }),
+          axiosClient.get(`/api/playlists/user/${userId}`)
         ]);
         
         setProfile(userRes.data);
         setAlbums(albumsRes.data.content || []);
         setTracks(tracksRes.data.content || []);
+        setPlaylists(playlistsRes.data || []);
       } catch (error) {
         console.error('Failed to fetch profile', error);
       } finally {
@@ -147,6 +150,47 @@ const UserProfilePage = () => {
           </div>
         </div>
       </header>
+
+      {/* Playlists Section */}
+      {playlists.length > 0 && (
+        <section className="mb-32">
+          <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.4em]">Public Playlists</h3>
+            <span className="text-[10px] font-medium text-muted tabular-nums">{playlists.length.toString().padStart(2, '0')}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+            {playlists.map((playlist) => (
+              <button
+                key={playlist.id}
+                onClick={() => navigate(`/playlists/${playlist.id}`)}
+                className="group relative flex flex-col text-left transition-all duration-300"
+              >
+                <div className="relative aspect-square w-full mb-3 overflow-hidden bg-surface border border-border group-hover:border-white/30 transition-colors">
+                  {playlist.coverUrl ? (
+                    <img 
+                      src={playlist.coverUrl} 
+                      alt={playlist.title} 
+                      className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-105 transition-all duration-700"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Music size={32} className="text-zinc-800" />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-white truncate">
+                    {playlist.title}
+                  </h3>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted truncate">
+                    {playlist.tracksCount || 0} Tracks
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Discography */}
       {profile.role === 'ROLE_ARTIST' && (

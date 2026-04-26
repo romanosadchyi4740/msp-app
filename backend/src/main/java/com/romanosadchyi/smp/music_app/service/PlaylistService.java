@@ -97,6 +97,13 @@ public class PlaylistService {
                 .map(playlistMappingService::map)
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public List<PlaylistResponseDto> getUserPublicPlaylists(UUID userId) {
+        return playlistRepository.findAllByOwnerIdAndIsPublicTrue(userId).stream()
+                .map(playlistMappingService::map)
+                .collect(Collectors.toList());
+    }
     
     @Transactional
     public PlaylistResponseDto toggleVisibility(UUID playlistId, UUID userId) {

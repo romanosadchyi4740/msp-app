@@ -11,5 +11,6 @@ import java.util.UUID;
 public interface PlaylistRepository extends JpaRepository<Playlist, UUID> {
 
     List<Playlist> findAllByOwnerId(UUID ownerId);
+    List<Playlist> findAllByOwnerIdAndIsPublicTrue(UUID ownerId);
 
 }

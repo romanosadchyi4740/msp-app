@@ -39,6 +39,12 @@ public class PlaylistController {
         return ResponseEntity.ok(playlistService.getMyPlaylists(user.getId()));
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<PlaylistResponseDto>> getUserPublicPlaylists(@PathVariable UUID userId) {
+        log.info("Getting public playlists for user: {}", userId);
+        return ResponseEntity.ok(playlistService.getUserPublicPlaylists(userId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PlaylistResponseDto> getPlaylist(
             @PathVariable UUID id,
