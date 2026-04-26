@@ -30,6 +30,9 @@ public class Genre {
     @Column(nullable = false, unique = true)
     String slug; // for URLs (for example, 'hard-rock')
 
+    @Column(name = "color_hex")
+    String colorHex;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;

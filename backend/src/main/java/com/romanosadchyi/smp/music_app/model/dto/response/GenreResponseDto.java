@@ -8,5 +8,6 @@ import java.util.UUID;
 public record GenreResponseDto(
         UUID id,
         String name,
-        String slug
+        String slug,
+        String colorHex
 ) {}

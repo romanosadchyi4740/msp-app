@@ -1,0 +1,1 @@
+ALTER TABLE genres ADD COLUMN color_hex VARCHAR(7);

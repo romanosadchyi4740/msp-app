@@ -3,10 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import { Compass, Loader2 } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 
+const GenreCard = ({ genre }) => {
+  const navigate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      onClick={() => navigate(`/genres/${genre.id}`, { state: { genreName: genre.name, colorHex: genre.colorHex } })}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="aspect-square relative overflow-hidden transition-all duration-300 bg-zinc-900 border flex items-end p-6"
+      style={{
+        borderColor: isHovered ? genre.colorHex || '#ffffff' : '#27272a', // zinc-800
+        boxShadow: isHovered ? `0 0 20px ${(genre.colorHex || '#ffffff')}40` : 'none'
+      }}
+    >
+      <h3 
+        className="text-2xl font-black text-white uppercase tracking-tighter text-left transition-colors duration-300"
+        style={{ color: isHovered ? genre.colorHex || '#ffffff' : '#ffffff' }}
+      >
+        {genre.name}
+      </h3>
+    </button>
+  );
+};
+
 const ExplorePage = () => {
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -21,22 +45,6 @@ const ExplorePage = () => {
     };
     fetchGenres();
   }, []);
-
-  const bgColors = [
-    'bg-red-600', 'bg-orange-600', 'bg-amber-600', 'bg-yellow-600', 'bg-lime-600',
-    'bg-green-600', 'bg-emerald-600', 'bg-teal-600', 'bg-cyan-600', 'bg-sky-600',
-    'bg-blue-600', 'bg-indigo-600', 'bg-violet-600', 'bg-purple-600', 'bg-fuchsia-600',
-    'bg-pink-600', 'bg-rose-600'
-  ];
-
-  const getColorForGenre = (idStr) => {
-    let hash = 0;
-    for (let i = 0; i < idStr.length; i++) {
-      hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % bgColors.length;
-    return bgColors[index];
-  };
 
   if (loading) {
     return (
@@ -60,16 +68,7 @@ const ExplorePage = () => {
       <section>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {genres.map(genre => (
-            <button
-              key={genre.id}
-              onClick={() => navigate(`/genres/${genre.id}`, { state: { genreName: genre.name } })}
-              className={`aspect-square relative overflow-hidden transition-transform hover:scale-105 active:scale-95 ${getColorForGenre(genre.id)}`}
-            >
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-              <h3 className="absolute top-4 left-4 text-2xl font-black text-white uppercase tracking-tighter drop-shadow-md text-left">
-                {genre.name}
-              </h3>
-            </button>
+            <GenreCard key={genre.id} genre={genre} />
           ))}
         </div>
       </section>

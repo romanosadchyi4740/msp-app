@@ -9,6 +9,7 @@ const GenreDetailsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const genreName = location.state?.genreName || 'Genre';
+  const colorHex = location.state?.colorHex || '#ffffff';
   
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,15 +31,24 @@ const GenreDetailsPage = () => {
 
   return (
     <div className="space-y-16 pb-32">
-      <header className="border-b border-border pb-12 flex items-center gap-6">
+      <header 
+        className="pb-12 flex items-center gap-6"
+        style={{ borderBottom: `1px solid ${colorHex}40` }}
+      >
         <button 
           onClick={() => navigate(-1)}
-          className="p-3 hover:bg-surface transition-colors"
+          className="p-3 transition-colors"
+          style={{ color: colorHex }}
         >
           <ArrowLeft size={24} />
         </button>
         <div>
-          <h1 className="text-6xl font-black tracking-tighter uppercase">{genreName}</h1>
+          <h1 
+            className="text-6xl font-black tracking-tighter uppercase"
+            style={{ color: colorHex }}
+          >
+            {genreName}
+          </h1>
           <p className="text-muted text-xs font-bold uppercase tracking-[0.2em] mt-2">Genre Archive</p>
         </div>
       </header>

@@ -12,6 +12,7 @@ public class GenreMappingService {
                 .id(genre.getId())
                 .name(genre.getName())
                 .slug(genre.getSlug())
+                .colorHex(genre.getColorHex())
                 .build();
     }
 }
