@@ -5,7 +5,7 @@ import usePlayerStore from '../store/playerStore';
 import useChatStore from '../store/chatStore';
 import useLikeStore from '../store/likeStore';
 
-const TrackCard = ({ track, queue = [] }) => {
+const TrackCard = ({ track, queue = [], showGenre = true }) => {
   const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayerStore();
   const { openShareModal } = useChatStore();
   const { likedTrackIds, toggleLike } = useLikeStore();
@@ -60,7 +60,7 @@ const TrackCard = ({ track, queue = [] }) => {
         </button>
 
         {/* Primary Genre Tag */}
-        {primaryGenre && (
+        {showGenre && primaryGenre && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm border border-white/10 text-[8px] font-black uppercase tracking-widest text-white">
             {primaryGenre}
           </div>

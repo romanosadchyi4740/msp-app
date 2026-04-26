@@ -65,7 +65,7 @@ const GenreDetailsPage = () => {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
           {tracks.map(track => (
-            <TrackCard key={track.id} track={track} queue={tracks} />
+            <TrackCard key={track.id} track={track} queue={tracks} showGenre={false} />
           ))}
         </div>
       )}
