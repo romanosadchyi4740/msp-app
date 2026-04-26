@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
+import { Home, Search, Compass, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useLikeStore from '../store/likeStore';
 import useFollowStore from '../store/followStore';
@@ -41,6 +41,7 @@ const MainLayout = () => {
   const navItems = [
     { icon: Home, label: 'Home', path: '/' },
     { icon: Search, label: 'Search', path: '/search' },
+    { icon: Compass, label: 'Explore', path: '/explore' },
     { icon: Library, label: 'Playlists', path: '/playlists' },
     { icon: MessageCircle, label: 'Chat', path: '/chat' },
     { icon: User, label: 'Settings', path: '/settings' },

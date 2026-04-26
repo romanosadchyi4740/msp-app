@@ -22,7 +22,9 @@ const TrackCard = ({ track, queue = [] }) => {
     toggleLike(track.id);
   };
 
-  const primaryGenre = track.genres && track.genres.length > 0 ? track.genres[0].name : null;
+  const primaryGenre = track.genres && track.genres.length > 0 
+    ? [...track.genres].sort((a, b) => a.name.localeCompare(b.name))[0].name 
+    : null;
 
   return (
     <div className="group transition-all duration-300 relative">

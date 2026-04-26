@@ -7,6 +7,7 @@ import AlbumCard from '../components/AlbumCard';
 const HomePage = () => {
   const [tracks, setTracks] = useState([]);
   const [albums, setAlbums] = useState([]);
+  const [recommended, setRecommended] = useState({ genreName: '', tracks: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -14,13 +15,15 @@ const HomePage = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tracksRes, albumsRes] = await Promise.all([
+        const [tracksRes, albumsRes, recRes] = await Promise.all([
           axiosClient.get('/api/tracks', { params: { pageNo: 0, pageSize: 12 } }),
-          axiosClient.get('/api/albums', { params: { pageNo: 0, pageSize: 6 } })
+          axiosClient.get('/api/albums', { params: { pageNo: 0, pageSize: 6 } }),
+          axiosClient.get('/api/tracks/recommended')
         ]);
         
         setTracks(tracksRes.data.content || []);
         setAlbums(albumsRes.data.content || []);
+        setRecommended(recRes.data || { genreName: '', tracks: [] });
       } catch (err) {
         console.error('Failed to fetch data:', err);
         setError('Could not load content. Please check your connection.');
@@ -83,6 +86,24 @@ const HomePage = () => {
           </div>
         </div>
       </header>
+
+      {/* Recommended Section */}
+      {recommended.tracks.length > 0 && (
+        <section>
+          <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.4em]">Recommended For You (Based on your love for {recommended.genreName})</h3>
+            <span className="text-[10px] font-medium text-muted tabular-nums">
+              01 — {recommended.tracks.length.toString().padStart(2, '0')}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
+            {recommended.tracks.map((track) => (
+              <TrackCard key={`rec-${track.id}`} track={track} queue={recommended.tracks} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Featured Albums Section */}
       <section>

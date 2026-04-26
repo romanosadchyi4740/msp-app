@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.RecommendedResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.TrackService;
@@ -81,6 +82,22 @@ public class TrackController {
     public ResponseEntity<java.util.List<TrackResponseDto>> getLikedTracks(@AuthenticationPrincipal User user) {
         log.info("Getting liked tracks for user {}", user.getId());
         return ResponseEntity.ok(trackService.getLikedTracks(user.getId()));
+    }
+
+    @GetMapping("/genre/{genreId}")
+    public ResponseEntity<Page<TrackResponseDto>> getTracksByGenre(
+            @PathVariable UUID genreId,
+            @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "20", required = false) int pageSize
+    ) {
+        log.info("Getting tracks for genre: {}", genreId);
+        return ResponseEntity.ok(trackService.getTracksByGenre(genreId, pageNo, pageSize));
+    }
+
+    @GetMapping("/recommended")
+    public ResponseEntity<RecommendedResponseDto> getRecommendedTracks(@AuthenticationPrincipal User user) {
+        log.info("Getting recommended tracks for user {}", user.getId());
+        return ResponseEntity.ok(trackService.getRecommendedTracks(user.getId()));
     }
 
 }

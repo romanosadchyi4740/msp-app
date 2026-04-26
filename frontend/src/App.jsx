@@ -8,6 +8,8 @@ import UserProfilePage from './pages/UserProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import AlbumDetailsPage from './pages/AlbumDetailsPage';
 import UploadPage from './pages/UploadPage';
+import ExplorePage from './pages/ExplorePage';
+import GenreDetailsPage from './pages/GenreDetailsPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -29,6 +31,8 @@ function App() {
         >
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/genres/:id" element={<GenreDetailsPage />} />
           <Route path="/users/:userId" element={<UserProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/albums/:albumId" element={<AlbumDetailsPage />} />
