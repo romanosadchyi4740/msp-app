@@ -22,6 +22,8 @@ const TrackCard = ({ track, queue = [] }) => {
     toggleLike(track.id);
   };
 
+  const primaryGenre = track.genres && track.genres.length > 0 ? track.genres[0].name : null;
+
   return (
     <div className="group transition-all duration-300 relative">
       <div className="relative aspect-square mb-3 overflow-hidden bg-surface">
@@ -54,6 +56,13 @@ const TrackCard = ({ track, queue = [] }) => {
             {isCurrentTrack && isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
           </div>
         </button>
+
+        {/* Primary Genre Tag */}
+        {primaryGenre && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm border border-white/10 text-[8px] font-black uppercase tracking-widest text-white">
+            {primaryGenre}
+          </div>
+        )}
       </div>
 
       <div className="space-y-0.5">

@@ -4,10 +4,12 @@ import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
+import com.romanosadchyi.smp.music_app.model.entity.Genre;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
+import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
@@ -21,7 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,6 +44,9 @@ class TrackServiceTest {
 
     @Mock
     AlbumRepository albumRepository;
+
+    @Mock
+    GenreRepository genreRepository;
 
     @Mock
     MinioService minioService;
@@ -68,7 +75,7 @@ class TrackServiceTest {
                 .role(UserRole.ROLE_USER)
                 .build();
 
-        trackDto = new TrackCreateDto("Song", 210, null, UUID.randomUUID(), 1);
+        trackDto = new TrackCreateDto("Song", 210, null, UUID.randomUUID(), 1, Set.of(UUID.randomUUID()));
         mockFile = mock(MultipartFile.class);
 //        when(mockFile.getOriginalFilename()).thenReturn("song.mp3");
     }
@@ -79,6 +86,7 @@ class TrackServiceTest {
         when(trackMappingService.map(any(TrackCreateDto.class))).thenReturn(new Track());
         when(trackRepository.save(any(Track.class))).thenReturn(Track.builder().id(UUID.randomUUID()).build());
         when(albumRepository.findById(any())).thenReturn(Optional.of(new Album().toBuilder().author(artist).build()));
+        when(genreRepository.findAllById(any())).thenReturn(List.of(new Genre()));
 
         trackService.createTrack(artist.getId(), trackDto, mockFile);
 

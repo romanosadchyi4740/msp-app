@@ -7,10 +7,12 @@ import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
+import com.romanosadchyi.smp.music_app.model.entity.Genre;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
+import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
@@ -25,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -35,6 +39,7 @@ public class TrackService {
     TrackRepository trackRepository;
     UserRepository userRepository;
     AlbumRepository albumRepository;
+    GenreRepository genreRepository;
     MinioService minioService;
     TrackMappingService trackMappingService;
 
@@ -50,12 +55,21 @@ public class TrackService {
         if (dto.albumId() == null) {
             throw new IllegalArgumentException("Album ID is required. Every track must belong to an album.");
         }
+        
+        if (dto.genreIds() == null || dto.genreIds().isEmpty() || dto.genreIds().size() > 4) {
+            throw new IllegalArgumentException("A track must have at least 1 and no more than 4 genres.");
+        }
 
         Album album = albumRepository.findById(dto.albumId())
                 .orElseThrow(() -> new AlbumNotFoundException("Album not found"));
 
         if (!album.getAuthor().getId().equals(authorId)) {
             throw new UserNotAuthorizedException("You can only add tracks to your own albums");
+        }
+        
+        List<Genre> genres = genreRepository.findAllById(dto.genreIds());
+        if (genres.size() != dto.genreIds().size()) {
+            throw new IllegalArgumentException("One or more selected genres are invalid.");
         }
 
         String originalFilename = file.getOriginalFilename();
@@ -66,6 +80,7 @@ public class TrackService {
                 .fileKey("PENDING")
                 .author(author)
                 .album(album)
+                .genres(new HashSet<>(genres))
                 .build();
 
         Track savedTrack = trackRepository.save(track);
