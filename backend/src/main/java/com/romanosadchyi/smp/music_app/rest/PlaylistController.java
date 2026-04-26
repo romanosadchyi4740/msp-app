@@ -1,6 +1,5 @@
 package com.romanosadchyi.smp.music_app.rest;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.AddTrackToPlaylistDto;
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
@@ -13,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -33,14 +33,10 @@ public class PlaylistController {
         return ResponseEntity.ok(playlistService.createPlaylist(user.getId(), dto));
     }
 
-    @PostMapping("/{playlistId}/tracks")
-    public ResponseEntity<PlaylistResponseDto> addTrack(
-            @AuthenticationPrincipal User user,
-            @PathVariable UUID playlistId,
-            @RequestBody AddTrackToPlaylistDto dto
-    ) {
-        log.info("Adding track to playlist: {}", playlistId);
-        return ResponseEntity.ok(playlistService.addTrackToPlaylist(user.getId(), playlistId, dto.trackId()));
+    @GetMapping("/me")
+    public ResponseEntity<List<PlaylistResponseDto>> getMyPlaylists(@AuthenticationPrincipal User user) {
+        log.info("Getting playlists for user: {}", user.getId());
+        return ResponseEntity.ok(playlistService.getMyPlaylists(user.getId()));
     }
 
     @GetMapping("/{id}")
@@ -51,6 +47,35 @@ public class PlaylistController {
         log.info("Getting playlist with ID: {}", id);
         UUID userId = (user != null) ? user.getId() : null;
         return ResponseEntity.ok(playlistService.getPlaylistById(id, userId));
+    }
+    
+    @PutMapping("/{id}/visibility")
+    public ResponseEntity<PlaylistResponseDto> toggleVisibility(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("Toggling visibility for playlist: {}", id);
+        return ResponseEntity.ok(playlistService.toggleVisibility(id, user.getId()));
+    }
+
+    @PostMapping("/{playlistId}/tracks/{trackId}")
+    public ResponseEntity<PlaylistResponseDto> addTrack(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID playlistId,
+            @PathVariable UUID trackId
+    ) {
+        log.info("Adding track {} to playlist: {}", trackId, playlistId);
+        return ResponseEntity.ok(playlistService.addTrackToPlaylist(user.getId(), playlistId, trackId));
+    }
+    
+    @DeleteMapping("/{playlistId}/tracks/{trackId}")
+    public ResponseEntity<PlaylistResponseDto> removeTrack(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID playlistId,
+            @PathVariable UUID trackId
+    ) {
+        log.info("Removing track {} from playlist: {}", trackId, playlistId);
+        return ResponseEntity.ok(playlistService.removeTrackFromPlaylist(user.getId(), playlistId, trackId));
     }
 
 }

@@ -10,6 +10,9 @@ import AlbumDetailsPage from './pages/AlbumDetailsPage';
 import UploadPage from './pages/UploadPage';
 import ExplorePage from './pages/ExplorePage';
 import GenreDetailsPage from './pages/GenreDetailsPage';
+import PlaylistsPage from './pages/PlaylistsPage';
+import PlaylistPage from './pages/PlaylistPage';
+import LikedTracksPage from './pages/LikedTracksPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -36,7 +39,9 @@ function App() {
           <Route path="/users/:userId" element={<UserProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/albums/:albumId" element={<AlbumDetailsPage />} />
-          <Route path="/playlists" element={<div>Playlists Page (Coming Soon)</div>} />
+          <Route path="/playlists" element={<PlaylistsPage />} />
+          <Route path="/playlists/:id" element={<PlaylistPage />} />
+          <Route path="/collection/tracks" element={<LikedTracksPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/upload" element={<UploadPage />} />
         </Route>

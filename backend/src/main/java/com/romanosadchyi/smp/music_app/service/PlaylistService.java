@@ -17,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -60,6 +62,22 @@ public class PlaylistService {
 
         return playlistMappingService.map(playlistRepository.save(playlist));
     }
+    
+    @Transactional
+    public PlaylistResponseDto removeTrackFromPlaylist(UUID userId, UUID playlistId, UUID trackId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+
+        if (!playlist.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException("You can only remove tracks from your own playlists");
+        }
+
+        Track track = trackRepository.findById(trackId)
+                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
+        playlist.getTracks().remove(track);
+
+        return playlistMappingService.map(playlistRepository.save(playlist));
+    }
 
     @Transactional(readOnly = true)
     public PlaylistResponseDto getPlaylistById(UUID playlistId, UUID userId) {
@@ -71,6 +89,27 @@ public class PlaylistService {
         }
 
         return playlistMappingService.map(playlist);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<PlaylistResponseDto> getMyPlaylists(UUID userId) {
+        return playlistRepository.findAllByOwnerId(userId).stream()
+                .map(playlistMappingService::map)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional
+    public PlaylistResponseDto toggleVisibility(UUID playlistId, UUID userId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+
+        if (!playlist.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException("You can only modify your own playlists");
+        }
+
+        playlist.setPublic(!playlist.isPublic());
+
+        return playlistMappingService.map(playlistRepository.save(playlist));
     }
 
 }

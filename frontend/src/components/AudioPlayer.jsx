@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart, MessageSquare } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart, MessageSquare, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useLikeStore from '../store/likeStore';
 import useChatStore from '../store/chatStore';
+import usePlaylistStore from '../store/playlistStore';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
@@ -29,6 +30,7 @@ const AudioPlayer = () => {
 
   const { likedTrackIds, toggleLike } = useLikeStore();
   const { setAttachment, startChatWithUser, openShareModal } = useChatStore();
+  const { openPlaylistModal } = usePlaylistStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
 
   // Sync isPlaying with audio element
@@ -172,6 +174,12 @@ const AudioPlayer = () => {
             className={`transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
           >
             <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
+          </button>
+          <button 
+            onClick={() => openPlaylistModal(currentTrack)}
+            className="text-muted hover:text-white transition-colors"
+          >
+            <Plus size={14} />
           </button>
           <button 
             onClick={handleShareToChat}

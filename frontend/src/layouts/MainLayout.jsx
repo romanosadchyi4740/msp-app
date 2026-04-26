@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Compass, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
+import { Home, Search, Compass, Heart, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useLikeStore from '../store/likeStore';
 import useFollowStore from '../store/followStore';
 import AudioPlayer from '../components/AudioPlayer';
 import ShareTrackModal from '../components/modals/ShareTrackModal';
+import AddToPlaylistModal from '../components/modals/AddToPlaylistModal';
 
 const MainLayout = () => {
   const { user, logout, becomeArtist, loading } = useAuthStore();
@@ -43,6 +44,7 @@ const MainLayout = () => {
     { icon: Search, label: 'Search', path: '/search' },
     { icon: Compass, label: 'Explore', path: '/explore' },
     { icon: Library, label: 'Playlists', path: '/playlists' },
+    { icon: Heart, label: 'Liked Tracks', path: '/collection/tracks' },
     { icon: MessageCircle, label: 'Chat', path: '/chat' },
     { icon: User, label: 'Settings', path: '/settings' },
   ];
@@ -135,6 +137,9 @@ const MainLayout = () => {
       
       {/* Share Track Modal */}
       <ShareTrackModal />
+      
+      {/* Add To Playlist Modal */}
+      <AddToPlaylistModal />
     </div>
   );
 };
