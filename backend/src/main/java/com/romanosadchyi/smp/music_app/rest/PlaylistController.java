@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.PlaylistService;
 import lombok.AccessLevel;
@@ -64,6 +65,15 @@ public class PlaylistController {
         return ResponseEntity.ok(playlistService.forkPlaylist(id, user.getId()));
     }
     
+    @PostMapping("/{id}/sync-origin")
+    public ResponseEntity<PlaylistSyncResponseDto> syncOrigin(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("Syncing playlist {} with origin for user: {}", id, user.getId());
+        return ResponseEntity.ok(playlistService.syncOrigin(id, user.getId()));
+    }
+
     @PutMapping("/{id}/visibility")
     public ResponseEntity<PlaylistResponseDto> toggleVisibility(
             @PathVariable UUID id,

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search, GitFork } from 'lucide-react';
+import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search, GitFork, RefreshCw } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
+import SyncConfirmModal from '../components/modals/SyncConfirmModal';
 
 const PlaylistPage = () => {
   const { id } = useParams();
@@ -23,6 +24,9 @@ const PlaylistPage = () => {
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
+
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     fetchPlaylist();
@@ -71,6 +75,21 @@ const PlaylistPage = () => {
       console.error('Failed to fork playlist', err);
     } finally {
       setIsForking(false);
+    }
+  };
+
+  const handleSyncOrigin = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await axiosClient.post(`/api/playlists/${id}/sync-origin`);
+      setPlaylist(res.data.playlist);
+      alert(`Sync complete: +${res.data.newTracksAdded} new transmissions integrated`);
+    } catch (err) {
+      console.error('Failed to sync with origin', err);
+      alert('Failed to sync with origin node.');
+    } finally {
+      setIsSyncing(false);
+      setShowSyncModal(false);
     }
   };
 
@@ -181,6 +200,16 @@ const PlaylistPage = () => {
                 className="px-2 py-0.5 border border-white/20 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white hover:border-white transition-colors"
               >
                 Toggle Privacy
+              </button>
+            )}
+            {isOwner && playlist.forkedFromId && (
+              <button 
+                onClick={() => setShowSyncModal(true)}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-white/20 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white hover:border-white transition-colors"
+              >
+                {isSyncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                Pull Updates
               </button>
             )}
             {!isOwner && playlist.isPublic && (
@@ -340,6 +369,13 @@ const PlaylistPage = () => {
         confirmText="Confirm"
         onConfirm={handleToggleVisibility}
         onCancel={() => setShowConfirmDialog(false)}
+      />
+
+      <SyncConfirmModal 
+        isOpen={showSyncModal}
+        originName={playlist?.forkedFromName}
+        onConfirm={handleSyncOrigin}
+        onCancel={() => setShowSyncModal(false)}
       />
     </div>
   );

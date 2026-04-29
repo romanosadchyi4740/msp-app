@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -125,6 +127,38 @@ public class PlaylistService {
                 .build();
 
         return playlistMappingService.map(playlistRepository.save(forked));
+    }
+
+    @Transactional
+    public PlaylistSyncResponseDto syncOrigin(UUID playlistId, UUID userId) {
+        Playlist localPlaylist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+
+        if (!localPlaylist.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException("You can only sync your own local instances");
+        }
+
+        if (localPlaylist.getForkedFrom() == null) {
+            throw new IllegalArgumentException("This playlist does not have an origin node");
+        }
+
+        Playlist originPlaylist = localPlaylist.getForkedFrom();
+        
+        Set<UUID> localTrackIds = localPlaylist.getTracks().stream()
+                .map(Track::getId)
+                .collect(Collectors.toSet());
+
+        List<Track> newTracksToAdd = originPlaylist.getTracks().stream()
+                .filter(track -> !localTrackIds.contains(track.getId()))
+                .toList();
+
+        if (newTracksToAdd.isEmpty()) {
+            return new PlaylistSyncResponseDto(playlistMappingService.map(localPlaylist), 0);
+        }
+
+        localPlaylist.getTracks().addAll(newTracksToAdd);
+        
+        return new PlaylistSyncResponseDto(playlistMappingService.map(playlistRepository.save(localPlaylist)), newTracksToAdd.size());
     }
     
     @Transactional
