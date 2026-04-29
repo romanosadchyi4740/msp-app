@@ -43,6 +43,10 @@ public class Playlist {
     @Builder.Default
     boolean isPublic = true;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "forked_from_id")
+    Playlist forkedFrom;
+
     @ManyToMany
     @JoinTable(
             name = "playlist_tracks",

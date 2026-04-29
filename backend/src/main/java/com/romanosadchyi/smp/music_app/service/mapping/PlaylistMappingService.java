@@ -3,6 +3,7 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
+import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -17,6 +19,7 @@ import java.util.Optional;
 public class PlaylistMappingService {
 
     TrackMappingService trackMappingService;
+    UserRepository userRepository;
 
     public PlaylistResponseDto map(Playlist playlist) {
         List<TrackResponseDto> tracksDto =
@@ -25,6 +28,18 @@ public class PlaylistMappingService {
                 .stream()
                 .map(trackMappingService::map)
                 .toList();
+                
+        UUID forkedFromId = null;
+        String forkedFromName = null;
+        String forkedFromOwnerName = null;
+        
+        if (playlist.getForkedFrom() != null) {
+            forkedFromId = playlist.getForkedFrom().getId();
+            forkedFromName = playlist.getForkedFrom().getTitle();
+            forkedFromOwnerName = userRepository.findById(playlist.getForkedFrom().getOwnerId())
+                    .map(u -> u.getDisplayName())
+                    .orElse("Unknown Identity");
+        }
 
         return new PlaylistResponseDto(
                 playlist.getId(),
@@ -34,7 +49,10 @@ public class PlaylistMappingService {
                 playlist.isPublic(),
                 playlist.getCoverUrl(),
                 tracksDto,
-                tracksDto.size()
+                tracksDto.size(),
+                forkedFromId,
+                forkedFromName,
+                forkedFromOwnerName
         );
     }
 

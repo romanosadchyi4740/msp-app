@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search } from 'lucide-react';
+import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search, GitFork } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
@@ -15,6 +15,7 @@ const PlaylistPage = () => {
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isForking, setIsForking] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -58,6 +59,18 @@ const PlaylistPage = () => {
       setError('You do not have access to this playlist or it does not exist.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFork = async () => {
+    setIsForking(true);
+    try {
+      const res = await axiosClient.post(`/api/playlists/${id}/fork`);
+      navigate(`/playlists/${res.data.id}`);
+    } catch (err) {
+      console.error('Failed to fork playlist', err);
+    } finally {
+      setIsForking(false);
     }
   };
 
@@ -116,6 +129,15 @@ const PlaylistPage = () => {
       </div>
     );
   }
+  
+  if (isForking) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <Loader2 size={32} className="text-muted animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted animate-pulse">Cloning data nodes...</p>
+      </div>
+    );
+  }
 
   if (error || !playlist) {
     return (
@@ -161,12 +183,33 @@ const PlaylistPage = () => {
                 Toggle Privacy
               </button>
             )}
+            {!isOwner && playlist.isPublic && (
+              <button 
+                onClick={handleFork}
+                disabled={isForking}
+                className="flex items-center gap-1.5 px-2 py-0.5 bg-white text-black text-[9px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+              >
+                <GitFork size={10} />
+                Fork Sequence
+              </button>
+            )}
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate">{playlist.title}</h1>
           
+          {playlist.forkedFromId && (
+            <div className="mt-1">
+              <button 
+                onClick={() => navigate(`/playlists/${playlist.forkedFromId}`)}
+                className="text-[10px] font-mono text-muted hover:text-white transition-colors text-left"
+              >
+                &lt;Fork Origin: {playlist.forkedFromName} // Source Identity: {playlist.forkedFromOwnerName}&gt;
+              </button>
+            </div>
+          )}
+
           {playlist.description && (
-            <p className="text-xs text-muted font-bold uppercase tracking-widest">{playlist.description}</p>
+            <p className="text-xs text-muted font-bold uppercase tracking-widest mt-2">{playlist.description}</p>
           )}
 
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted">

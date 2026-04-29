@@ -54,6 +54,15 @@ public class PlaylistController {
         UUID userId = (user != null) ? user.getId() : null;
         return ResponseEntity.ok(playlistService.getPlaylistById(id, userId));
     }
+
+    @PostMapping("/{id}/fork")
+    public ResponseEntity<PlaylistResponseDto> forkPlaylist(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("Forking playlist {} for user: {}", id, user.getId());
+        return ResponseEntity.ok(playlistService.forkPlaylist(id, user.getId()));
+    }
     
     @PutMapping("/{id}/visibility")
     public ResponseEntity<PlaylistResponseDto> toggleVisibility(

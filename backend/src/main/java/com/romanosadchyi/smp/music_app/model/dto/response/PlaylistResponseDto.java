@@ -11,5 +11,8 @@ public record PlaylistResponseDto(
         boolean isPublic,
         String coverUrl,
         List<TrackResponseDto> tracks,
-        int tracksCount
+        int tracksCount,
+        UUID forkedFromId,
+        String forkedFromName,
+        String forkedFromOwnerName
 ) {}

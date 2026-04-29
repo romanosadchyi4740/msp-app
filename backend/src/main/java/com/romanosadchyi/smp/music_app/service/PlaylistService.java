@@ -104,6 +104,28 @@ public class PlaylistService {
                 .map(playlistMappingService::map)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public PlaylistResponseDto forkPlaylist(UUID playlistId, UUID userId) {
+        Playlist original = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+
+        if (!original.isPublic() && !original.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException("You don't have access to fork this playlist");
+        }
+
+        Playlist forked = Playlist.builder()
+                .title(original.getTitle() + " [Local Instance]")
+                .description(original.getDescription())
+                .coverUrl(original.getCoverUrl())
+                .ownerId(userId)
+                .isPublic(false)
+                .forkedFrom(original)
+                .tracks(new java.util.ArrayList<>(original.getTracks()))
+                .build();
+
+        return playlistMappingService.map(playlistRepository.save(forked));
+    }
     
     @Transactional
     public PlaylistResponseDto toggleVisibility(UUID playlistId, UUID userId) {
