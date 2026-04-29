@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search, GitFork, RefreshCw } from 'lucide-react';
+import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search, GitFork, RefreshCw, X } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
@@ -27,6 +27,7 @@ const PlaylistPage = () => {
 
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
 
   useEffect(() => {
     fetchPlaylist();
@@ -83,13 +84,14 @@ const PlaylistPage = () => {
     try {
       const res = await axiosClient.post(`/api/playlists/${id}/sync-origin`);
       setPlaylist(res.data.playlist);
-      alert(`Sync complete: +${res.data.newTracksAdded} new transmissions integrated`);
+      setSyncMessage({ type: 'success', text: `Sync complete: +${res.data.newTracksAdded} new transmissions integrated` });
     } catch (err) {
       console.error('Failed to sync with origin', err);
-      alert('Failed to sync with origin node.');
+      setSyncMessage({ type: 'error', text: 'Failed to sync with origin node.' });
     } finally {
       setIsSyncing(false);
       setShowSyncModal(false);
+      setTimeout(() => setSyncMessage(null), 5000);
     }
   };
 
@@ -177,7 +179,20 @@ const PlaylistPage = () => {
   const isOwner = user?.userId === playlist.ownerId;
 
   return (
-    <div className="space-y-16 pb-32">
+    <div className="space-y-16 pb-32 relative">
+      {syncMessage && (
+        <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[150] px-6 py-3 border text-[10px] font-black uppercase tracking-widest flex items-center gap-6 shadow-2xl animate-in slide-in-from-top-4 ${
+          syncMessage.type === 'success' 
+            ? 'border-white bg-black text-white' 
+            : 'border-red-500 bg-black text-red-500'
+        }`}>
+          <span>{syncMessage.text}</span>
+          <button onClick={() => setSyncMessage(null)} className="hover:opacity-50 transition-opacity">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row items-end gap-8 pb-12 border-b border-border">
         <div className="w-48 h-48 flex-shrink-0 bg-surface border border-border">
           {playlist.coverUrl ? (
