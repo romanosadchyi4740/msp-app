@@ -4,12 +4,11 @@ import com.romanosadchyi.smp.music_app.exception.ChatNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.Chat;
-import com.romanosadchyi.smp.music_app.model.entity.Message;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.model.entity.*;
+import com.romanosadchyi.smp.music_app.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
@@ -28,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,6 +37,7 @@ import java.util.stream.Collectors;
 public class ChatService {
 
     ChatRepository chatRepository;
+    ChatMembershipRepository chatMembershipRepository;
     MessageRepository messageRepository;
     UserRepository userRepository;
     TrackRepository trackRepository;
@@ -54,9 +53,9 @@ public class ChatService {
         Chat chat = chatRepository.findById(savedMessage.chatId())
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found"));
 
-        chat.getParticipants().forEach(participant ->
+        chat.getMemberships().forEach(m ->
                 messagingTemplate.convertAndSendToUser(
-                        participant.getId().toString(),
+                        m.getUser().getId().toString(),
                         "/queue/messages",
                         savedMessage
                 )
@@ -71,7 +70,7 @@ public class ChatService {
 
     @Transactional
     public ChatResponseDto getOrCreateChatDto(UUID user1Id, UUID user2Id) {
-        return chatMappingService.map(getOrCreateChat(user1Id, user2Id));
+        return chatMappingService.map(getOrCreateChat(user1Id, user2Id), user1Id);
     }
 
     @Transactional
@@ -79,15 +78,18 @@ public class ChatService {
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
 
-        if (!chat.getParticipants().stream().map(User::getId).toList().contains(userId)) {
-            throw new IllegalArgumentException("User is not a participant of this chat");
-        }
-        if (chat.getInitiator() != null && chat.getInitiator().getId().equals(userId)) {
+        ChatMembership membership = chat.getMemberships().stream()
+                .filter(m -> m.getUser().getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("User is not a participant of this chat"));
+
+        if (membership.isAdmin()) {
             throw new IllegalArgumentException("Initiator cannot accept their own chat");
         }
 
-        chat.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED);
-        return chatMappingService.map(chatRepository.save(chat));
+        membership.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED);
+        chatMembershipRepository.save(membership);
+        return chatMappingService.map(chat, userId);
     }
 
     @Transactional
@@ -95,18 +97,56 @@ public class ChatService {
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
 
-        if (!chat.getParticipants().stream().map(User::getId).toList().contains(userId)) {
-            throw new IllegalArgumentException("User is not a participant of this chat");
-        }
+        ChatMembership membership = chat.getMemberships().stream()
+                .filter(m -> m.getUser().getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("User is not a participant of this chat"));
+
+        membership.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED);
+        chatMembershipRepository.save(membership);
+    }
+
+    @Transactional
+    public ChatResponseDto createCluster(UUID creatorId, ClusterCreateRequestDto request) {
+        User creator = userRepository.findById(creatorId)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + creatorId));
+
+        Chat chat = Chat.builder()
+                .isGroup(true)
+                .name(request.groupName())
+                .build();
         
-        chat.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED);
-        chatRepository.save(chat);
+        chat = chatRepository.save(chat);
+
+        ChatMembership creatorMembership = ChatMembership.builder()
+                .chat(chat)
+                .user(creator)
+                .status(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED)
+                .isAdmin(true)
+                .build();
+        chat.getMemberships().add(creatorMembership);
+
+        for (UUID participantId : request.participantIds()) {
+            if (participantId.equals(creatorId)) continue;
+            User participant = userRepository.findById(participantId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found: " + participantId));
+            ChatMembership participantMembership = ChatMembership.builder()
+                    .chat(chat)
+                    .user(participant)
+                    .status(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING)
+                    .isAdmin(false)
+                    .build();
+            chat.getMemberships().add(participantMembership);
+        }
+
+        chatMembershipRepository.saveAll(chat.getMemberships());
+        return chatMappingService.map(chat, creatorId);
     }
 
     @Transactional(readOnly = true)
     public List<ChatResponseDto> getUserChats(UUID userId) {
         return chatRepository.findAllByParticipantId(userId).stream()
-                .map(chatMappingService::map)
+                .map(chat -> chatMappingService.map(chat, userId))
                 .collect(Collectors.toList());
     }
 
@@ -124,9 +164,15 @@ public class ChatService {
             throw new IllegalArgumentException("Either chatId or recipientId must be provided");
         }
 
-        if (chat.getStatus() == com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED) {
-            chat.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING);
-            chat.setInitiator(sender);
+        ChatMembership senderMembership = chat.getMemberships().stream()
+                .filter(m -> m.getUser().getId().equals(senderId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("User not in chat"));
+
+        if (senderMembership.getStatus() == com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED) {
+            senderMembership.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING);
+            senderMembership.setAdmin(true);
+            chatMembershipRepository.save(senderMembership);
         }
 
         Track sharedTrack = null;
@@ -150,10 +196,18 @@ public class ChatService {
     private Chat getOrCreateChat(UUID user1Id, UUID user2Id) {
         return chatRepository.findChatBetweenUsers(user1Id, user2Id)
                 .map(chat -> {
-                    if (chat.getStatus() == com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED) {
-                        chat.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING);
-                        chat.setInitiator(userRepository.findById(user1Id).orElse(null));
-                        return chatRepository.save(chat);
+                    ChatMembership m1 = chat.getMemberships().stream().filter(m -> m.getUser().getId().equals(user1Id)).findFirst().orElse(null);
+                    ChatMembership m2 = chat.getMemberships().stream().filter(m -> m.getUser().getId().equals(user2Id)).findFirst().orElse(null);
+                    
+                    if (m1 != null && m1.getStatus() == com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED) {
+                        m1.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED);
+                        m1.setAdmin(true);
+                        chatMembershipRepository.save(m1);
+                    }
+                    if (m2 != null && m2.getStatus() == com.romanosadchyi.smp.music_app.model.enums.ChatStatus.REJECTED) {
+                        m2.setStatus(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING);
+                        m2.setAdmin(false);
+                        chatMembershipRepository.save(m2);
                     }
                     return chat;
                 })
@@ -164,11 +218,28 @@ public class ChatService {
                             .orElseThrow(() -> new UserNotFoundException("User not found: " + user2Id));
 
                     Chat chat = Chat.builder()
-                            .participants(Set.of(user1, user2))
-                            .initiator(user1)
-                            .status(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING)
+                            .isGroup(false)
                             .build();
-                    return chatRepository.save(chat);
+                    chat = chatRepository.save(chat);
+
+                    ChatMembership membership1 = ChatMembership.builder()
+                            .chat(chat)
+                            .user(user1)
+                            .status(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED)
+                            .isAdmin(true)
+                            .build();
+                    ChatMembership membership2 = ChatMembership.builder()
+                            .chat(chat)
+                            .user(user2)
+                            .status(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING)
+                            .isAdmin(false)
+                            .build();
+
+                    chat.getMemberships().add(membership1);
+                    chat.getMemberships().add(membership2);
+                    chatMembershipRepository.saveAll(chat.getMemberships());
+
+                    return chat;
                 });
     }
 

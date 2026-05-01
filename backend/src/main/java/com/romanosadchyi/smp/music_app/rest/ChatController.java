@@ -38,6 +38,12 @@ public class ChatController {
         return chatService.getOrCreateChatDto(user.getId(), recipientId);
     }
 
+    @PostMapping("/cluster")
+    public ChatResponseDto createCluster(@AuthenticationPrincipal User user, @RequestBody com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto request) {
+        log.info("Creating cluster {} with {} participants", request.groupName(), request.participantIds().size());
+        return chatService.createCluster(user.getId(), request);
+    }
+
     @GetMapping("/{chatId}/messages")
     public Page<ChatMessageResponseDto> getMessageHistory(
             @PathVariable UUID chatId,
@@ -58,4 +64,12 @@ public class ChatController {
         chatService.rejectChat(chatId, user.getId());
     }
 
+    @PostMapping("/{chatId}/membership/{userId}/decline")
+    public void declineMembership(@AuthenticationPrincipal User authUser, @PathVariable UUID chatId, @PathVariable UUID userId) {
+        if (!authUser.getId().equals(userId)) {
+            throw new IllegalArgumentException("Cannot decline membership for another user");
+        }
+        log.info("User {} declining membership for chat {}", userId, chatId);
+        chatService.rejectChat(chatId, userId);
+    }
 }

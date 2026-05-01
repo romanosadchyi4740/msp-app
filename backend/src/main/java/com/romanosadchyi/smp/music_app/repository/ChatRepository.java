@@ -11,10 +11,10 @@ import java.util.UUID;
 
 public interface ChatRepository extends JpaRepository<Chat, UUID> {
 
-    @Query("SELECT c FROM Chat c JOIN c.participants p1 JOIN c.participants p2 " +
-           "WHERE p1.id = :userId1 AND p2.id = :userId2")
+    @Query("SELECT c FROM Chat c JOIN c.memberships m1 JOIN c.memberships m2 " +
+           "WHERE c.isGroup = false AND m1.user.id = :userId1 AND m2.user.id = :userId2")
     Optional<Chat> findChatBetweenUsers(@Param("userId1") UUID userId1, @Param("userId2") UUID userId2);
 
-    @Query("SELECT c FROM Chat c JOIN c.participants p WHERE p.id = :userId")
+    @Query("SELECT c FROM Chat c JOIN c.memberships m WHERE m.user.id = :userId")
     List<Chat> findAllByParticipantId(@Param("userId") UUID userId);
 }

@@ -27,27 +27,20 @@ public class Chat {
     @Column(name = "id", updatable = false, nullable = false)
     UUID id;
 
-    @ManyToMany
-    @JoinTable(
-            name = "chat_participants",
-            joinColumns = @JoinColumn(name = "chat_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
+    @Column(name = "is_group", nullable = false)
     @Builder.Default
-    Set<User> participants = new HashSet<>();
+    Boolean isGroup = false;
+
+    @Column(name = "name")
+    String name;
+
+    @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    Set<ChatMembership> memberships = new HashSet<>();
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     Set<Message> messages = new HashSet<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "initiator_id")
-    User initiator;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    @Builder.Default
-    ChatStatus status = ChatStatus.PENDING;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

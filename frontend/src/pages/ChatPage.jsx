@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Send, MessageCircle, Search, Music, Loader2, Plus, X, Play, Paperclip } from 'lucide-react';
+import { Send, MessageCircle, Search, Music, Loader2, Plus, X, Play, Paperclip, Users, Network } from 'lucide-react';
 import useChatStore from '../store/chatStore';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
@@ -11,7 +11,7 @@ const ChatPage = () => {
   const { user: currentUser } = useAuthStore();
   const { 
     chats, activeChat, messages, loading, messagesLoading, activeAttachment,
-    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket, startChatWithUser, clearAttachment
+    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket, startChatWithUser, createCluster, clearAttachment
   } = useChatStore();
   const { playTrack } = usePlayerStore();
   const [messageText, setMessageText] = useState('');
@@ -36,7 +36,7 @@ const ChatPage = () => {
   }, [messages]);
 
   const getOtherParticipant = (chat) => {
-    return chat.participants.find(p => p.id !== currentUser?.userId);
+    return chat.participants?.find(p => p.id !== currentUser?.userId);
   };
 
   const handleSend = (e) => {
@@ -82,7 +82,8 @@ const ChatPage = () => {
   const requestsList = chats.filter(c => c.status === 'PENDING' && c.initiatorId && c.initiatorId !== currentUser?.userId);
 
   const renderChat = (chat) => {
-    const otherUser = getOtherParticipant(chat);
+    const isGroup = chat.isGroup;
+    const otherUser = !isGroup ? getOtherParticipant(chat) : null;
     const isActive = activeChat?.id === chat.id;
     return (
       <button
@@ -94,12 +95,14 @@ const ChatPage = () => {
       >
         <div className="relative flex-shrink-0">
           <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white">
-            {otherUser?.displayName?.charAt(0)}
+            {isGroup ? <Network size={16} /> : otherUser?.displayName?.charAt(0)}
           </div>
         </div>
         <div className="flex-1 text-left overflow-hidden">
           <div className="flex justify-between items-baseline mb-1">
-            <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{otherUser?.displayName}</p>
+            <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">
+              {isGroup ? chat.name : otherUser?.displayName}
+            </p>
             {chat.lastMessage && (
               <span className="text-[9px] font-medium text-muted tabular-nums">
                 {formatTime(chat.lastMessage.timestamp)}
@@ -181,11 +184,11 @@ const ChatPage = () => {
             <div className="p-6 px-8 border-b border-border flex items-center justify-between bg-surface/50 backdrop-blur-md z-10">
               <div className="flex items-center gap-4">
                 <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white">
-                  {getOtherParticipant(activeChat)?.displayName?.charAt(0)}
+                  {activeChat.isGroup ? <Network size={16} /> : getOtherParticipant(activeChat)?.displayName?.charAt(0)}
                 </div>
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-widest text-white leading-tight">
-                    {getOtherParticipant(activeChat)?.displayName}
+                    {activeChat.isGroup ? activeChat.name : getOtherParticipant(activeChat)?.displayName}
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
@@ -211,6 +214,9 @@ const ChatPage = () => {
                   return (
                     <div key={msg.id || idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%]`}>
+                        {activeChat.isGroup && !isOwn && (
+                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1 ml-1">{msg.sender.displayName}</p>
+                        )}
                         {msg.sharedTrack && (
                           <div className={`mb-2 p-2 flex items-center gap-3 transition-colors cursor-pointer border ${isOwn ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-surface border-border hover:bg-zinc-800'}`} onClick={() => playTrack(msg.sharedTrack, [], msg.sharedTrackTimestamp != null ? msg.sharedTrackTimestamp : null)}>
                             <div className="relative w-10 h-10 flex-shrink-0">
@@ -262,20 +268,22 @@ const ChatPage = () => {
               <div className="p-8 bg-transparent border-t border-border">
                 <div className="border border-border p-6 bg-surface text-center">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white mb-6">
-                    {getOtherParticipant(activeChat)?.displayName} wants to connect and send you transmissions.
+                    {activeChat.isGroup 
+                      ? `You are invited to join Cluster: ${activeChat.name}.`
+                      : `${getOtherParticipant(activeChat)?.displayName} wants to connect and send you transmissions.`}
                   </p>
                   <div className="flex justify-center gap-4">
                     <button 
                       onClick={() => useChatStore.getState().acceptChat(activeChat.id)}
                       className="px-8 py-3 bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all"
                     >
-                      Accept
+                      {activeChat.isGroup ? 'Integrate' : 'Accept'}
                     </button>
                     <button 
                       onClick={() => useChatStore.getState().rejectChat(activeChat.id)}
                       className="px-8 py-3 border border-border text-white text-[10px] font-black uppercase tracking-widest hover:border-white transition-all"
                     >
-                      Decline
+                      {activeChat.isGroup ? 'Sever Connection' : 'Decline'}
                     </button>
                   </div>
                 </div>
@@ -353,6 +361,10 @@ const ChatPage = () => {
           onSelectUser={async (userId) => {
             setIsNewChatModalOpen(false);
             await startChatWithUser(userId);
+          }}
+          onCreateCluster={async (name, users) => {
+            setIsNewChatModalOpen(false);
+            await createCluster(name, users);
           }}
         />
       )}

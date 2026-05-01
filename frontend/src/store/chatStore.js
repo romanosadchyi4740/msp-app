@@ -96,6 +96,22 @@ const useChatStore = create((set, get) => ({
     }
   },
 
+  createCluster: async (groupName, participantIds) => {
+    try {
+      const response = await axiosClient.post(`/api/chats/cluster`, { groupName, participantIds });
+      const chat = response.data;
+      
+      const existingChats = get().chats;
+      set({ chats: [chat, ...existingChats] });
+      
+      get().setActiveChat(chat);
+      return chat;
+    } catch (error) {
+      console.error('Failed to create cluster:', error);
+      throw error;
+    }
+  },
+
   setActiveChat: (chat) => {
     set({ activeChat: chat, messages: [] });
     if (chat) {

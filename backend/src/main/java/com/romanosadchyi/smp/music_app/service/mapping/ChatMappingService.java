@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
+import com.romanosadchyi.smp.music_app.model.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -19,18 +21,31 @@ public class ChatMappingService {
     UserMappingService userMappingService;
     ChatMessageMappingService messageMappingService;
 
-    public ChatResponseDto map(Chat chat) {
+    public ChatResponseDto map(Chat chat, UUID currentUserId) {
+        ChatMembership currentUserMembership = chat.getMemberships().stream()
+                .filter(m -> m.getUser().getId().equals(currentUserId))
+                .findFirst()
+                .orElse(null);
+
+        UUID initiatorId = chat.getMemberships().stream()
+                .filter(ChatMembership::isAdmin)
+                .map(m -> m.getUser().getId())
+                .findFirst()
+                .orElse(null);
+
         return ChatResponseDto.builder()
                 .id(chat.getId())
-                .participants(chat.getParticipants().stream()
-                        .map(userMappingService::map)
+                .isGroup(chat.getIsGroup() != null && chat.getIsGroup())
+                .name(chat.getName())
+                .participants(chat.getMemberships().stream()
+                        .map(m -> userMappingService.map(m.getUser()))
                         .collect(Collectors.toList()))
                 .lastMessage(chat.getMessages().stream()
                         .max(Comparator.comparing(Message::getTimestamp))
                         .map(messageMappingService::map)
                         .orElse(null))
-                .initiatorId(chat.getInitiator() != null ? chat.getInitiator().getId() : null)
-                .status(chat.getStatus() != null ? chat.getStatus().name() : "PENDING")
+                .initiatorId(initiatorId)
+                .status(currentUserMembership != null ? currentUserMembership.getStatus().name() : "PENDING")
                 .build();
     }
 }
