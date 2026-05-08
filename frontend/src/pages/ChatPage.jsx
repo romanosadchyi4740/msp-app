@@ -15,6 +15,7 @@ const ChatPage = () => {
   } = useChatStore();
   const { playTrack } = usePlayerStore();
   const [messageText, setMessageText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -78,8 +79,24 @@ const ChatPage = () => {
     }
   };
 
-  const chatsList = chats.filter(c => c.status !== 'REJECTED' && (c.status === 'ACCEPTED' || c.initiatorId === currentUser?.userId || !c.initiatorId));
-  const requestsList = chats.filter(c => c.status === 'PENDING' && c.initiatorId && c.initiatorId !== currentUser?.userId);
+  const filterByQuery = (chat) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    if (chat.isGroup) {
+      return chat.name?.toLowerCase().includes(query);
+    } else {
+      const otherUser = getOtherParticipant(chat);
+      return otherUser?.displayName?.toLowerCase().includes(query);
+    }
+  };
+
+  const chatsList = chats
+    .filter(c => c.status !== 'REJECTED' && (c.status === 'ACCEPTED' || c.initiatorId === currentUser?.userId || !c.initiatorId))
+    .filter(filterByQuery);
+    
+  const requestsList = chats
+    .filter(c => c.status === 'PENDING' && c.initiatorId && c.initiatorId !== currentUser?.userId)
+    .filter(filterByQuery);
 
   const renderChat = (chat) => {
     const isGroup = chat.isGroup;
@@ -138,6 +155,8 @@ const ChatPage = () => {
             <input 
               type="text" 
               placeholder="SEARCH IDENTITIES..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-background border border-border py-2.5 pl-10 pr-4 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-white transition-all"
             />
           </div>
@@ -149,9 +168,11 @@ const ChatPage = () => {
               <Loader2 className="animate-spin text-muted mb-2" />
               <p className="text-[10px] font-black uppercase tracking-widest text-muted">Loading...</p>
             </div>
-          ) : chats.length === 0 ? (
+          ) : (chatsList.length === 0 && requestsList.length === 0) ? (
             <div className="p-12 text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted">No transmissions found</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted">
+                {searchQuery ? "No active nodes match your query" : "No transmissions found"}
+              </p>
             </div>
           ) : (
             <>
