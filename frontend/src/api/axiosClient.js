@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const axiosClient = axios.create({
   baseURL: 'http://localhost:8080',
@@ -25,11 +26,24 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const errorMessage = error.response?.data?.message || 'Transmission Error';
+
+    if (status === 401) {
+      // Genuine Auth Failure - Only logout on 401
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (status === 403) {
+      // Permission Denied
+      toast.error(`ACCESS_DENIED: ${errorMessage}`, { id: 'forbidden' });
+    } else if (error.code === 'ERR_NETWORK') {
+      toast.error('CONNECTION_OFFLINE: Mainframe unreachable', { id: 'network' });
+    } else {
+      // Other errors (400, 404, 500) - Show toast, stay logged in
+      toast.error(`PROTOCOL_ERROR [${status || 'XXX'}]: ${errorMessage}`);
     }
+
     return Promise.reject(error);
   }
 );

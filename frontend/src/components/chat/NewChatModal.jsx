@@ -11,17 +11,6 @@ const NewChatModal = ({ onClose, onSelectUser, onCreateCluster }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [clusterName, setClusterName] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.trim() && step !== 1 && step !== '2C') {
-        searchUsers(query);
-      } else {
-        setUsers([]);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query, step]);
-
   const searchUsers = async (searchTerm) => {
     setLoading(true);
     try {
@@ -33,6 +22,17 @@ const NewChatModal = ({ onClose, onSelectUser, onCreateCluster }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query.trim() && step !== 1 && step !== '2C') {
+        searchUsers(query);
+      } else {
+        setUsers([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, step]);
 
   const toggleUserSelection = (user) => {
     if (selectedUsers.find(u => u.id === user.id)) {
