@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "messages")
+@Table(name = "messages", indexes = {
+        @Index(name = "idx_messages_chat_id_timestamp", columnList = "chat_id, timestamp DESC")
+})
 @Getter
 @Setter
 @NoArgsConstructor

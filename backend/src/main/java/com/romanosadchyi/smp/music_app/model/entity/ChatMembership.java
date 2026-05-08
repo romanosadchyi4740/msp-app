@@ -12,6 +12,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "chat_memberships", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"chat_id", "user_id"})
+}, indexes = {
+        @Index(name = "idx_chat_memberships_user_status", columnList = "user_id, status")
 })
 @Getter
 @Setter

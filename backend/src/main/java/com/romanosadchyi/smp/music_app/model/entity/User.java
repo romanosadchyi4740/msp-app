@@ -16,7 +16,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+        @Index(name = "idx_users_display_name", columnList = "display_name")
+})
 @Getter
 @Setter
 @NoArgsConstructor
