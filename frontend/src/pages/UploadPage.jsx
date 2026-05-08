@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Plus, Music, Disc, Loader2, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import axiosClient from '../api/axiosClient';
 
 const UploadPage = () => {
@@ -122,13 +123,19 @@ const UploadPage = () => {
         }
       });
       setMessage({ type: 'success', text: 'Track uploaded successfully!' });
+      toast.success('TRANSMISSION_COMPLETE: Node synchronized.');
       setTrackTitle('');
       setTrackFile(null);
       setTrackDuration(0);
       setSelectedGenres([]);
       setUploadProgress(0);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to upload track.' });
+      if (error.response?.status === 409) {
+        toast.error('UPLOAD_REJECTED: An identical audio transmission already exists in the global network.', { duration: 5000 });
+        setMessage({ type: 'error', text: 'Duplicate detected. Transmission aborted.' });
+      } else {
+        setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to upload track.' });
+      }
     } finally {
       setUploadingTrack(false);
     }

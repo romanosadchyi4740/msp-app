@@ -22,6 +22,13 @@ public class GlobalExceptionHandler {
         return createErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
+    @ExceptionHandler(MusicTrackFileAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponseDto> handleMusicTrackFileAlreadyExistsException(
+            MusicTrackFileAlreadyExistsException e
+    ) {
+        return createErrorResponse(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler(UserNotAuthorizedException.class)
     public ResponseEntity<ErrorResponseDto> handleUserNotAuthorizedException(UserNotAuthorizedException e) {
         return createErrorResponse(HttpStatus.FORBIDDEN, e.getMessage());

@@ -14,7 +14,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "tracks", indexes = {
         @Index(name = "idx_tracks_title", columnList = "title"),
-        @Index(name = "idx_tracks_author_id", columnList = "author_id")
+        @Index(name = "idx_tracks_author_id", columnList = "author_id"),
+        @Index(name = "idx_tracks_file_hash", columnList = "file_hash", unique = true)
 })
 @Getter
 @Setter
@@ -31,6 +32,9 @@ public class Track {
 
     @Column(name = "title", nullable = false)
     String title;
+
+    @Column(name = "file_hash", unique = true)
+    String fileHash;
 
     @Column(name = "duration", nullable = false)
     Integer duration;

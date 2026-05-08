@@ -1,21 +1,18 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.exception.AlbumNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.exception.*;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.RecommendedResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Genre;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.GenreRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
+import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -75,12 +75,20 @@ public class TrackService {
             throw new IllegalArgumentException("One or more selected genres are invalid.");
         }
 
+        String fileHash = calculateFileHash(file);
+        if (trackRepository.existsByFileHash(fileHash)) {
+            throw new MusicTrackFileAlreadyExistsException(
+                    "This audio file already exists in the system (Duplicate detected)."
+            );
+        }
+
         String originalFilename = file.getOriginalFilename();
         String extension = StringUtils.getFilenameExtension(originalFilename);
         String extWithDot = extension != null ? "." + extension : "";
 
         Track track = trackMappingService.map(dto).toBuilder()
                 .fileKey("PENDING")
+                .fileHash(fileHash)
                 .author(author)
                 .album(album)
                 .genres(new HashSet<>(genres))
@@ -99,6 +107,22 @@ public class TrackService {
         }
 
         trackRepository.save(savedTrack);
+    }
+
+    private String calculateFileHash(MultipartFile file) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(file.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException | IOException e) {
+            throw new RuntimeException("Failed to calculate file hash", e);
+        }
     }
 
     @Transactional(readOnly = true)

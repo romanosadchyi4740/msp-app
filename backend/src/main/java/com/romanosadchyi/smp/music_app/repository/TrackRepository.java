@@ -17,4 +17,6 @@ public interface TrackRepository extends JpaRepository<Track, UUID> {
     
     Page<Track> findByGenresId(UUID genreId, Pageable pageable);
     List<Track> findByGenresIdAndIdNotIn(UUID genreId, Collection<UUID> excludedIds, Pageable pageable);
+
+    Boolean existsByFileHash(String fileHash);
 }
