@@ -12,6 +12,7 @@ import java.util.UUID;
 
 @Repository
 public interface TrackRepository extends JpaRepository<Track, UUID> {
+    List<Track> findAllByAuthorId(UUID authorId);
     Page<Track> findAllByTitleContainingIgnoreCase(String title, Pageable pageable);
     Page<Track> findAllByAuthorIdAndTitleContainingIgnoreCase(UUID authorId, String title, Pageable pageable);
     

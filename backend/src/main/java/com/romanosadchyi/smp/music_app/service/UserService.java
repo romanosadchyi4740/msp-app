@@ -5,6 +5,9 @@ import com.romanosadchyi.smp.music_app.model.dto.request.UserUpdateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
+import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
+import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
+import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.UserMappingService;
 import lombok.AccessLevel;
@@ -24,6 +27,9 @@ import java.util.UUID;
 public class UserService {
 
     UserRepository userRepository;
+    TrackRepository trackRepository;
+    AlbumRepository albumRepository;
+    PlaylistRepository playlistRepository;
     UserMappingService userMappingService;
 
     @Transactional(readOnly = true)
@@ -99,6 +105,33 @@ public class UserService {
         return user.getFollowing().stream()
                 .map(userMappingService::map)
                 .toList();
+    }
+
+    @Transactional
+    public void terminateIdentity(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
+
+        // 1. Purge Content
+        playlistRepository.deleteAll(playlistRepository.findAllByOwnerId(userId));
+        albumRepository.deleteAll(albumRepository.findAllByAuthorId(userId));
+        trackRepository.deleteAll(trackRepository.findAllByAuthorId(userId));
+
+        // 2. Social Purge
+        user.getLikedTracks().clear();
+        user.getFollowing().clear();
+        user.getFollowers().clear();
+
+        // 3. Anonymize (Soft Delete)
+        user.setEmail("deleted_" + UUID.randomUUID() + "@system.local");
+        user.setPassword(UUID.randomUUID().toString()); // Secure random string
+        user.setDisplayName("Disconnected Node");
+        user.setAvatarUrl(null);
+        user.setBiography(null);
+        user.setProviderId(null);
+        user.setProvider(null);
+
+        userRepository.save(user);
     }
 
 }

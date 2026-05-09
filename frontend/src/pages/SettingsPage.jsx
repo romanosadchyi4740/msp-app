@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Loader2, User as UserIcon } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, User as UserIcon, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import axiosClient from '../api/axiosClient';
+import TerminateIdentityModal from '../components/modals/TerminateIdentityModal';
 
 const SettingsPage = () => {
   const { user, updateProfile, loading: isUpdating } = useAuthStore();
@@ -16,6 +17,7 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [isTerminateModalOpen, setIsTerminateModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -159,6 +161,33 @@ const SettingsPage = () => {
           </button>
         </div>
       </form>
+
+      {/* Danger Zone */}
+      <section className="pt-16 border-t border-red-900/30 space-y-8">
+        <div className="flex items-center gap-3 text-red-500">
+          <AlertTriangle size={16} />
+          <h2 className="text-xs font-black uppercase tracking-[0.3em]">Danger Zone</h2>
+        </div>
+        
+        <div className="p-8 border border-red-900/20 bg-red-950/5 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-2">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-white">Terminate Identity</h3>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 max-w-sm">
+              Permanently purge your digital footprint and disconnect from the network.
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsTerminateModalOpen(true)}
+            className="px-8 py-3 border border-red-900 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
+          >
+            Terminate Identity
+          </button>
+        </div>
+      </section>
+
+      {isTerminateModalOpen && (
+        <TerminateIdentityModal onClose={() => setIsTerminateModalOpen(false)} />
+      )}
     </div>
   );
 };

@@ -80,4 +80,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getFollowing(user.getId()));
     }
 
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> terminateIdentity(@AuthenticationPrincipal User user) {
+        log.info("Terminating identity for user: {}", user.getId());
+        userService.terminateIdentity(user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
 }
