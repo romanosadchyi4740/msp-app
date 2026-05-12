@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Music, Lock, Globe, Trash2, ArrowLeft, Plus, Search, GitFork, RefreshCw, X } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
+import {GitFork, Globe, Loader2, Lock, Music, Plus, RefreshCw, Search, Trash2, X} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
 import SyncConfirmModal from '../components/modals/SyncConfirmModal';
+import toast from 'react-hot-toast';
 
 const PlaylistPage = () => {
   const { id } = useParams();
@@ -28,6 +29,9 @@ const PlaylistPage = () => {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchPlaylist();
@@ -105,6 +109,21 @@ const PlaylistPage = () => {
     } finally {
       setTogglingVisibility(false);
       setShowConfirmDialog(false);
+    }
+  };
+
+  const handleDeletePlaylist = async () => {
+    setIsDeleting(true);
+    setShowDeleteConfirm(false);
+    try {
+      await axiosClient.delete(`/api/playlists/${id}`);
+      toast.success('INSTANCE_DISMANTLED: Node disconnected.');
+      navigate('/playlists');
+    } catch (error) {
+      console.error('Dismantling failed:', error);
+      toast.error('DISMANTLE_FAILED: Protocol error during deletion.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -203,7 +222,7 @@ const PlaylistPage = () => {
         </div>
         
         <div className="flex-1 w-full space-y-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="px-2 py-0.5 bg-white text-black text-[9px] font-black uppercase tracking-widest">Playlist</span>
             <div className="flex items-center gap-1.5 px-2 py-0.5 border border-border text-[9px] font-black uppercase tracking-widest text-muted">
               {playlist.isPublic ? <Globe size={10} /> : <Lock size={10} />}
@@ -225,6 +244,16 @@ const PlaylistPage = () => {
               >
                 {isSyncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
                 Pull Updates
+              </button>
+            )}
+            {isOwner && (
+              <button 
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isDeleting}
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-900 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+              >
+                {isDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                Dismantle Instance
               </button>
             )}
             {!isOwner && playlist.isPublic && (
@@ -377,6 +406,13 @@ const PlaylistPage = () => {
         </section>
       )}
 
+      {isDeleting && (
+        <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center space-y-8">
+          <Loader2 size={48} className="animate-spin text-white" />
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Dismantling Identity Node</p>
+        </div>
+      )}
+
       <ConfirmDialog 
         isOpen={showConfirmDialog}
         title="Toggle Privacy"
@@ -384,6 +420,16 @@ const PlaylistPage = () => {
         confirmText="Confirm"
         onConfirm={handleToggleVisibility}
         onCancel={() => setShowConfirmDialog(false)}
+      />
+
+      <ConfirmDialog 
+        isOpen={showDeleteConfirm}
+        title="CRITICAL: INSTANCE_DISMANTLE"
+        message="WARNING: Dismantling this local instance will remove it from your network. Proceed?"
+        confirmText="Dismantle"
+        cancelText="Abort"
+        onConfirm={handleDeletePlaylist}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
 
       <SyncConfirmModal 

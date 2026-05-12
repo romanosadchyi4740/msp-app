@@ -78,4 +78,21 @@ public class MinioService {
         }
     }
 
+    public void deleteFile(String objectName) {
+        if (objectName == null || objectName.isBlank() || objectName.equals("PENDING")) {
+            return;
+        }
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build()
+            );
+            log.info("File deleted successfully from MinIO: {}", objectName);
+        } catch (Exception e) {
+            log.error("Error occurred while deleting file from MinIO: {}", objectName, e);
+        }
+    }
+
 }

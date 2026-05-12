@@ -8,6 +8,7 @@ public record AlbumResponseDto(UUID id,
                                String title,
                                String description,
                                String coverUrl,
+                               UUID authorId,
                                String authorName,
                                LocalDate releaseDate,
                                List<TrackResponseDto> tracks) {

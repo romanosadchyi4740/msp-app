@@ -175,4 +175,22 @@ public class PlaylistService {
         return playlistMappingService.map(playlistRepository.save(playlist));
     }
 
+    @Transactional
+    public void deletePlaylist(UUID playlistId, UUID userId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+
+        if (!playlist.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException("Access Denied: You do not own this local instance.");
+        }
+
+        log.info("Dismantling Instance: {} (ID: {})", playlist.getTitle(), playlistId);
+
+        // 1. Fork Lineage Decoupling (Forks survive their origin)
+        playlistRepository.detachParentPlaylist(playlist);
+
+        // 2. Delete Playlist (ManyToMany relations in playlist_tracks will be cleared automatically by JPA)
+        playlistRepository.delete(playlist);
+    }
+
 }

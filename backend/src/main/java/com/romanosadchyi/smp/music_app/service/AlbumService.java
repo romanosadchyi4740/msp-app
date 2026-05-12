@@ -6,9 +6,12 @@ import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.AlbumCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
+import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
+import com.romanosadchyi.smp.music_app.repository.MessageRepository;
+import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
 import lombok.AccessLevel;
@@ -33,6 +36,9 @@ public class AlbumService {
 
     AlbumRepository albumRepository;
     UserRepository userRepository;
+    TrackRepository trackRepository;
+    MessageRepository messageRepository;
+    MinioService minioService;
     AlbumMappingService albumMappingService;
 
     @Transactional
@@ -84,6 +90,33 @@ public class AlbumService {
         }
         return albumRepository.findAllByTitleContainingIgnoreCase(query, pageable)
                 .map(albumMappingService::map);
+    }
+
+    @Transactional
+    public void deleteAlbum(UUID albumId, UUID authorId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new AlbumNotFoundException("Album not found"));
+
+        if (!album.getAuthor().getId().equals(authorId)) {
+            throw new UserNotAuthorizedException("Access Denied: You do not own this collection instance.");
+        }
+
+        log.info("Purging Collection: {} (ID: {})", album.getTitle(), albumId);
+
+        album.getTracks().forEach(track -> {
+            // 1. Physical Cleanup
+            minioService.deleteFile(track.getFileKey());
+            
+            // 2. Message Decoupling
+            messageRepository.detachTrack(track);
+
+            // 3. Collections Cleanup
+            trackRepository.deleteFromPlaylistTracks(track.getId());
+            trackRepository.deleteFromTrackGenres(track.getId());
+        });
+
+        // 4. Cascade delete Album + Tracks
+        albumRepository.delete(album);
     }
 
 }

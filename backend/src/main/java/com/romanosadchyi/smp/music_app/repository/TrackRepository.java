@@ -4,6 +4,9 @@ import com.romanosadchyi.smp.music_app.model.entity.Track;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -20,4 +23,12 @@ public interface TrackRepository extends JpaRepository<Track, UUID> {
     List<Track> findByGenresIdAndIdNotIn(UUID genreId, Collection<UUID> excludedIds, Pageable pageable);
 
     Boolean existsByFileHash(String fileHash);
+
+    @Modifying
+    @Query(value = "DELETE FROM playlist_tracks WHERE track_id = :trackId", nativeQuery = true)
+    void deleteFromPlaylistTracks(@Param("trackId") UUID trackId);
+
+    @Modifying
+    @Query(value = "DELETE FROM track_genres WHERE track_id = :trackId", nativeQuery = true)
+    void deleteFromTrackGenres(@Param("trackId") UUID trackId);
 }

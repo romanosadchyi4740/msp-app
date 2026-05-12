@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Clock, Music, Disc, ChevronLeft, Calendar } from 'lucide-react';
+import { Play, Clock, Music, Disc, ChevronLeft, Calendar, Trash2, Loader2 } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import usePlayerStore from '../store/playerStore';
+import useAuthStore from '../store/authStore';
+import ConfirmDialog from '../components/modals/ConfirmDialog';
+import toast from 'react-hot-toast';
 
 const AlbumDetailsPage = () => {
   const { albumId } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuthStore();
   const { playTrack, currentTrack, isPlaying } = usePlayerStore();
   const [album, setAlbum] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const fetchAlbum = async () => {
@@ -29,6 +35,21 @@ const AlbumDetailsPage = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setShowConfirm(false);
+    try {
+      await axiosClient.delete(`/api/albums/${albumId}`);
+      toast.success('COLLECTION_PURGED: All transmissions erased.');
+      navigate('/playlists');
+    } catch (error) {
+      console.error('Purge failed:', error);
+      toast.error('PURGE_FAILED: Protocol error during deletion.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading) {
@@ -53,15 +74,30 @@ const AlbumDetailsPage = () => {
     );
   }
 
+  const isOwner = currentUser?.userId === album.authorId;
+
   return (
     <div className="space-y-24 pb-32">
-      <button 
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-muted hover:text-white transition-colors group text-[10px] font-black uppercase tracking-widest"
-      >
-        <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-        <span>Return</span>
-      </button>
+      <div className="flex items-center justify-between">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-muted hover:text-white transition-colors group text-[10px] font-black uppercase tracking-widest"
+        >
+          <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+          <span>Return</span>
+        </button>
+
+        {isOwner && (
+          <button 
+            onClick={() => setShowConfirm(true)}
+            disabled={isDeleting}
+            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors text-[10px] font-black uppercase tracking-[0.2em] border border-red-900/30 px-4 py-2 hover:bg-red-500/10"
+          >
+            {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            <span>Purge Collection</span>
+          </button>
+        )}
+      </div>
 
       {/* Editorial Album Header */}
       <div className="flex flex-col md:flex-row gap-16 items-start">
@@ -146,6 +182,23 @@ const AlbumDetailsPage = () => {
           })}
         </div>
       </div>
+
+      {isDeleting && (
+        <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center space-y-8">
+          <Loader2 size={48} className="animate-spin text-white" />
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Executing Purge Sequence</p>
+        </div>
+      )}
+
+      <ConfirmDialog 
+        isOpen={showConfirm}
+        title="WARNING: IDENTITY_PURGE"
+        message="WARNING: Purging this collection will permanently erase all associated audio transmissions from the network. Proceed?"
+        confirmText="Execute"
+        cancelText="Abort"
+        onConfirm={handleDelete}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   );
 };

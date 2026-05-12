@@ -31,6 +31,7 @@ public class AlbumMappingService {
                 album.getTitle(),
                 album.getDescription(),
                 album.getCoverUrl(),
+                album.getAuthor().getId(),
                 album.getAuthor().getDisplayName(),
                 album.getReleaseDate(),
                 tracksDto

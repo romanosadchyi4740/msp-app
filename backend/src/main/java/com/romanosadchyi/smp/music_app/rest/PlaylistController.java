@@ -103,4 +103,11 @@ public class PlaylistController {
         return ResponseEntity.ok(playlistService.removeTrackFromPlaylist(user.getId(), playlistId, trackId));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePlaylist(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+        log.info("User {} requested dismantling of instance: {}", user.getId(), id);
+        playlistService.deletePlaylist(id, user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
 }

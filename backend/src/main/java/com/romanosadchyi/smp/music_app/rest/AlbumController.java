@@ -64,4 +64,11 @@ public class AlbumController {
         return ResponseEntity.ok(albumService.searchAlbums(query, userId, pageable));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAlbum(@AuthenticationPrincipal User user, @PathVariable UUID id) {
+        log.info("User {} requested purge of collection: {}", user.getId(), id);
+        albumService.deleteAlbum(id, user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
 }
