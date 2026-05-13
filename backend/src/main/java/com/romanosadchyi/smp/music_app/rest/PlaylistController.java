@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
@@ -108,6 +109,24 @@ public class PlaylistController {
         log.info("User {} requested dismantling of instance: {}", user.getId(), id);
         playlistService.deletePlaylist(id, user.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/propose-integration")
+    public ResponseEntity<IntegrationRequestResponseDto> proposeIntegration(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("User {} proposing integration for fork: {}", user.getId(), id);
+        return ResponseEntity.ok(playlistService.proposeIntegration(id, user.getId()));
+    }
+
+    @GetMapping("/{id}/integrations")
+    public ResponseEntity<List<IntegrationRequestResponseDto>> getIntegrations(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user
+    ) {
+        log.info("User {} fetching pending integrations for origin: {}", user.getId(), id);
+        return ResponseEntity.ok(playlistService.getPendingIntegrations(id, user.getId()));
     }
 
 }

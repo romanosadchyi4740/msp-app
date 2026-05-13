@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {GitFork, Globe, Loader2, Lock, Music, Plus, RefreshCw, Search, Trash2, X} from 'lucide-react';
+import {GitFork, Globe, Loader2, Lock, Music, Plus, RefreshCw, Search, Trash2, X, GitMerge} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
 import SyncConfirmModal from '../components/modals/SyncConfirmModal';
+import IntegrationReviewCard from '../components/playlist/IntegrationReviewCard';
 import toast from 'react-hot-toast';
 
 const PlaylistPage = () => {
@@ -33,9 +34,61 @@ const PlaylistPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [isProposing, setIsProposing] = useState(false);
+  const [integrations, setIntegrations] = useState([]);
+
+  const fetchPlaylist = async () => {
+    setLoading(true);
+    try {
+      const res = await axiosClient.get(`/api/playlists/${id}`);
+      setPlaylist(res.data);
+    } catch (err) {
+      console.error('Failed to fetch playlist', err);
+      setError('You do not have access to this playlist or it does not exist.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchIntegrations = async () => {
+    try {
+      const res = await axiosClient.get(`/api/playlists/${id}/integrations`);
+      setIntegrations(res.data);
+    } catch (err) {
+      console.error('Failed to fetch integrations', err);
+    }
+  };
+
   useEffect(() => {
     fetchPlaylist();
   }, [id]);
+
+  useEffect(() => {
+    if (playlist && user?.userId === playlist.ownerId) {
+      fetchIntegrations();
+    }
+  }, [playlist, user]);
+
+  const handleProposeIntegration = async () => {
+    setIsProposing(true);
+    try {
+      await axiosClient.post(`/api/playlists/${id}/propose-integration`);
+      toast.success('INTEGRATION_PROTOCOL_SUBMITTED: Protocol submitted to Origin Owner.');
+    } catch (err) {
+      console.error('Failed to propose integration', err);
+      toast.error(err.response?.data?.message || 'PROPOSAL_FAILED: No new transmissions or protocol error.');
+    } finally {
+      setIsProposing(false);
+    }
+  };
+
+  const handleIntegrationResolved = (requestId, action) => {
+    setIntegrations(prev => prev.filter(req => req.id !== requestId));
+    if (action === 'ACCEPT') {
+      fetchPlaylist();
+    }
+  };
+
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -57,19 +110,6 @@ const PlaylistPage = () => {
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
-
-  const fetchPlaylist = async () => {
-    setLoading(true);
-    try {
-      const res = await axiosClient.get(`/api/playlists/${id}`);
-      setPlaylist(res.data);
-    } catch (err) {
-      console.error('Failed to fetch playlist', err);
-      setError('You do not have access to this playlist or it does not exist.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFork = async () => {
     setIsForking(true);
@@ -246,6 +286,16 @@ const PlaylistPage = () => {
                 Pull Updates
               </button>
             )}
+            {isOwner && playlist.forkedFromId && (
+              <button 
+                onClick={handleProposeIntegration}
+                disabled={isProposing}
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-white/20 text-[9px] font-black uppercase tracking-widest text-white hover:bg-white hover:text-black transition-colors"
+              >
+                {isProposing ? <Loader2 size={10} className="animate-spin" /> : <GitMerge size={10} />}
+                Initiate Integration Protocol
+              </button>
+            )}
             {isOwner && (
               <button 
                 onClick={() => setShowDeleteConfirm(true)}
@@ -290,6 +340,25 @@ const PlaylistPage = () => {
           </p>
         </div>
       </header>
+
+      {isOwner && integrations.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 text-white border-b border-border/50 pb-2">
+            <GitMerge size={16} />
+            <h3 className="text-xs font-black uppercase tracking-[0.2em]">Incoming Integration Protocols</h3>
+            <span className="px-2 py-0.5 bg-white text-black text-[9px] font-black">{integrations.length} Pending</span>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {integrations.map(req => (
+              <IntegrationReviewCard 
+                key={req.id} 
+                request={req} 
+                onResolve={handleIntegrationResolved} 
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         {playlist.tracks.length === 0 ? (
