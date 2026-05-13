@@ -5,6 +5,9 @@ import usePlayerStore from '../store/playerStore';
 import useLikeStore from '../store/likeStore';
 import useChatStore from '../store/chatStore';
 import usePlaylistStore from '../store/playlistStore';
+import socketClient from '../api/socketClient';
+import axiosClient from '../api/axiosClient';
+import toast from 'react-hot-toast';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
@@ -23,7 +26,11 @@ const AudioPlayer = () => {
     playPrevious,
     queue,
     loopMode,
-    toggleLoopMode
+    toggleLoopMode,
+    broadcastStatus,
+    activeBroadcastId,
+    leaveBroadcast,
+    playTrack
   } = usePlayerStore();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -32,6 +39,55 @@ const AudioPlayer = () => {
   const { setAttachment, startChatWithUser, openShareModal } = useChatStore();
   const { openPlaylistModal } = usePlaylistStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
+
+  // Master Broadcast Effect (LOAD_TRACK)
+  useEffect(() => {
+    if (broadcastStatus === 'MASTER' && activeBroadcastId && currentTrack) {
+      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+        command: 'LOAD_TRACK',
+        trackId: currentTrack.id,
+        timestamp: audioRef.current ? audioRef.current.currentTime : 0
+      });
+    }
+  }, [currentTrack?.id, broadcastStatus, activeBroadcastId]);
+
+  // Sync Node Subscription
+  useEffect(() => {
+    if (broadcastStatus === 'SYNC' && activeBroadcastId) {
+      const sub = socketClient.subscribe(`/topic/broadcast/${activeBroadcastId}`, async (msg) => {
+        try {
+          if (msg.command === 'LOAD_TRACK' && msg.trackId) {
+            const res = await axiosClient.get(`/api/tracks/${msg.trackId}`);
+            playTrack(res.data, [], msg.timestamp);
+          } else if (msg.command === 'PLAY') {
+            if (audioRef.current) {
+              audioRef.current.currentTime = msg.timestamp;
+              audioRef.current.play().catch(e => console.error("Sync play error", e));
+              setIsPlaying(true);
+            }
+          } else if (msg.command === 'PAUSE') {
+            if (audioRef.current) {
+              audioRef.current.currentTime = msg.timestamp;
+              audioRef.current.pause();
+              setIsPlaying(false);
+            }
+          } else if (msg.command === 'SEEK') {
+            if (audioRef.current) {
+              audioRef.current.currentTime = msg.timestamp;
+            }
+          } else if (msg.command === 'TERMINATE') {
+            leaveBroadcast();
+            toast.error('Broadcast Node Terminated by Master');
+          }
+        } catch (err) {
+          console.error('Broadcast sync error:', err);
+        }
+      });
+      return () => {
+        if (sub) sub.unsubscribe();
+      };
+    }
+  }, [broadcastStatus, activeBroadcastId, playTrack, setIsPlaying, leaveBroadcast]);
 
   // Sync isPlaying with audio element
   useEffect(() => {
@@ -86,6 +142,7 @@ const AudioPlayer = () => {
   };
 
   const handleSeek = (e) => {
+    if (broadcastStatus === 'SYNC') return; // Disable seek for SYNC
     const seekTime = (e.target.value / 100) * duration;
     if (audioRef.current) {
       audioRef.current.currentTime = seekTime;
@@ -105,6 +162,34 @@ const AudioPlayer = () => {
     openShareModal(currentTrack, currentAudioTime);
   };
 
+  // Master Broadcast Events Hook
+  const onPlayEvent = () => {
+    if (broadcastStatus === 'MASTER' && activeBroadcastId) {
+      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+        command: 'PLAY',
+        timestamp: audioRef.current ? audioRef.current.currentTime : 0
+      });
+    }
+  };
+
+  const onPauseEvent = () => {
+    if (broadcastStatus === 'MASTER' && activeBroadcastId) {
+      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+        command: 'PAUSE',
+        timestamp: audioRef.current ? audioRef.current.currentTime : 0
+      });
+    }
+  };
+
+  const onSeekedEvent = () => {
+    if (broadcastStatus === 'MASTER' && activeBroadcastId) {
+      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+        command: 'SEEK',
+        timestamp: audioRef.current ? audioRef.current.currentTime : 0
+      });
+    }
+  };
+
   if (!currentTrack) return null;
 
   const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
@@ -114,6 +199,7 @@ const AudioPlayer = () => {
   const isLooping = loopMode === 'one' || (loopMode === 'all' && queue.length === 1);
 
   const handleManualSkipNext = () => {
+    if (broadcastStatus === 'SYNC') return;
     const beforeId = currentTrack?.id;
     playNext(true);
     // If the track didn't change (e.g. single track queue), manual restart
@@ -124,6 +210,7 @@ const AudioPlayer = () => {
   };
 
   const handleManualSkipPrevious = () => {
+    if (broadcastStatus === 'SYNC') return;
     const beforeId = currentTrack?.id;
     playPrevious();
     if (usePlayerStore.getState().currentTrack?.id === beforeId) {
@@ -148,6 +235,9 @@ const AudioPlayer = () => {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => playNext(false)}
+        onPlay={onPlayEvent}
+        onPause={onPauseEvent}
+        onSeeked={onSeekedEvent}
         loop={isLooping}
       />
 
@@ -195,7 +285,8 @@ const AudioPlayer = () => {
         <div className="flex items-center gap-8 mb-1">
           <button 
             onClick={toggleLoopMode}
-            className="hover:text-white transition-colors"
+            disabled={broadcastStatus === 'SYNC'}
+            className="hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title={`Loop: ${loopMode}`}
           >
             {loopMode !== 'none' ? <Repeat size={16} className="text-white" /> : <Repeat size={16} className="text-muted" />}
@@ -203,23 +294,24 @@ const AudioPlayer = () => {
 
           <button 
             onClick={handleManualSkipPrevious}
-            disabled={!hasPrevious}
-            className={`transition-colors ${hasPrevious ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
+            disabled={!hasPrevious || broadcastStatus === 'SYNC'}
+            className={`transition-colors ${hasPrevious && broadcastStatus !== 'SYNC' ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
           >
             <SkipBack size={18} />
           </button>
           
           <button 
-            onClick={togglePlayPause}
-            className="text-white hover:scale-110 transition-transform p-2"
+            onClick={() => broadcastStatus !== 'SYNC' && togglePlayPause()}
+            disabled={broadcastStatus === 'SYNC'}
+            className="text-white hover:scale-110 transition-transform p-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
           </button>
 
           <button 
             onClick={handleManualSkipNext}
-            disabled={!hasNext}
-            className={`transition-colors ${hasNext ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
+            disabled={!hasNext || broadcastStatus === 'SYNC'}
+            className={`transition-colors ${hasNext && broadcastStatus !== 'SYNC' ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
           >
             <SkipForward size={18} />
           </button>
@@ -236,14 +328,15 @@ const AudioPlayer = () => {
           <span className="text-[9px] font-medium text-muted w-10 text-right tabular-nums">
             {formatTime((progress / 100) * duration || 0)}
           </span>
-          <div className="flex-1 relative group h-4 flex items-center">
+          <div className={`flex-1 relative group h-4 flex items-center ${broadcastStatus === 'SYNC' ? 'pointer-events-none' : ''}`}>
             <input
               type="range"
               min="0"
               max="100"
               value={progress || 0}
               onChange={handleSeek}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              disabled={broadcastStatus === 'SYNC'}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-default"
             />
             <div className="w-full h-[1px] bg-zinc-800 relative">
               <div 
@@ -283,4 +376,3 @@ const AudioPlayer = () => {
 };
 
 export default AudioPlayer;
-AudioPlayer;

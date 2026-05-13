@@ -59,6 +59,15 @@ class SocketClient {
       console.error('Cannot send message: not connected');
     }
   }
+
+  subscribe(destination, callback) {
+    if (this.client && this.client.connected) {
+      return this.client.subscribe(destination, (message) => {
+        callback(JSON.parse(message.body));
+      });
+    }
+    return null;
+  }
 }
 
 const socketClient = new SocketClient();

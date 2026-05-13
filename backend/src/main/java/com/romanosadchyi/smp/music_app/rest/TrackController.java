@@ -38,6 +38,12 @@ public class TrackController {
         trackService.createTrack(user.getId(), dto, file);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<TrackResponseDto> getTrackById(@PathVariable UUID id) {
+        log.info("Getting track with ID: {}", id);
+        return ResponseEntity.ok(trackService.getTrackById(id));
+    }
+
     @GetMapping("/{id}/url")
     public ResponseEntity<String> getTrackUrl(@PathVariable UUID id) {
         log.info("Getting track URL for track with ID: {}", id);

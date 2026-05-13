@@ -10,6 +10,12 @@ const usePlayerStore = create((set, get) => ({
   audioUrl: null,
   queue: [],
   loopMode: 'none', // 'none', 'one', 'all'
+  broadcastStatus: 'IDLE', // 'IDLE', 'MASTER', 'SYNC'
+  activeBroadcastId: null,
+
+  initiateBroadcast: (broadcastId) => set({ broadcastStatus: 'MASTER', activeBroadcastId: broadcastId }),
+  joinBroadcast: (broadcastId) => set({ broadcastStatus: 'SYNC', activeBroadcastId: broadcastId }),
+  leaveBroadcast: () => set({ broadcastStatus: 'IDLE', activeBroadcastId: null }),
 
   playTrack: async (track, newQueue = [], seekTime = null) => {
     // If a new queue is provided, update it

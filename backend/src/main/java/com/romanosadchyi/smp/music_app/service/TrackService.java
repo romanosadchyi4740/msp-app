@@ -134,6 +134,13 @@ public class TrackService {
     }
 
     @Transactional(readOnly = true)
+    public TrackResponseDto getTrackById(UUID trackId) {
+        Track track = trackRepository.findById(trackId)
+                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
+        return trackMappingService.map(track);
+    }
+
+    @Transactional(readOnly = true)
     public Page<TrackResponseDto> getAllTracks(int pageNo, int pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
         return trackRepository.findAll(pageable)
