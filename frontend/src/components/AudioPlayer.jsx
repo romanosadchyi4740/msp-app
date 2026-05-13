@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart, MessageSquare, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart, MessageSquare, Plus, Radio, X } from 'lucide-react';
 import usePlayerStore from '../store/playerStore';
 import useLikeStore from '../store/likeStore';
 import useChatStore from '../store/chatStore';
@@ -11,7 +10,6 @@ import toast from 'react-hot-toast';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
-  const navigate = useNavigate();
   const { 
     currentTrack, 
     isPlaying, 
@@ -36,7 +34,7 @@ const AudioPlayer = () => {
   const [duration, setDuration] = useState(0);
 
   const { likedTrackIds, toggleLike } = useLikeStore();
-  const { setAttachment, startChatWithUser, openShareModal } = useChatStore();
+  const { openShareModal } = useChatStore();
   const { openPlaylistModal } = usePlaylistStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
 
@@ -229,6 +227,32 @@ const AudioPlayer = () => {
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-6xl bg-surface/90 backdrop-blur-xl border border-border px-8 py-3 flex items-center justify-between z-50 rounded-none shadow-2xl">
+      {broadcastStatus !== 'IDLE' && (
+        <div className="absolute bottom-full left-0 right-0 p-2 bg-red-900/20 backdrop-blur-md border-t border-red-900/50 flex items-center justify-between text-red-500">
+          <div className="flex items-center gap-2 px-4">
+            <Radio size={14} className="animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              {broadcastStatus === 'MASTER' ? 'Broadcasting as Master Node' : 'Synchronized to Broadcast Node'}
+            </span>
+          </div>
+          <button 
+            onClick={() => {
+              if (broadcastStatus === 'MASTER' && activeBroadcastId) {
+                socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+                  command: 'TERMINATE',
+                  timestamp: 0
+                });
+              }
+              leaveBroadcast();
+            }}
+            className="flex items-center gap-2 px-4 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
+          >
+            <X size={14} />
+            {broadcastStatus === 'MASTER' ? 'Terminate Broadcast' : 'Disconnect'}
+          </button>
+        </div>
+      )}
+
       <audio
         ref={audioRef}
         src={audioUrl}

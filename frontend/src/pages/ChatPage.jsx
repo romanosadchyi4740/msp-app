@@ -23,13 +23,8 @@ const ChatPage = () => {
 
   // Initialize socket on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      initSocket(token);
-    }
     fetchChats();
-    return () => closeSocket();
-  }, [initSocket, closeSocket, fetchChats]);
+  }, [fetchChats]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

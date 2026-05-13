@@ -4,6 +4,7 @@ import { Home, Search, Compass, Heart, Library, MessageCircle, LogOut, Music, Us
 import useAuthStore from '../store/authStore';
 import useLikeStore from '../store/likeStore';
 import useFollowStore from '../store/followStore';
+import useChatStore from '../store/chatStore';
 import AudioPlayer from '../components/AudioPlayer';
 import ShareTrackModal from '../components/modals/ShareTrackModal';
 import AddToPlaylistModal from '../components/modals/AddToPlaylistModal';
@@ -12,6 +13,7 @@ const MainLayout = () => {
   const { user, logout, becomeArtist, loading } = useAuthStore();
   const { fetchLikedTracks, initialized } = useLikeStore();
   const { fetchFollowing, initialized: followInitialized } = useFollowStore();
+  const { initSocket, closeSocket } = useChatStore();
 
   useEffect(() => {
     if (!initialized) {
@@ -21,6 +23,18 @@ const MainLayout = () => {
       fetchFollowing();
     }
   }, [fetchLikedTracks, initialized, fetchFollowing, followInitialized]);
+
+  // Global WebSocket initialization for authenticated users
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && user) {
+      initSocket(token);
+    }
+    return () => {
+      closeSocket();
+    };
+  }, [user, initSocket, closeSocket]);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [isArtistLoading, setIsArtistLoading] = useState(false);
