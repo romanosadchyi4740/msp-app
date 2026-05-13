@@ -5,5 +5,6 @@ public enum BroadcastCommand {
     PAUSE,
     SEEK,
     LOAD_TRACK,
-    TERMINATE
+    TERMINATE,
+    REQUEST_SYNC
 }

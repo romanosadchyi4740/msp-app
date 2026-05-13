@@ -49,38 +49,61 @@ const AudioPlayer = () => {
     }
   }, [currentTrack?.id, broadcastStatus, activeBroadcastId]);
 
-  // Sync Node Subscription
+  // Broadcast Subscription (Master & Sync)
   useEffect(() => {
-    if (broadcastStatus === 'SYNC' && activeBroadcastId) {
+    if (activeBroadcastId) {
       const sub = socketClient.subscribe(`/topic/broadcast/${activeBroadcastId}`, async (msg) => {
         try {
-          if (msg.command === 'LOAD_TRACK' && msg.trackId) {
-            const res = await axiosClient.get(`/api/tracks/${msg.trackId}`);
-            playTrack(res.data, [], msg.timestamp);
-          } else if (msg.command === 'PLAY') {
-            if (audioRef.current) {
-              audioRef.current.currentTime = msg.timestamp;
-              audioRef.current.play().catch(e => console.error("Sync play error", e));
-              setIsPlaying(true);
+          if (msg.command === 'REQUEST_SYNC' && broadcastStatus === 'MASTER') {
+            const state = usePlayerStore.getState();
+            if (state.currentTrack) {
+              socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+                command: 'LOAD_TRACK',
+                trackId: state.currentTrack.id,
+                timestamp: audioRef.current ? audioRef.current.currentTime : 0
+              });
+              socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+                command: state.isPlaying ? 'PLAY' : 'PAUSE',
+                timestamp: audioRef.current ? audioRef.current.currentTime : 0
+              });
             }
-          } else if (msg.command === 'PAUSE') {
-            if (audioRef.current) {
-              audioRef.current.currentTime = msg.timestamp;
-              audioRef.current.pause();
-              setIsPlaying(false);
+          } else if (broadcastStatus === 'SYNC') {
+            if (msg.command === 'LOAD_TRACK' && msg.trackId) {
+              const res = await axiosClient.get(`/api/tracks/${msg.trackId}`);
+              playTrack(res.data, [], msg.timestamp);
+            } else if (msg.command === 'PLAY') {
+              if (audioRef.current) {
+                audioRef.current.currentTime = msg.timestamp;
+                audioRef.current.play().catch(e => console.error("Sync play error", e));
+                setIsPlaying(true);
+              }
+            } else if (msg.command === 'PAUSE') {
+              if (audioRef.current) {
+                audioRef.current.currentTime = msg.timestamp;
+                audioRef.current.pause();
+                setIsPlaying(false);
+              }
+            } else if (msg.command === 'SEEK') {
+              if (audioRef.current) {
+                audioRef.current.currentTime = msg.timestamp;
+              }
+            } else if (msg.command === 'TERMINATE') {
+              leaveBroadcast();
+              toast.error('Broadcast Node Terminated by Master');
             }
-          } else if (msg.command === 'SEEK') {
-            if (audioRef.current) {
-              audioRef.current.currentTime = msg.timestamp;
-            }
-          } else if (msg.command === 'TERMINATE') {
-            leaveBroadcast();
-            toast.error('Broadcast Node Terminated by Master');
           }
         } catch (err) {
           console.error('Broadcast sync error:', err);
         }
       });
+
+      if (broadcastStatus === 'SYNC') {
+        socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+          command: 'REQUEST_SYNC',
+          timestamp: 0
+        });
+      }
+
       return () => {
         if (sub) sub.unsubscribe();
       };
