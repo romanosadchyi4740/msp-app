@@ -44,9 +44,19 @@ const ChatPage = () => {
 
   const handleInitBroadcast = () => {
     const broadcastId = crypto.randomUUID();
-    initiateBroadcast(broadcastId);
+    initiateBroadcast(broadcastId, activeChat.id);
     sendMessage(`[BROADCAST_NODE_INIT]:${broadcastId}`);
   };
+
+  const terminatedBroadcastIds = React.useMemo(() => {
+    const terminated = new Set();
+    messages.forEach(msg => {
+      if (msg.content && msg.content.startsWith('[BROADCAST_NODE_TERMINATED]:')) {
+        terminated.add(msg.content.split(':')[1]);
+      }
+    });
+    return terminated;
+  }, [messages]);
 
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -243,8 +253,21 @@ const ChatPage = () => {
               ) : (
                 messages.map((msg, idx) => {
                   const isOwn = msg.sender.id === currentUser?.userId;
+                  const isBroadcastTerminatedMsg = msg.content && msg.content.startsWith('[BROADCAST_NODE_TERMINATED]:');
+                  
+                  if (isBroadcastTerminatedMsg) {
+                    return (
+                      <div key={msg.id || idx} className="flex justify-center my-4">
+                        <span className="px-3 py-1 bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-muted">
+                          Broadcast Node Terminated
+                        </span>
+                      </div>
+                    );
+                  }
+
                   const isBroadcastInit = msg.content && msg.content.startsWith('[BROADCAST_NODE_INIT]:');
                   const broadcastId = isBroadcastInit ? msg.content.split(':')[1] : null;
+                  const isTerminated = isBroadcastInit && terminatedBroadcastIds.has(broadcastId);
 
                   return (
                     <div key={msg.id || idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -275,8 +298,15 @@ const ChatPage = () => {
                         )}
                         {isBroadcastInit ? (
                           <div className={`px-5 py-3 transition-all flex flex-col gap-2 ${isOwn ? 'bg-white text-black' : 'bg-surface text-white border border-border'}`}>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{isOwn ? 'Broadcast Node Initialized' : 'Broadcast Node Discovered'}</span>
-                            {isOwn ? (
+                            <span className="text-[10px] font-black uppercase tracking-widest">
+                              {isTerminated ? 'Broadcast Terminated' : (isOwn ? 'Broadcast Node Initialized' : 'Broadcast Node Discovered')}
+                            </span>
+                            {isTerminated ? (
+                              <div className="px-4 py-2 border border-current text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 opacity-50">
+                                <X size={12} />
+                                Inactive Node
+                              </div>
+                            ) : isOwn ? (
                               <div className="px-4 py-2 border border-current text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
                                 <Radio size={12} />
                                 Broadcasting as Master

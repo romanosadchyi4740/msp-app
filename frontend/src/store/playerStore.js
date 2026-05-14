@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axiosClient from '../api/axiosClient';
+import socketClient from '../api/socketClient';
 
 const usePlayerStore = create((set, get) => ({
   currentTrack: null,
@@ -12,10 +13,23 @@ const usePlayerStore = create((set, get) => ({
   loopMode: 'none', // 'none', 'one', 'all'
   broadcastStatus: 'IDLE', // 'IDLE', 'MASTER', 'SYNC'
   activeBroadcastId: null,
+  activeBroadcastChatId: null,
 
-  initiateBroadcast: (broadcastId) => set({ broadcastStatus: 'MASTER', activeBroadcastId: broadcastId }),
-  joinBroadcast: (broadcastId) => set({ broadcastStatus: 'SYNC', activeBroadcastId: broadcastId }),
-  leaveBroadcast: () => set({ broadcastStatus: 'IDLE', activeBroadcastId: null }),
+  initiateBroadcast: (broadcastId, chatId) => set({ broadcastStatus: 'MASTER', activeBroadcastId: broadcastId, activeBroadcastChatId: chatId }),
+  joinBroadcast: (broadcastId) => set({ broadcastStatus: 'SYNC', activeBroadcastId: broadcastId, activeBroadcastChatId: null }),
+  leaveBroadcast: () => {
+    const { broadcastStatus, activeBroadcastId, activeBroadcastChatId } = get();
+    if (broadcastStatus === 'MASTER' && activeBroadcastId && activeBroadcastChatId) {
+      socketClient.sendMessage('/chat', {
+        chatId: activeBroadcastChatId,
+        content: `[BROADCAST_NODE_TERMINATED]:${activeBroadcastId}`,
+        sharedTrackId: null,
+        sharedTrackTimestamp: null,
+        fileUrl: null
+      });
+    }
+    set({ broadcastStatus: 'IDLE', activeBroadcastId: null, activeBroadcastChatId: null });
+  },
 
   playTrack: async (track, newQueue = [], seekTime = null) => {
     // If a new queue is provided, update it
