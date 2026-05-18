@@ -1,7 +1,6 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.exception.MusicTrackFileAlreadyExistsException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Genre;
@@ -13,27 +12,23 @@ import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
-import lombok.AccessLevel;
-import lombok.experimental.FieldDefaults;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@FieldDefaults(level = AccessLevel.PRIVATE)
 class TrackServiceTest {
 
     @Mock
@@ -57,57 +52,52 @@ class TrackServiceTest {
     @InjectMocks
     TrackService trackService;
 
-    User artist;
-    User listener;
-    TrackCreateDto trackDto;
-    MultipartFile mockFile;
-
-    @BeforeEach
-    void setUp() {
-        UUID artistId = UUID.randomUUID();
-        artist = User.builder()
-                .id(artistId)
-                .role(UserRole.ROLE_ARTIST)
-                .build();
-
-        listener = User.builder()
-                .id(UUID.randomUUID())
-                .role(UserRole.ROLE_USER)
-                .build();
-
-        trackDto = new TrackCreateDto("Song", 210, null, UUID.randomUUID(), 1, Set.of(UUID.randomUUID()));
-        mockFile = mock(MultipartFile.class);
-//        when(mockFile.getOriginalFilename()).thenReturn("song.mp3");
-    }
-
     @Test
-    void createTrack_ShouldSucceed_WhenUserIsArtist() {
-        when(userRepository.findById(artist.getId())).thenReturn(Optional.of(artist));
-        when(trackMappingService.map(any(TrackCreateDto.class))).thenReturn(new Track());
-        when(trackRepository.save(any(Track.class))).thenReturn(Track.builder().id(UUID.randomUUID()).build());
-        when(albumRepository.findById(any())).thenReturn(Optional.of(new Album().toBuilder().author(artist).build()));
-        when(genreRepository.findAllById(any())).thenReturn(List.of(new Genre()));
+    void createTrack_ValidData_UploadsToMinioAndSavesTrack() throws Exception {
+        UUID authorId = UUID.randomUUID();
+        UUID albumId = UUID.randomUUID();
+        User author = User.builder().id(authorId).role(UserRole.ROLE_ARTIST).build();
+        Album album = Album.builder().id(albumId).author(author).coverUrl("album-cover.jpg").build();
+        Genre genre = Genre.builder().id(UUID.randomUUID()).build();
+        
+        TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, java.util.Set.of(genre.getId()));
+        MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
-        trackService.createTrack(artist.getId(), trackDto, mockFile);
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+        when(genreRepository.findAllById(dto.genreIds())).thenReturn(List.of(genre));
+        when(trackRepository.existsByFileHash(anyString())).thenReturn(false);
+        
+        Track mappedTrack = Track.builder().build();
+        when(trackMappingService.map(dto)).thenReturn(mappedTrack);
+        
+        Track savedTrack = Track.builder().id(UUID.randomUUID()).coverUrl(null).build();
+        when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
 
+        trackService.createTrack(authorId, dto, file);
+
+        verify(minioService).uploadFile(eq(file), anyString());
         verify(trackRepository, times(2)).save(any(Track.class));
-        verify(minioService).uploadFile(eq(mockFile), anyString());
     }
 
     @Test
-    void createTrack_ShouldThrowException_WhenUserIsNotArtist() {
-        when(userRepository.findById(listener.getId())).thenReturn(Optional.of(listener));
+    void createTrack_DuplicateFileHash_ThrowsConflictException() throws Exception {
+        UUID authorId = UUID.randomUUID();
+        UUID albumId = UUID.randomUUID();
+        User author = User.builder().id(authorId).role(UserRole.ROLE_ARTIST).build();
+        Album album = Album.builder().id(albumId).author(author).coverUrl("album-cover.jpg").build();
+        Genre genre = Genre.builder().id(UUID.randomUUID()).build();
+        
+        TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, java.util.Set.of(genre.getId()));
+        MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
-        assertThrows(UserNotAuthorizedException.class, () -> 
-                trackService.createTrack(listener.getId(), trackDto, mockFile));
+        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+        when(genreRepository.findAllById(dto.genreIds())).thenReturn(List.of(genre));
+        when(trackRepository.existsByFileHash(anyString())).thenReturn(true);
+
+        assertThrows(MusicTrackFileAlreadyExistsException.class, () -> trackService.createTrack(authorId, dto, file));
+        verify(minioService, never()).uploadFile(any(), anyString());
+        verify(trackRepository, never()).save(any(Track.class));
     }
-
-    @Test
-    void createTrack_ShouldThrowException_WhenUserNotFound() {
-        when(userRepository.findById(any())).thenReturn(Optional.empty());
-
-        assertThrows(UserNotFoundException.class, () -> 
-                trackService.createTrack(UUID.randomUUID(), trackDto, mockFile));
-    }
-
 }

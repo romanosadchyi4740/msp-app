@@ -6,9 +6,6 @@ import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
-import lombok.AccessLevel;
-import lombok.experimental.FieldDefaults;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@FieldDefaults(level = AccessLevel.PRIVATE)
 class AuthServiceTest {
 
     @Mock
@@ -40,62 +36,56 @@ class AuthServiceTest {
     @InjectMocks
     AuthService authService;
 
-    RegisterRequestDto registerRequestDto;
-    LoginRequestDto loginRequestDto;
-    User testUser;
-
-    @BeforeEach
-    void setUp() {
-        registerRequestDto = new RegisterRequestDto("test@example.com", "password", "Test User");
-        loginRequestDto = new LoginRequestDto("test@example.com", "password");
-        testUser = User.builder()
-                .id(UUID.randomUUID())
-                .email("test@example.com")
-                .password("encoded-password")
-                .displayName("Test User")
-                .role(UserRole.ROLE_USER)
-                .build();
-    }
-
     @Test
-    void register_ShouldCreateUser_WhenEmailIsUnique() {
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(jwtService.generateToken(any(User.class))).thenReturn("token");
+    void register_ValidData_ReturnsToken() {
+        RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
+        when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("pass123")).thenReturn("encoded_pass");
+        
+        User savedUser = User.builder().id(UUID.randomUUID()).email("test@test.com").displayName("TestUser").role(UserRole.ROLE_USER).build();
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(jwtService.generateToken(savedUser)).thenReturn("jwt_token");
 
-        AuthResponseDto response = authService.register(registerRequestDto);
+        AuthResponseDto response = authService.register(dto);
 
         assertNotNull(response);
-        assertEquals("token", response.accessToken());
-        assertEquals("Test User", response.displayName());
+        assertEquals("jwt_token", response.accessToken());
+        assertEquals("TestUser", response.displayName());
         verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void register_ShouldThrowException_WhenEmailExists() {
-        when(userRepository.existsByEmail(anyString())).thenReturn(true);
+    void register_EmailAlreadyExists_ThrowsResponseStatusException() {
+        RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
+        when(userRepository.existsByEmail("test@test.com")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> authService.register(registerRequestDto));
+        assertThrows(ResponseStatusException.class, () -> authService.register(dto));
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void login_ShouldReturnToken_WhenCredentialsAreValid() {
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-        when(jwtService.generateToken(any(User.class))).thenReturn("token");
+    void login_ValidCredentials_ReturnsToken() {
+        LoginRequestDto dto = new LoginRequestDto("test@test.com", "pass123");
+        User user = User.builder().id(UUID.randomUUID()).email("test@test.com").password("encoded_pass").role(UserRole.ROLE_USER).displayName("TestUser").build();
+        
+        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("pass123", "encoded_pass")).thenReturn(true);
+        when(jwtService.generateToken(user)).thenReturn("jwt_token");
 
-        AuthResponseDto response = authService.login(loginRequestDto);
+        AuthResponseDto response = authService.login(dto);
 
         assertNotNull(response);
-        assertEquals("token", response.accessToken());
+        assertEquals("jwt_token", response.accessToken());
     }
 
     @Test
-    void login_ShouldThrowException_WhenUserNotFound() {
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+    void login_InvalidPassword_ThrowsResponseStatusException() {
+        LoginRequestDto dto = new LoginRequestDto("test@test.com", "wrongpass");
+        User user = User.builder().id(UUID.randomUUID()).email("test@test.com").password("encoded_pass").role(UserRole.ROLE_USER).build();
+        
+        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongpass", "encoded_pass")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> authService.login(loginRequestDto));
+        assertThrows(ResponseStatusException.class, () -> authService.login(dto));
     }
-
 }
