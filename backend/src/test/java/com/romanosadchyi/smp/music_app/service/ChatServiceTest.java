@@ -210,4 +210,31 @@ class ChatServiceTest {
             return set.size() == 2;
         }));
     }
+
+    @Test
+    void getMessageHistory_ReturnsPage() {
+        UUID chatId = UUID.randomUUID();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<Message> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Message()));
+        
+        when(messageRepository.findByChatIdOrderByTimestampDesc(eq(chatId), any(org.springframework.data.domain.Pageable.class))).thenReturn(page);
+        when(mappingService.map(any(Message.class))).thenReturn(
+            new ChatMessageResponseDto(UUID.randomUUID(), chatId, null, "Hello", null, null, null, null)
+        );
+
+        org.springframework.data.domain.Page<ChatMessageResponseDto> result = chatService.getMessageHistory(chatId, pageable);
+        assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void getUserChats_ReturnsList() {
+        UUID userId = UUID.randomUUID();
+        when(chatRepository.findAllByParticipantId(userId)).thenReturn(java.util.List.of(new Chat()));
+        when(chatMappingService.map(any(Chat.class), eq(userId))).thenReturn(
+            new ChatResponseDto(UUID.randomUUID(), false, null, null, null, null, "ACCEPTED")
+        );
+
+        java.util.List<ChatResponseDto> result = chatService.getUserChats(userId);
+        assertEquals(1, result.size());
+    }
 }

@@ -120,4 +120,73 @@ class AlbumServiceTest {
         assertThrows(UserNotAuthorizedException.class, () -> albumService.deleteAlbum(albumId, otherUserId));
         verify(albumRepository, never()).delete(any(Album.class));
     }
+
+    @Test
+    void getAlbumById_WhenAlbumExists_ReturnsDto() {
+        UUID albumId = UUID.randomUUID();
+        Album album = Album.builder().id(albumId).title("Found Album").build();
+
+        when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+        when(albumMappingService.map(album)).thenReturn(new AlbumResponseDto(albumId, "Found Album", null, null, null, null, null, null));
+
+        AlbumResponseDto response = albumService.getAlbumById(albumId);
+        assertNotNull(response);
+        assertEquals("Found Album", response.title());
+    }
+
+    @Test
+    void getAlbumById_WhenAlbumDoesNotExist_ThrowsException() {
+        UUID albumId = UUID.randomUUID();
+        when(albumRepository.findById(albumId)).thenReturn(Optional.empty());
+
+        assertThrows(AlbumNotFoundException.class, () -> albumService.getAlbumById(albumId));
+    }
+
+    @Test
+    void getAllAlbums_ReturnsPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<Album> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Album()));
+
+        when(albumRepository.findAll(pageable)).thenReturn(page);
+        when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
+
+        org.springframework.data.domain.Page<AlbumResponseDto> result = albumService.getAllAlbums(pageable);
+        assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void getAlbumsByAuthor_ReturnsList() {
+        UUID authorId = UUID.randomUUID();
+        Album album = Album.builder().id(UUID.randomUUID()).build();
+        when(albumRepository.findAllByAuthorId(authorId)).thenReturn(java.util.List.of(album));
+        when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
+
+        java.util.List<AlbumResponseDto> result = albumService.getAlbumsByAuthor(authorId);
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void searchAlbums_WithAuthorId_ReturnsPage() {
+        UUID authorId = UUID.randomUUID();
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<Album> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Album()));
+
+        when(albumRepository.findAllByAuthorIdAndTitleContainingIgnoreCase(authorId, "query", pageable)).thenReturn(page);
+        when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
+
+        org.springframework.data.domain.Page<AlbumResponseDto> result = albumService.searchAlbums("query", authorId, pageable);
+        assertEquals(1, result.getTotalElements());
+    }
+
+    @Test
+    void searchAlbums_WithoutAuthorId_ReturnsPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Page<Album> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Album()));
+
+        when(albumRepository.findAllByTitleContainingIgnoreCase("query", pageable)).thenReturn(page);
+        when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
+
+        org.springframework.data.domain.Page<AlbumResponseDto> result = albumService.searchAlbums("query", null, pageable);
+        assertEquals(1, result.getTotalElements());
+    }
 }

@@ -270,4 +270,60 @@ class PlaylistServiceTest {
         assertEquals(RequestStatus.REJECTED, request.getStatus());
         verify(playlistRepository, never()).save(any());
     }
+
+    @Test
+    void getMyPlaylists_ReturnsList() {
+        UUID userId = UUID.randomUUID();
+        when(playlistRepository.findAllByOwnerId(userId)).thenReturn(java.util.List.of(new Playlist()));
+        
+        java.util.List<PlaylistResponseDto> result = playlistService.getMyPlaylists(userId);
+        
+        assertEquals(1, result.size());
+        verify(playlistRepository).findAllByOwnerId(userId);
+    }
+
+    @Test
+    void getUserPublicPlaylists_ReturnsList() {
+        UUID userId = UUID.randomUUID();
+        when(playlistRepository.findAllByOwnerIdAndIsPublicTrue(userId)).thenReturn(java.util.List.of(new Playlist()));
+        
+        java.util.List<PlaylistResponseDto> result = playlistService.getUserPublicPlaylists(userId);
+        
+        assertEquals(1, result.size());
+        verify(playlistRepository).findAllByOwnerIdAndIsPublicTrue(userId);
+    }
+
+    @Test
+    void removeTrackFromPlaylist_UserIsOwner_RemovesTrack() {
+        UUID ownerId = UUID.randomUUID();
+        UUID playlistId = UUID.randomUUID();
+        UUID trackId = UUID.randomUUID();
+        
+        Track track = Track.builder().id(trackId).build();
+        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).tracks(new ArrayList<>(java.util.List.of(track))).build();
+
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+        when(playlistRepository.save(any(Playlist.class))).thenReturn(playlist);
+        when(playlistMappingService.map(playlist)).thenReturn(new PlaylistResponseDto(playlistId, null, null, ownerId, false, null, null, 0, null, null, null));
+
+        PlaylistResponseDto response = playlistService.removeTrackFromPlaylist(ownerId, playlistId, trackId);
+
+        assertNotNull(response);
+        assertFalse(playlist.getTracks().contains(track));
+        verify(playlistRepository).save(playlist);
+    }
+
+    @Test
+    void removeTrackFromPlaylist_UserIsNotOwner_ThrowsException() {
+        UUID ownerId = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+        UUID playlistId = UUID.randomUUID();
+        
+        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).build();
+
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+
+        assertThrows(UserNotAuthorizedException.class, () -> playlistService.removeTrackFromPlaylist(otherId, playlistId, UUID.randomUUID()));
+    }
 }

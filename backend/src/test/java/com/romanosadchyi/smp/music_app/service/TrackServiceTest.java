@@ -174,4 +174,42 @@ class TrackServiceTest {
 
         assertEquals("New Arrivals", res.genreName());
     }
+
+    @Test
+    void getAllTracks_ReturnsPage() {
+        PageImpl<Track> page = new PageImpl<>(List.of(new Track()));
+        when(trackRepository.findAll(any(Pageable.class))).thenReturn(page);
+        
+        trackService.getAllTracks(0, 10);
+        verify(trackRepository).findAll(any(Pageable.class));
+    }
+
+    @Test
+    void searchTracks_WithAuthorId_ReturnsPage() {
+        UUID authorId = UUID.randomUUID();
+        PageImpl<Track> page = new PageImpl<>(List.of(new Track()));
+        when(trackRepository.findAllByAuthorIdAndTitleContainingIgnoreCase(eq(authorId), eq("query"), any(Pageable.class))).thenReturn(page);
+        
+        trackService.searchTracks("query", authorId, 0, 10);
+        verify(trackRepository).findAllByAuthorIdAndTitleContainingIgnoreCase(eq(authorId), eq("query"), any(Pageable.class));
+    }
+
+    @Test
+    void searchTracks_WithoutAuthorId_ReturnsPage() {
+        PageImpl<Track> page = new PageImpl<>(List.of(new Track()));
+        when(trackRepository.findAllByTitleContainingIgnoreCase(eq("query"), any(Pageable.class))).thenReturn(page);
+        
+        trackService.searchTracks("query", null, 0, 10);
+        verify(trackRepository).findAllByTitleContainingIgnoreCase(eq("query"), any(Pageable.class));
+    }
+
+    @Test
+    void getTracksByGenre_ReturnsPage() {
+        UUID genreId = UUID.randomUUID();
+        PageImpl<Track> page = new PageImpl<>(List.of(new Track()));
+        when(trackRepository.findByGenresId(eq(genreId), any(Pageable.class))).thenReturn(page);
+        
+        trackService.getTracksByGenre(genreId, 0, 10);
+        verify(trackRepository).findByGenresId(eq(genreId), any(Pageable.class));
+    }
 }

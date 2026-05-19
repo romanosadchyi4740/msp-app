@@ -88,4 +88,15 @@ class AuthServiceTest {
 
         assertThrows(ResponseStatusException.class, () -> authService.login(dto));
     }
+
+    @Test
+    void login_GoogleUserWithNoPassword_ThrowsException() {
+        LoginRequestDto dto = new LoginRequestDto("google@test.com", "pass123");
+        User user = User.builder().id(UUID.randomUUID()).email("google@test.com").password(null).role(UserRole.ROLE_USER).build();
+        
+        when(userRepository.findByEmail("google@test.com")).thenReturn(Optional.of(user));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> authService.login(dto));
+        assertEquals("400 BAD_REQUEST \"Please login via Google\"", ex.getMessage());
+    }
 }
