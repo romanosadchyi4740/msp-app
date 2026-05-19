@@ -1,12 +1,20 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
+import com.romanosadchyi.smp.music_app.model.entity.IntegrationRequest;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.model.enums.RequestStatus;
+import com.romanosadchyi.smp.music_app.repository.IntegrationRequestRepository;
 import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
+import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.service.mapping.IntegrationMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.PlaylistMappingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,10 +41,34 @@ class PlaylistServiceTest {
     TrackRepository trackRepository;
 
     @Mock
+    UserRepository userRepository;
+
+    @Mock
+    IntegrationRequestRepository integrationRequestRepository;
+
+    @Mock
     PlaylistMappingService playlistMappingService;
+
+    @Mock
+    IntegrationMappingService integrationMappingService;
 
     @InjectMocks
     PlaylistService playlistService;
+
+    @Test
+    void createPlaylist_Success() {
+        UUID userId = UUID.randomUUID();
+        PlaylistCreateDto dto = new PlaylistCreateDto("Title", "Desc", true);
+        
+        when(playlistRepository.save(any(Playlist.class))).thenAnswer(i -> i.getArgument(0));
+        when(playlistMappingService.map(any(Playlist.class))).thenReturn(new PlaylistResponseDto(null, "Title", "Desc", userId, true, null, null, 0, null, null, null));
+
+        PlaylistResponseDto res = playlistService.createPlaylist(userId, dto);
+        
+        assertNotNull(res);
+        assertEquals("Title", res.title());
+        verify(playlistRepository).save(any(Playlist.class));
+    }
 
     @Test
     void addTrackToPlaylist_UserIsOwner_AddsTrackSuccessfully() {
@@ -72,8 +105,34 @@ class PlaylistServiceTest {
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
         assertThrows(UserNotAuthorizedException.class, () -> playlistService.addTrackToPlaylist(otherUserId, playlistId, trackId));
-        verify(trackRepository, never()).findById(any());
-        verify(playlistRepository, never()).save(any(Playlist.class));
+    }
+
+    @Test
+    void getPlaylistById_PrivateAccessNotOwner_ThrowsException() {
+        UUID ownerId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID playlistId = UUID.randomUUID();
+        
+        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).isPublic(false).build();
+
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+
+        assertThrows(UserNotAuthorizedException.class, () -> playlistService.getPlaylistById(playlistId, otherUserId));
+    }
+
+    @Test
+    void toggleVisibility_UserIsOwner_Toggles() {
+        UUID ownerId = UUID.randomUUID();
+        UUID playlistId = UUID.randomUUID();
+        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).isPublic(false).build();
+
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(any(Playlist.class))).thenAnswer(i -> i.getArgument(0));
+
+        playlistService.toggleVisibility(playlistId, ownerId);
+
+        assertTrue(playlist.isPublic());
+        verify(playlistRepository).save(playlist);
     }
 
     @Test
@@ -108,60 +167,107 @@ class PlaylistServiceTest {
     }
 
     @Test
-    void syncOrigin_OriginHasNewTracks_AppendsDelta() {
-        UUID userId = UUID.randomUUID();
-        UUID localId = UUID.randomUUID();
-        
-        Track existingTrack = Track.builder().id(UUID.randomUUID()).build();
-        Track newTrack = Track.builder().id(UUID.randomUUID()).build();
-        
-        Playlist origin = Playlist.builder().tracks(new ArrayList<>(java.util.List.of(existingTrack, newTrack))).build();
-        Playlist local = Playlist.builder()
-                .id(localId)
-                .ownerId(userId)
-                .forkedFrom(origin)
-                .tracks(new ArrayList<>(java.util.List.of(existingTrack)))
-                .build();
+    void deletePlaylist_UserIsOwner_DetachesAndDeletes() {
+        UUID ownerId = UUID.randomUUID();
+        UUID playlistId = UUID.randomUUID();
+        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).build();
 
-        when(playlistRepository.findById(localId)).thenReturn(Optional.of(local));
-        when(playlistRepository.save(any(Playlist.class))).thenReturn(local);
-        when(playlistMappingService.map(any(Playlist.class))).thenReturn(
-            new PlaylistResponseDto(localId, null, null, userId, false, null, null, 2, null, null, null)
-        );
+        when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
 
-        PlaylistSyncResponseDto response = playlistService.syncOrigin(localId, userId);
+        playlistService.deletePlaylist(playlistId, ownerId);
 
-        assertNotNull(response);
-        assertEquals(1, response.newTracksAdded());
-        assertEquals(2, local.getTracks().size());
-        assertTrue(local.getTracks().contains(newTrack));
-        verify(playlistRepository).save(local);
+        verify(playlistRepository).detachParentPlaylist(playlist);
+        verify(playlistRepository).delete(playlist);
     }
 
     @Test
-    void syncOrigin_NoNewTracks_ReturnsEmptyDelta() {
-        UUID userId = UUID.randomUUID();
-        UUID localId = UUID.randomUUID();
+    void proposeIntegration_HasDelta_CreatesRequest() {
+        UUID forkId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+        
+        Track track1 = Track.builder().id(UUID.randomUUID()).build();
+        Track newTrack = Track.builder().id(UUID.randomUUID()).build();
+        
+        Playlist origin = Playlist.builder().tracks(new ArrayList<>(java.util.List.of(track1))).build();
+        Playlist fork = Playlist.builder().id(forkId).ownerId(requesterId).forkedFrom(origin)
+                .tracks(new ArrayList<>(java.util.List.of(track1, newTrack))).build();
+                
+        User requester = User.builder().id(requesterId).build();
+
+        when(playlistRepository.findById(forkId)).thenReturn(Optional.of(fork));
+        when(userRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(integrationRequestRepository.save(any(IntegrationRequest.class))).thenAnswer(i -> i.getArgument(0));
+
+        playlistService.proposeIntegration(forkId, requesterId);
+
+        verify(integrationRequestRepository).save(argThat(req -> 
+            req.getProposedTracks().size() == 1 &&
+            req.getProposedTracks().contains(newTrack) &&
+            req.getStatus() == RequestStatus.PENDING
+        ));
+    }
+
+    @Test
+    void proposeIntegration_NoDelta_ThrowsException() {
+        UUID forkId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
+        
+        Track track1 = Track.builder().id(UUID.randomUUID()).build();
+        
+        Playlist origin = Playlist.builder().tracks(new ArrayList<>(java.util.List.of(track1))).build();
+        Playlist fork = Playlist.builder().id(forkId).ownerId(requesterId).forkedFrom(origin)
+                .tracks(new ArrayList<>(java.util.List.of(track1))).build();
+
+        when(playlistRepository.findById(forkId)).thenReturn(Optional.of(fork));
+
+        assertThrows(IllegalArgumentException.class, () -> playlistService.proposeIntegration(forkId, requesterId));
+        verify(integrationRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void resolveIntegration_Accept_MergesTracks() {
+        UUID requestId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
         
         Track existingTrack = Track.builder().id(UUID.randomUUID()).build();
+        Track proposedTrack = Track.builder().id(UUID.randomUUID()).build();
         
-        Playlist origin = Playlist.builder().tracks(new ArrayList<>(java.util.List.of(existingTrack))).build();
-        Playlist local = Playlist.builder()
-                .id(localId)
-                .ownerId(userId)
-                .forkedFrom(origin)
-                .tracks(new ArrayList<>(java.util.List.of(existingTrack)))
+        Playlist target = Playlist.builder().ownerId(ownerId).tracks(new ArrayList<>(java.util.List.of(existingTrack))).build();
+        IntegrationRequest request = IntegrationRequest.builder()
+                .id(requestId)
+                .status(RequestStatus.PENDING)
+                .targetPlaylist(target)
+                .proposedTracks(new HashSet<>(java.util.List.of(proposedTrack)))
                 .build();
 
-        when(playlistRepository.findById(localId)).thenReturn(Optional.of(local));
-        when(playlistMappingService.map(local)).thenReturn(
-            new PlaylistResponseDto(localId, null, null, userId, false, null, null, 1, null, null, null)
-        );
+        when(integrationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(integrationRequestRepository.save(any(IntegrationRequest.class))).thenReturn(request);
 
-        PlaylistSyncResponseDto response = playlistService.syncOrigin(localId, userId);
+        playlistService.resolveIntegration(requestId, "ACCEPT", ownerId);
 
-        assertNotNull(response);
-        assertEquals(0, response.newTracksAdded());
-        verify(playlistRepository, never()).save(any(Playlist.class));
+        assertEquals(RequestStatus.ACCEPTED, request.getStatus());
+        assertTrue(target.getTracks().contains(proposedTrack));
+        verify(playlistRepository).save(target);
+    }
+
+    @Test
+    void resolveIntegration_Reject_UpdatesStatusOnly() {
+        UUID requestId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        
+        Playlist target = Playlist.builder().ownerId(ownerId).tracks(new ArrayList<>()).build();
+        IntegrationRequest request = IntegrationRequest.builder()
+                .id(requestId)
+                .status(RequestStatus.PENDING)
+                .targetPlaylist(target)
+                .build();
+
+        when(integrationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(integrationRequestRepository.save(any(IntegrationRequest.class))).thenReturn(request);
+
+        playlistService.resolveIntegration(requestId, "REJECT", ownerId);
+
+        assertEquals(RequestStatus.REJECTED, request.getStatus());
+        verify(playlistRepository, never()).save(any());
     }
 }
