@@ -39,7 +39,7 @@ encryption:
 
 google:
   client:
-    id: 125635909882-acg0l3mbe76auvijfdru8oc1dbdbetjq.apps.googleusercontent.com
+    id: ${GOOGLE_CLIENT_ID:125635909882-acg0l3mbe76auvijfdru8oc1dbdbetjq.apps.googleusercontent.com}
 
 data-seeder:
   enabled: true
