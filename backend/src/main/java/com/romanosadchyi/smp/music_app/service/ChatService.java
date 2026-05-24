@@ -243,4 +243,67 @@ public class ChatService {
                 });
     }
 
+    @Transactional(readOnly = true)
+    public List<com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto> getChatMembers(UUID chatId, UUID requesterId) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
+
+        chat.getMemberships().stream()
+                .filter(m -> m.getUser().getId().equals(requesterId))
+                .findFirst()
+                .orElseThrow(() -> new com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException("Requester is not a member of this chat"));
+
+        return chat.getMemberships().stream()
+                .map(m -> com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto.builder()
+                        .userId(m.getUser().getId())
+                        .displayName(m.getUser().getDisplayName())
+                        .avatarUrl(m.getUser().getAvatarUrl())
+                        .status(m.getStatus())
+                        .isAdmin(m.isAdmin())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void inviteMembers(UUID chatId, UUID requesterId, List<UUID> userIdsToInvite) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
+
+        if (!chat.getIsGroup()) {
+            throw new IllegalArgumentException("Cannot invite members to a 1-on-1 chat");
+        }
+
+        ChatMembership requesterMembership = chat.getMemberships().stream()
+                .filter(m -> m.getUser().getId().equals(requesterId))
+                .findFirst()
+                .orElseThrow(() -> new com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException("Requester is not a member of this chat"));
+
+        if (requesterMembership.getStatus() != com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED) {
+            throw new com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException("Requester is not an active member of this cluster");
+        }
+
+        List<UUID> existingMemberIds = chat.getMemberships().stream()
+                .map(m -> m.getUser().getId())
+                .toList();
+
+        List<ChatMembership> newMemberships = userIdsToInvite.stream()
+                .filter(id -> !existingMemberIds.contains(id))
+                .map(id -> {
+                    User user = userRepository.findById(id)
+                            .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+                    return ChatMembership.builder()
+                            .chat(chat)
+                            .user(user)
+                            .status(com.romanosadchyi.smp.music_app.model.enums.ChatStatus.PENDING)
+                            .isAdmin(false)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        if (!newMemberships.isEmpty()) {
+            chat.getMemberships().addAll(newMemberships);
+            chatMembershipRepository.saveAll(newMemberships);
+        }
+    }
+
 }

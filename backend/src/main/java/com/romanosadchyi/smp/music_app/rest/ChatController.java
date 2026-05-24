@@ -72,4 +72,21 @@ public class ChatController {
         log.info("User {} declining membership for chat {}", userId, chatId);
         chatService.rejectChat(chatId, userId);
     }
+
+    @GetMapping("/{chatId}/members")
+    public List<com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto> getChatMembers(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID chatId) {
+        log.info("Getting members for chat {}", chatId);
+        return chatService.getChatMembers(chatId, user.getId());
+    }
+
+    @PostMapping("/{chatId}/members")
+    public void inviteMembers(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID chatId,
+            @RequestBody List<UUID> userIds) {
+        log.info("User {} inviting {} members to chat {}", user.getId(), userIds.size(), chatId);
+        chatService.inviteMembers(chatId, user.getId(), userIds);
+    }
 }

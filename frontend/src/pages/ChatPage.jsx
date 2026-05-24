@@ -5,18 +5,20 @@ import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
 import NewChatModal from '../components/chat/NewChatModal';
 import ChatAudioPlayer from '../components/chat/ChatAudioPlayer';
+import ClusterDetailsModal from '../components/modals/ClusterDetailsModal';
 import axiosClient from '../api/axiosClient';
 
 const ChatPage = () => {
   const { user: currentUser } = useAuthStore();
   const { 
     chats, activeChat, messages, loading, messagesLoading, activeAttachment,
-    fetchChats, setActiveChat, sendMessage, initSocket, closeSocket, startChatWithUser, createCluster, clearAttachment
+    fetchChats, setActiveChat, sendMessage, startChatWithUser, createCluster, clearAttachment
   } = useChatStore();
   const { playTrack, initiateBroadcast, joinBroadcast, broadcastStatus, activeBroadcastId } = usePlayerStore();
   const [messageText, setMessageText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [isClusterDetailsOpen, setIsClusterDetailsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -218,15 +220,35 @@ const ChatPage = () => {
                 <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-white">
                   {activeChat.isGroup ? <Network size={16} /> : getOtherParticipant(activeChat)?.displayName?.charAt(0)}
                 </div>
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-white leading-tight">
-                    {activeChat.isGroup ? activeChat.name : getOtherParticipant(activeChat)?.displayName}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                    <span className="text-[9px] text-muted font-black uppercase tracking-widest">Active State</span>
+                {activeChat.isGroup ? (
+                  <button 
+                    onClick={() => setIsClusterDetailsOpen(true)}
+                    className="text-left group flex flex-col items-start hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-white leading-tight">
+                        {activeChat.name}
+                      </h3>
+                      <span className="text-[8px] border border-white/20 bg-white/5 px-1 font-black uppercase tracking-widest text-muted group-hover:text-white transition-colors">
+                        Info
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      <span className="text-[9px] text-muted font-black uppercase tracking-widest">Active State</span>
+                    </div>
+                  </button>
+                ) : (
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-white leading-tight">
+                      {getOtherParticipant(activeChat)?.displayName}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      <span className="text-[9px] text-muted font-black uppercase tracking-widest">Active State</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               
               {activeChat.isGroup && (
@@ -450,6 +472,14 @@ const ChatPage = () => {
             setIsNewChatModalOpen(false);
             await createCluster(name, users);
           }}
+        />
+      )}
+
+      {isClusterDetailsOpen && activeChat?.isGroup && (
+        <ClusterDetailsModal
+          chatId={activeChat.id}
+          clusterName={activeChat.name}
+          onClose={() => setIsClusterDetailsOpen(false)}
         />
       )}
     </div>
