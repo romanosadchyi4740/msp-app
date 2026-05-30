@@ -1,6 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Compass, Heart, Library, MessageCircle, LogOut, Music, User, Upload, Star, Loader2 } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
+import {
+  Layers,
+  Loader2,
+  LogOut,
+  Music,
+  Radar,
+  RadioReceiver,
+  Satellite,
+  Search,
+  Settings,
+  Star,
+  Terminal
+} from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useLikeStore from '../store/likeStore';
 import useFollowStore from '../store/followStore';
@@ -54,17 +66,17 @@ const MainLayout = () => {
   };
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Search, label: 'Search', path: '/search' },
-    { icon: Compass, label: 'Explore', path: '/explore' },
-    { icon: Library, label: 'Playlists', path: '/playlists' },
-    { icon: Heart, label: 'Liked Tracks', path: '/collection/tracks' },
-    { icon: MessageCircle, label: 'Chat', path: '/chat' },
-    { icon: User, label: 'Settings', path: '/settings' },
+    { icon: Terminal, label: 'Mainframe', path: '/' },
+    { icon: Search, label: 'Global Query', path: '/search' },
+    { icon: Radar, label: 'Network Radar', path: '/explore' },
+    { icon: Layers, label: 'Collections', path: '/playlists' },
+    { icon: Star, label: 'Saved Transmissions', path: '/collection/tracks' },
+    { icon: RadioReceiver, label: 'Comms Link', path: '/chat' },
+    { icon: Settings, label: 'Config', path: '/settings' },
   ];
 
   if (user?.role === 'ROLE_ARTIST') {
-    navItems.push({ icon: Upload, label: 'Upload', path: '/upload' });
+    navItems.push({ icon: Satellite, label: 'Data Uplink', path: '/upload' });
   }
 
   return (

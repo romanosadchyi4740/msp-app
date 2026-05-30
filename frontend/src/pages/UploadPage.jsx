@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Plus, Music, Disc, Loader2, CheckCircle2 } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Loader2, Music} from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosClient from '../api/axiosClient';
 
@@ -81,7 +81,7 @@ const UploadPage = () => {
         description: albumDesc,
         coverUrl: albumCoverUrl
       });
-      setMessage({ type: 'success', text: 'Album created successfully!' });
+      setMessage({ type: 'success', text: 'Archive created successfully!' });
       setAlbumTitle('');
       setAlbumDesc('');
       setAlbumCoverUrl('');
@@ -89,7 +89,7 @@ const UploadPage = () => {
       const response = await axiosClient.get('/api/albums/my');
       setMyAlbums(response.data);
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to create album.' });
+      setMessage({ type: 'error', text: 'Failed to create archive.' });
     } finally {
       setCreatingAlbum(false);
     }
@@ -162,7 +162,7 @@ const UploadPage = () => {
         {/* Create Album Form */}
         <section className="bg-surface p-10 border border-border space-y-10">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-black uppercase tracking-tighter">New Collection</h2>
+            <h2 className="text-xl font-black uppercase tracking-tighter">New Archive</h2>
           </div>
 
           <form onSubmit={handleCreateAlbum} className="space-y-8">
@@ -211,7 +211,7 @@ const UploadPage = () => {
 
           <form onSubmit={handleUploadTrack} className="space-y-8">
             <div className="space-y-3">
-              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Target Collection</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-muted">Target Archive</label>
               <select 
                 required
                 value={selectedAlbumId}

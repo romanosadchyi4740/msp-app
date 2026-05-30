@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Loader2, User as UserIcon, AlertTriangle } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {AlertTriangle, ArrowLeft, Loader2, Save, User as UserIcon} from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import axiosClient from '../api/axiosClient';
 import TerminateIdentityModal from '../components/modals/TerminateIdentityModal';
@@ -77,7 +77,7 @@ const SettingsPage = () => {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-4xl font-black uppercase tracking-tighter">Settings</h1>
+          <h1 className="text-4xl font-black uppercase tracking-tighter">Config</h1>
         </div>
       </header>
 

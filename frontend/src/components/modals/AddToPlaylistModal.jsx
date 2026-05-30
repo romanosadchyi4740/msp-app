@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Loader2, Music, Plus } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Loader2, Music, Plus, X} from 'lucide-react';
 import usePlaylistStore from '../../store/playlistStore';
 
 const AddToPlaylistModal = () => {
@@ -70,7 +70,7 @@ const AddToPlaylistModal = () => {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           <div>
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-3">Your Playlists</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-3">Your Collections</h3>
             {myPlaylists.length === 0 ? (
               <p className="text-xs text-muted">No playlists found.</p>
             ) : (
@@ -105,7 +105,7 @@ const AddToPlaylistModal = () => {
                <input 
                  value={newTitle}
                  onChange={e => setNewTitle(e.target.value)}
-                 placeholder="PLAYLIST TITLE"
+                 placeholder="COLLECTION TITLE"
                  className="flex-1 bg-background border border-border px-4 py-2 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-white transition-colors"
                />
                <button 

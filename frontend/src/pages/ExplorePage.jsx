@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Compass, Loader2 } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Compass, Loader2} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 
 const GenreCard = ({ genre }) => {
@@ -60,7 +60,7 @@ const ExplorePage = () => {
       <header className="border-b border-border pb-12">
         <div className="flex items-center gap-4 mb-6">
           <Compass size={48} className="text-white" />
-          <h1 className="text-6xl font-black tracking-tighter uppercase">Explore</h1>
+          <h1 className="text-6xl font-black tracking-tighter uppercase">Network Radar</h1>
         </div>
         <p className="text-muted text-xs font-bold uppercase tracking-[0.2em]">Navigate sonic territories</p>
       </header>

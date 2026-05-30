@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Music, Heart } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Heart, Loader2, Music} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import usePlayerStore from '../store/playerStore';
 
@@ -64,10 +64,10 @@ const LikedTracksPage = () => {
             </div>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate">Liked Tracks</h1>
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate">Liked Transmissions</h1>
           
           <p className="text-xs text-muted font-bold uppercase tracking-widest">
-            Your personal archive of favorited transmissions.
+            Your personal collection of favorite transmissions.
           </p>
 
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted">

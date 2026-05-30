@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Music, Loader2, Disc, PlayCircle } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Music} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import TrackCard from '../components/TrackCard';
 import AlbumCard from '../components/AlbumCard';
@@ -108,7 +108,7 @@ const HomePage = () => {
       {/* Featured Albums Section */}
       <section>
         <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
-          <h3 className="text-xs font-black uppercase tracking-[0.4em]">Featured Collections</h3>
+          <h3 className="text-xs font-black uppercase tracking-[0.4em]">Featured Archives</h3>
           <span className="text-[10px] font-medium text-muted tabular-nums">01 — 06</span>
         </div>
 

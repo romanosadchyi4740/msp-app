@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Library, Loader2, Music, Plus } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Library, Loader2, Music, Plus} from 'lucide-react';
 import usePlaylistStore from '../store/playlistStore';
 
 const PlaylistsPage = () => {
@@ -49,7 +49,7 @@ const PlaylistsPage = () => {
             <span className="px-2 py-0.5 bg-white text-black text-[9px] font-black uppercase tracking-widest">Library</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate">Your Playlists</h1>
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate">Your Collections</h1>
           
           <p className="text-xs text-muted font-bold uppercase tracking-widest">
             Curated collections of audio transmissions.
@@ -112,7 +112,7 @@ const PlaylistsPage = () => {
                 required
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
-                placeholder="PLAYLIST TITLE"
+                placeholder="COLLECTION TITLE"
                 className="w-full bg-background border border-border px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-white transition-colors"
               />
             </div>

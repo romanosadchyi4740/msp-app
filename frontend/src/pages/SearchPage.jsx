@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Music, Disc, Loader2, X, User as UserIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {Music, Search, User as UserIcon, X} from 'lucide-react';
+import {useNavigate} from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import TrackCard from '../components/TrackCard';
 import AlbumCard from '../components/AlbumCard';
@@ -45,7 +45,7 @@ const SearchPage = () => {
   return (
     <div className="space-y-16 pb-32">
       <header className="border-b border-border pb-12">
-        <h1 className="text-6xl font-black mb-10 tracking-tighter uppercase">Discovery</h1>
+        <h1 className="text-6xl font-black mb-10 tracking-tighter uppercase">Global Query</h1>
         <div className="relative max-w-3xl">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted" size={24} />
           <input 
@@ -125,7 +125,7 @@ const SearchPage = () => {
           {/* Albums Results */}
           <section>
             <div className="flex items-baseline justify-between mb-12 border-b border-border pb-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.4em]">Collections Found</h3>
+              <h3 className="text-xs font-black uppercase tracking-[0.4em]">Archives Found</h3>
               <span className="text-[10px] font-medium text-muted tabular-nums">{results.albums.length.toString().padStart(2, '0')}</span>
             </div>
             {results.albums.length === 0 ? (

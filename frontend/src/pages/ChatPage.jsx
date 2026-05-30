@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Send, MessageCircle, Search, Music, Loader2, Plus, X, Play, Paperclip, Users, Network, Radio } from 'lucide-react';
+import React, {useEffect, useRef, useState} from 'react';
+import {Loader2, Music, Network, Paperclip, Play, Plus, Radio, Search, X} from 'lucide-react';
 import useChatStore from '../store/chatStore';
 import useAuthStore from '../store/authStore';
 import usePlayerStore from '../store/playerStore';
@@ -155,7 +155,7 @@ const ChatPage = () => {
       <div className="w-80 border-r border-border flex flex-col bg-background/50">
         <div className="p-8 border-b border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-sm font-black uppercase tracking-[0.3em]">Archive</h2>
+            <h2 className="text-sm font-black uppercase tracking-[0.3em]">Comms Link</h2>
             <button 
               onClick={() => setIsNewChatModalOpen(true)}
               className="p-2 border border-border hover:border-white transition-colors text-muted hover:text-white"
