@@ -48,7 +48,7 @@ const AddToPlaylistModal = () => {
       
       <div className="relative w-full max-w-md bg-surface border border-border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
         <div className="p-6 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Add to Playlist</h2>
+          <h2 className="text-sm font-black uppercase tracking-widest text-white">Add to Collection</h2>
           <button onClick={closePlaylistModal} className="text-muted hover:text-white transition-colors">
             <X size={18} />
           </button>
