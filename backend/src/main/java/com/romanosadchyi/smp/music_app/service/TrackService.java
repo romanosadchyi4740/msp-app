@@ -181,7 +181,7 @@ public class TrackService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<TrackResponseDto> getLikedTracks(UUID userId) {
+    public List<TrackResponseDto> getLikedTracks(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 

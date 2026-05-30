@@ -19,7 +19,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
+import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 
 @Service
 @RequiredArgsConstructor
@@ -31,16 +35,16 @@ public class UserService {
     AlbumRepository albumRepository;
     PlaylistRepository playlistRepository;
     UserMappingService userMappingService;
-    com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService trackMappingService;
+    TrackMappingService trackMappingService;
 
     @Transactional(readOnly = true)
-    public java.util.List<com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto> getUserTracks(UUID id) {
+    public List<TrackResponseDto> getUserTracks(UUID id) {
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User not found with id: " + id);
         }
         return trackRepository.findAllByAuthorId(id).stream()
                 .map(trackMappingService::map)
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -110,7 +114,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<UserResponseDto> getFollowing(UUID userId) {
+    public List<UserResponseDto> getFollowing(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return user.getFollowing().stream()

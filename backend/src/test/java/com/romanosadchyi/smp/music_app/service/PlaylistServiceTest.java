@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -276,7 +277,7 @@ class PlaylistServiceTest {
         UUID userId = UUID.randomUUID();
         when(playlistRepository.findAllByOwnerId(userId)).thenReturn(java.util.List.of(new Playlist()));
         
-        java.util.List<PlaylistResponseDto> result = playlistService.getMyPlaylists(userId);
+        List<PlaylistResponseDto> result = playlistService.getMyPlaylists(userId);
         
         assertEquals(1, result.size());
         verify(playlistRepository).findAllByOwnerId(userId);
@@ -287,7 +288,7 @@ class PlaylistServiceTest {
         UUID userId = UUID.randomUUID();
         when(playlistRepository.findAllByOwnerIdAndIsPublicTrue(userId)).thenReturn(java.util.List.of(new Playlist()));
         
-        java.util.List<PlaylistResponseDto> result = playlistService.getUserPublicPlaylists(userId);
+        List<PlaylistResponseDto> result = playlistService.getUserPublicPlaylists(userId);
         
         assertEquals(1, result.size());
         verify(playlistRepository).findAllByOwnerIdAndIsPublicTrue(userId);

@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.UserUpdateDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.UserService;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j

@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -234,7 +235,7 @@ class ChatServiceTest {
             new ChatResponseDto(UUID.randomUUID(), false, null, null, null, null, "ACCEPTED")
         );
 
-        java.util.List<ChatResponseDto> result = chatService.getUserChats(userId);
+        List<ChatResponseDto> result = chatService.getUserChats(userId);
         assertEquals(1, result.size());
     }
 }

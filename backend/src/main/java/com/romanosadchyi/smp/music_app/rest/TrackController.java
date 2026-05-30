@@ -17,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -85,7 +86,7 @@ public class TrackController {
     }
 
     @GetMapping("/liked")
-    public ResponseEntity<java.util.List<TrackResponseDto>> getLikedTracks(@AuthenticationPrincipal User user) {
+    public ResponseEntity<List<TrackResponseDto>> getLikedTracks(@AuthenticationPrincipal User user) {
         log.info("Getting liked tracks for user {}", user.getId());
         return ResponseEntity.ok(trackService.getLikedTracks(user.getId()));
     }

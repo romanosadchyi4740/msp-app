@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -161,7 +162,7 @@ class AlbumServiceTest {
         when(albumRepository.findAllByAuthorId(authorId)).thenReturn(java.util.List.of(album));
         when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
 
-        java.util.List<AlbumResponseDto> result = albumService.getAlbumsByAuthor(authorId);
+        List<AlbumResponseDto> result = albumService.getAlbumsByAuthor(authorId);
         assertEquals(1, result.size());
     }
 
