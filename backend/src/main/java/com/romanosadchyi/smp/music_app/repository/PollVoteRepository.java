@@ -12,4 +12,7 @@ public interface PollVoteRepository extends JpaRepository<PollVote, UUID> {
     
     @Query("SELECT COUNT(v) FROM PollVote v WHERE v.option.poll.id = :pollId AND v.voter.id = :voterId")
     long countByPollIdAndVoterId(@Param("pollId") UUID pollId, @Param("voterId") UUID voterId);
+
+    @Query("SELECT v FROM PollVote v WHERE v.option.poll.id = :pollId AND v.voter.id = :voterId")
+    Optional<PollVote> findByPollIdAndVoterId(@Param("pollId") UUID pollId, @Param("voterId") UUID voterId);
 }

@@ -8,7 +8,7 @@ const ConsensusModule = ({ poll, onVoteSuccess }) => {
   const totalVotes = poll.options.reduce((sum, opt) => sum + opt.voteCount, 0);
 
   const handleVote = async (optionId) => {
-    if (poll.hasVoted || voting) return;
+    if (voting) return;
     setVoting(true);
     try {
       await axiosClient.post(`/api/telemetry/polls/options/${optionId}/vote`);
@@ -38,19 +38,24 @@ const ConsensusModule = ({ poll, onVoteSuccess }) => {
 
           if (poll.hasVoted) {
             return (
-              <div key={option.id} className="relative">
+              <button 
+                key={option.id} 
+                onClick={() => handleVote(option.id)}
+                disabled={voting}
+                className="relative w-full text-left cursor-pointer group disabled:opacity-50"
+              >
                 <div 
-                  className={`absolute inset-0 opacity-20 transition-all duration-1000 ${isSelected ? 'bg-accent' : 'bg-white'}`}
+                  className={`absolute inset-0 opacity-20 transition-all duration-1000 ${isSelected ? 'bg-accent' : 'bg-white group-hover:opacity-30'}`}
                   style={{ width: `${percentage}%` }}
                 />
-                <div className={`relative flex items-center justify-between p-4 border transition-colors ${isSelected ? 'border-accent text-accent' : 'border-border text-muted'}`}>
+                <div className={`relative flex items-center justify-between p-4 border transition-colors ${isSelected ? 'border-accent text-accent' : 'border-border text-muted group-hover:border-white group-hover:text-white'}`}>
                   <div className="flex items-center gap-3">
                     {isSelected && <CheckCircle2 size={14} />}
                     <span className="text-[10px] font-black uppercase tracking-widest">{option.optionText}</span>
                   </div>
                   <span className="text-[10px] font-black tracking-widest">{percentage}%</span>
                 </div>
-              </div>
+              </button>
             );
           }
 

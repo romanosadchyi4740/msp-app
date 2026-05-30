@@ -1,19 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { RadioTower, Music } from 'lucide-react';
+import { RadioTower, Music, Trash2, Loader2 } from 'lucide-react';
 import ConsensusModule from './ConsensusModule';
 import TrackCard from '../TrackCard';
+import useAuthStore from '../../store/authStore';
+import axiosClient from '../../api/axiosClient';
+import toast from 'react-hot-toast';
 
-const BroadcastCard = ({ broadcast, onVoteSuccess }) => {
+const BroadcastCard = ({ broadcast, onVoteSuccess, onDeleteSuccess }) => {
+  const { user } = useAuthStore();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const isAuthor = user?.userId === broadcast.author.id;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await axiosClient.delete(`/api/telemetry/broadcast/${broadcast.id}`);
+      toast.success('RECORD_PURGED: Signal removed from network.');
+      if (onDeleteSuccess) onDeleteSuccess(broadcast.id);
+    } catch (error) {
+      console.error('Failed to purge record:', error);
+      toast.error('PURGE_FAILED: Network error.');
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <article className="border-b border-border p-8 hover:bg-surface/30 transition-colors">
+    <article className="border-b border-border p-8 hover:bg-surface/30 transition-colors relative group">
+      {isAuthor && (
+        <button 
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="absolute top-8 right-8 text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+          title="Purge Record"
+        >
+          {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+        </button>
+      )}
+      
       <div className="flex items-start gap-4">
         {/* Author Avatar / Node ID */}
         <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center border border-border shrink-0">
           <span className="text-[10px] font-black text-white">{broadcast.author.displayName?.charAt(0) || 'U'}</span>
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">

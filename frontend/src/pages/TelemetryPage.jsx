@@ -241,6 +241,7 @@ const TelemetryPage = () => {
                 key={broadcast.id} 
                 broadcast={broadcast} 
                 onVoteSuccess={() => fetchFeed(0)} // Refresh to show results
+                onDeleteSuccess={(deletedId) => setBroadcasts(prev => prev.filter(b => b.id !== deletedId))}
               />
             ))}
             

@@ -79,26 +79,54 @@ public class TelemetryService {
     }
 
     @Transactional
-    public void voteOnOption(UUID optionId, UUID voterId) {
+    public ConsensusPollResponse voteOnOption(UUID optionId, UUID voterId) {
         User voter = userRepository.findById(voterId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        PollOption option = pollOptionRepository.findById(optionId)
+        PollOption selectedOption = pollOptionRepository.findById(optionId)
                 .orElseThrow(() -> new RuntimeException("Poll option not found"));
 
-        ConsensusPoll poll = option.getPoll();
-        
-        long existingVotes = pollVoteRepository.countByPollIdAndVoterId(poll.getId(), voterId);
-        if (existingVotes > 0) {
-            throw new RuntimeException("User has already voted in this consensus module.");
+        ConsensusPoll poll = selectedOption.getPoll();
+
+        Optional<PollVote> existingVoteOpt = pollVoteRepository.findByPollIdAndVoterId(poll.getId(), voterId);
+
+        if (existingVoteOpt.isPresent()) {
+            PollVote existingVote = existingVoteOpt.get();
+            if (existingVote.getOption().getId().equals(optionId)) {
+                // Vote exists for exactly this option -> Revoke vote
+                pollVoteRepository.delete(existingVote);
+                existingVote.getOption().getVotes().remove(existingVote); // Maintain bidir integrity locally if needed
+            } else {
+                // Vote exists for a different option -> Switch vote
+                existingVote.getOption().getVotes().remove(existingVote); // Remove from old option
+                existingVote.setOption(selectedOption);
+                selectedOption.getVotes().add(existingVote); // Add to new option
+                pollVoteRepository.save(existingVote);
+            }
+        } else {
+            // No vote exists -> Create new vote
+            PollVote vote = PollVote.builder()
+                    .option(selectedOption)
+                    .voter(voter)
+                    .build();
+            selectedOption.getVotes().add(vote);
+            pollVoteRepository.save(vote);
         }
 
-        PollVote vote = PollVote.builder()
-                .option(option)
-                .voter(voter)
-                .build();
+        // Return updated poll
+        return mapPollToResponse(poll, voterId);
+    }
 
-        pollVoteRepository.save(vote);
+    @Transactional
+    public void deleteBroadcast(UUID broadcastId, UUID currentUserId) {
+        StatusBroadcast broadcast = broadcastRepository.findById(broadcastId)
+                .orElseThrow(() -> new RuntimeException("Broadcast not found"));
+
+        if (!broadcast.getAuthor().getId().equals(currentUserId)) {
+            throw new RuntimeException("User is not authorized to delete this broadcast");
+        }
+
+        broadcastRepository.delete(broadcast);
     }
 
     private StatusBroadcastResponse mapToResponse(StatusBroadcast broadcast, UUID currentUserId) {

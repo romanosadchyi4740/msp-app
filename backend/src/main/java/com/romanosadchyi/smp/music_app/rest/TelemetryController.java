@@ -35,10 +35,17 @@ public class TelemetryController {
     }
 
     @PostMapping("/polls/options/{optionId}/vote")
-    public ResponseEntity<Void> voteOnOption(
+    public ResponseEntity<com.romanosadchyi.smp.music_app.model.dto.response.ConsensusPollResponse> voteOnOption(
             @PathVariable UUID optionId,
             @AuthenticationPrincipal User user) {
-        telemetryService.voteOnOption(optionId, user.getId());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(telemetryService.voteOnOption(optionId, user.getId()));
+    }
+
+    @DeleteMapping("/broadcast/{id}")
+    public ResponseEntity<Void> deleteBroadcast(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user) {
+        telemetryService.deleteBroadcast(id, user.getId());
+        return ResponseEntity.noContent().build();
     }
 }
