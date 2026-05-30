@@ -50,6 +50,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
+    @GetMapping("/{id}/tracks")
+    public ResponseEntity<java.util.List<com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto>> getUserTracks(@PathVariable UUID id) {
+        log.info("Getting tracks for user with ID: {}", id);
+        return ResponseEntity.ok(userService.getUserTracks(id));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<org.springframework.data.domain.Page<UserResponseDto>> searchUsers(
             @RequestParam("q") String query,

@@ -31,6 +31,17 @@ public class UserService {
     AlbumRepository albumRepository;
     PlaylistRepository playlistRepository;
     UserMappingService userMappingService;
+    com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService trackMappingService;
+
+    @Transactional(readOnly = true)
+    public java.util.List<com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto> getUserTracks(UUID id) {
+        if (!userRepository.existsById(id)) {
+            throw new UserNotFoundException("User not found with id: " + id);
+        }
+        return trackRepository.findAllByAuthorId(id).stream()
+                .map(trackMappingService::map)
+                .collect(java.util.stream.Collectors.toList());
+    }
 
     @Transactional(readOnly = true)
     public UserResponseDto getUserById(UUID id) {

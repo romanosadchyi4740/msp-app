@@ -14,6 +14,7 @@ import GenreDetailsPage from './pages/GenreDetailsPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import PlaylistPage from './pages/PlaylistPage';
 import LikedTracksPage from './pages/LikedTracksPage';
+import TelemetryPage from './pages/TelemetryPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -48,6 +49,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/telemetry" element={<TelemetryPage />} />
           <Route path="/genres/:id" element={<GenreDetailsPage />} />
           <Route path="/users/:userId" element={<UserProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />

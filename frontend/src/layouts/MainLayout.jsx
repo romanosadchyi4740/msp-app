@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {
+  Activity,
   Layers,
   Loader2,
   LogOut,
@@ -69,10 +70,11 @@ const MainLayout = () => {
     { icon: Terminal, label: 'Mainframe', path: '/' },
     { icon: Search, label: 'Global Query', path: '/search' },
     { icon: Radar, label: 'Network Radar', path: '/explore' },
+    { icon: Activity, label: 'Telemetry', path: '/telemetry' },
     { icon: Layers, label: 'Collections', path: '/playlists' },
     { icon: Star, label: 'Saved Transmissions', path: '/collection/tracks' },
     { icon: RadioReceiver, label: 'Comms Link', path: '/chat' },
-    { icon: Settings, label: 'Config', path: '/settings' },
+    { icon: Settings, label: 'System Config', path: '/settings' },
   ];
 
   if (user?.role === 'ROLE_ARTIST') {
