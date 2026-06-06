@@ -119,7 +119,7 @@ const AlbumDetailsPage = () => {
           <div className="inline-block px-3 py-1 border border-zinc-200 dark:border-zinc-800 text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">
             Archive Mode
           </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-zinc-900 dark:text-white uppercase leading-[0.85]">{album.title}</h1>
+          <h1 className="text-[clamp(2rem,5vw+1rem,4.5rem)] font-black tracking-tighter text-zinc-900 dark:text-white uppercase leading-[0.85] whitespace-normal break-words text-balance line-clamp-3">{album.title}</h1>
           
           <div className="space-y-4">
             <div className="flex items-center gap-4">

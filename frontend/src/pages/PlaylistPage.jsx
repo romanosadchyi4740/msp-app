@@ -318,7 +318,7 @@ const PlaylistPage = () => {
             )}
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate text-zinc-900 dark:text-white">{playlist.title}</h1>
+          <h1 className="text-[clamp(2rem,5vw+1rem,4.5rem)] font-black uppercase tracking-tighter text-zinc-900 dark:text-white whitespace-normal break-words text-balance line-clamp-3 leading-[0.85]">{playlist.title}</h1>
           
           {playlist.forkedFromId && (
             <div className="mt-1">
