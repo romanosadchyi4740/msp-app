@@ -114,34 +114,34 @@ const TelemetryPage = () => {
 
   return (
     <div className="max-w-3xl mx-auto pb-32">
-      <header className="mb-12 border-b border-border pb-8">
-        <h1 className="text-4xl font-black mb-4 tracking-tighter uppercase">Network Telemetry</h1>
-        <p className="text-muted text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-          <span className="w-2 h-2 bg-accent animate-pulse inline-block" />
+      <header className="mb-12 border-b border-zinc-200 dark:border-zinc-800 pb-8">
+        <h1 className="text-4xl font-black mb-4 tracking-tighter uppercase text-zinc-900 dark:text-white">Network Telemetry</h1>
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+          <span className="w-2 h-2 bg-zinc-900 dark:bg-white animate-pulse inline-block" />
           Decrypting incoming signals from followed nodes...
         </p>
       </header>
 
       {/* Broadcast Composer */}
       {user?.role === 'ROLE_ARTIST' && (
-        <section className="bg-surface border border-border p-6 mb-12">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted mb-4">Initialize Broadcast</h2>
+        <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 mb-12">
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-4">Initialize Broadcast</h2>
           
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="INPUT SIGNAL DATA..."
-            className="w-full bg-background border border-border p-4 text-sm font-medium focus:outline-none focus:border-white transition-colors resize-none h-24 mb-4"
+            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-4 text-sm font-medium focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 mb-4 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
           />
 
           {showPoll && (
-            <div className="border border-border p-4 bg-background mb-4 space-y-4">
+            <div className="border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50 dark:bg-zinc-950 mb-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-accent" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-zinc-900 dark:bg-white" />
                   Consensus Module
                 </h3>
-                <button onClick={() => setShowPoll(false)} className="text-muted hover:text-white transition-colors">
+                <button onClick={() => setShowPoll(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
                   <X size={14} />
                 </button>
               </div>
@@ -150,7 +150,7 @@ const TelemetryPage = () => {
                 value={pollQuestion}
                 onChange={(e) => setPollQuestion(e.target.value)}
                 placeholder="QUERY PARAMETERS..."
-                className="w-full bg-surface border border-border p-3 text-xs font-bold focus:outline-none focus:border-white transition-colors"
+                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-xs font-bold focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
 
               <div className="space-y-2">
@@ -160,12 +160,12 @@ const TelemetryPage = () => {
                       value={opt}
                       onChange={(e) => handlePollOptionChange(index, e.target.value)}
                       placeholder={`OPTION_0${index + 1}`}
-                      className="flex-1 bg-surface border border-border p-3 text-xs font-bold focus:outline-none focus:border-white transition-colors"
+                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-xs font-bold focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
                     />
                     {pollOptions.length > 2 && (
                       <button 
                         onClick={() => handleRemovePollOption(index)}
-                        className="w-10 flex items-center justify-center border border-border hover:border-red-500 hover:text-red-500 text-muted transition-colors"
+                        className="w-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 hover:border-red-500 hover:text-red-500 text-zinc-500 dark:text-zinc-400 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -177,7 +177,7 @@ const TelemetryPage = () => {
               {pollOptions.length < 4 && (
                 <button 
                   onClick={handleAddPollOption}
-                  className="text-[9px] font-black uppercase tracking-widest text-muted hover:text-white flex items-center gap-2 transition-colors"
+                  className="text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-2 transition-colors"
                 >
                   <Plus size={10} /> Add Variable
                 </button>
@@ -189,22 +189,22 @@ const TelemetryPage = () => {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowPoll(!showPoll)}
-                className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors px-3 py-2 border ${showPoll ? 'border-accent text-accent' : 'border-border text-muted hover:border-white hover:text-white'}`}
+                className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors px-3 py-2 border ${showPoll ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white' : 'border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white'}`}
               >
                 <Plus size={12} /> Consensus Module
               </button>
               
               {myTracks.length > 0 && (
-                <div className="flex items-center gap-2 border border-border px-3 py-2">
-                  <Music size={12} className="text-muted" />
+                <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 px-3 py-2 bg-zinc-50 dark:bg-zinc-950">
+                  <Music size={12} className="text-zinc-500 dark:text-zinc-400" />
                   <select
                     value={selectedTrackId}
                     onChange={(e) => setSelectedTrackId(e.target.value)}
-                    className="bg-transparent text-[10px] font-black uppercase tracking-widest text-muted focus:outline-none appearance-none"
+                    className="bg-transparent text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white focus:outline-none appearance-none"
                   >
-                    <option value="">ATTACH TRANSMISSION (OPTIONAL)</option>
+                    <option value="" className="text-zinc-500 dark:text-zinc-400">ATTACH TRANSMISSION (OPTIONAL)</option>
                     {myTracks.map(t => (
-                      <option key={t.id} value={t.id}>{t.title}</option>
+                      <option key={t.id} value={t.id} className="text-zinc-900 dark:text-white bg-white dark:bg-zinc-900">{t.title}</option>
                     ))}
                   </select>
                 </div>
@@ -214,7 +214,7 @@ const TelemetryPage = () => {
             <button
               onClick={handleSendBroadcast}
               disabled={sending || !content.trim()}
-              className="bg-white text-black px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="bg-zinc-900 text-white dark:bg-white dark:text-black px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
               Execute
@@ -227,12 +227,12 @@ const TelemetryPage = () => {
       <section className="space-y-4">
         {loading && page === 0 ? (
           <div className="flex items-center justify-center p-12">
-            <Loader2 className="animate-spin text-muted" size={32} />
+            <Loader2 className="animate-spin text-zinc-500 dark:text-zinc-400" size={32} />
           </div>
         ) : broadcasts.length === 0 ? (
-          <div className="p-12 text-center border border-border bg-surface">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted">NO SIGNALS DETECTED IN SECTOR.</p>
-            <p className="text-[10px] mt-2 text-zinc-500">Establish connections with other nodes to receive telemetry.</p>
+          <div className="p-12 text-center border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">NO SIGNALS DETECTED IN SECTOR.</p>
+            <p className="text-[10px] mt-2 text-zinc-400 dark:text-zinc-500">Establish connections with other nodes to receive telemetry.</p>
           </div>
         ) : (
           <>
@@ -249,7 +249,7 @@ const TelemetryPage = () => {
               <button
                 onClick={() => fetchFeed(page + 1)}
                 disabled={loading}
-                className="w-full py-4 border border-border text-[10px] font-black uppercase tracking-widest text-muted hover:text-white hover:border-white transition-colors disabled:opacity-50"
+                className="w-full py-4 border border-zinc-200 dark:border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors disabled:opacity-50"
               >
                 {loading ? 'Decrypting...' : 'Load Prior Transmissions'}
               </button>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-background: #09090b; /* zinc-950 */
@@ -9,8 +10,6 @@
 }
 
 :root {
-  background-color: var(--color-background);
-  color: white;
 }
 
 body {

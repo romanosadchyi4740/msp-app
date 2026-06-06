@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import useUiStore from './store/uiStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
@@ -19,13 +21,26 @@ import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  const theme = useUiStore((state) => state.theme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
   return (
     <Router>
       <Toaster position="bottom-right" toastOptions={{
         style: {
-          background: '#18181b',
-          color: '#fff',
-          border: '1px solid #27272a',
+          background: theme === 'dark' ? '#18181b' : '#ffffff',
+          color: theme === 'dark' ? '#fff' : '#18181b',
+          border: theme === 'dark' ? '1px solid #27272a' : '1px solid #e4e4e7',
           fontSize: '10px',
           fontWeight: 'bold',
           textTransform: 'uppercase',

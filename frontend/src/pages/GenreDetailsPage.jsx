@@ -49,18 +49,18 @@ const GenreDetailsPage = () => {
           >
             {genreName}
           </h1>
-          <p className="text-muted text-xs font-bold uppercase tracking-[0.2em] mt-2">Genre Archive</p>
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em] mt-2">Genre Archive</p>
         </div>
       </header>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center h-[40vh]">
-          <Loader2 size={32} className="text-muted animate-spin mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted">Scanning Transmissions</p>
+          <Loader2 size={32} className="text-zinc-500 dark:text-zinc-400 animate-spin mb-4" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">Scanning Transmissions</p>
         </div>
       ) : tracks.length === 0 ? (
-        <div className="border border-border p-24 text-center border-dashed">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-muted">No Audio Found for this Genre</h3>
+        <div className="border border-zinc-200 dark:border-zinc-800 p-24 text-center border-dashed">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">No Audio Found for this Genre</h3>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">

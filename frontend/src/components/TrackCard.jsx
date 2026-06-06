@@ -28,7 +28,7 @@ const TrackCard = ({ track, queue = [], showGenre = true }) => {
 
   return (
     <div className="group transition-all duration-300 relative">
-      <div className="relative aspect-square mb-3 overflow-hidden bg-surface">
+      <div className="relative aspect-square mb-3 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
         {track.coverUrl ? (
           <img 
             src={track.coverUrl} 
@@ -36,8 +36,8 @@ const TrackCard = ({ track, queue = [], showGenre = true }) => {
             className="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center border border-border">
-            <Music size={32} className="text-zinc-800" />
+          <div className="w-full h-full flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
+            <Music size={32} className="text-zinc-300 dark:text-zinc-800" />
           </div>
         )}
         
@@ -51,40 +51,40 @@ const TrackCard = ({ track, queue = [], showGenre = true }) => {
               playTrack(track, queue);
             }
           }}
-          className={`absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-sm transition-opacity duration-300
+          className={`absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-zinc-950/40 backdrop-blur-sm transition-opacity duration-300
             ${isCurrentTrack && isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
         >
-          <div className="w-12 h-12 border border-white flex items-center justify-center text-white">
+          <div className="w-12 h-12 border border-zinc-900 dark:border-white flex items-center justify-center text-zinc-900 dark:text-white">
             {isCurrentTrack && isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
           </div>
         </button>
 
         {/* Primary Genre Tag */}
         {showGenre && primaryGenre && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-sm border border-white/10 text-[8px] font-black uppercase tracking-widest text-white">
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/80 dark:bg-black/60 backdrop-blur-sm border border-zinc-900/10 dark:border-white/10 text-[8px] font-black uppercase tracking-widest text-zinc-900 dark:text-white">
             {primaryGenre}
           </div>
         )}
       </div>
 
       <div className="space-y-0.5">
-        <h3 className="text-[11px] font-black uppercase tracking-tight text-white truncate">
+        <h3 className="text-[11px] font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">
           {track.title}
         </h3>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted truncate">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">
             {track.authorName}
           </p>
           <div className="flex items-center gap-2">
             <button 
               onClick={handleLike}
-              className={`transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
+              className={`transition-colors ${isLiked ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'}`}
             >
               <Heart size={12} fill={isLiked ? "currentColor" : "none"} />
             </button>
             <button 
               onClick={handleStartChat}
-              className="text-muted hover:text-white transition-colors"
+              className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
             >
               <MessageCircle size={12} />
             </button>

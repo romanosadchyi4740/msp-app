@@ -12,15 +12,25 @@ const GenreCard = ({ genre }) => {
       onClick={() => navigate(`/genres/${genre.id}`, { state: { genreName: genre.name, colorHex: genre.colorHex } })}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="aspect-square relative overflow-hidden transition-all duration-300 bg-zinc-900 border flex items-end p-6"
+      className="aspect-square relative overflow-hidden transition-all duration-300 bg-white dark:bg-zinc-900 border flex items-end p-6"
       style={{
-        borderColor: isHovered ? genre.colorHex || '#ffffff' : '#27272a', // zinc-800
-        boxShadow: isHovered ? `0 0 20px ${(genre.colorHex || '#ffffff')}40` : 'none'
+        borderColor: isHovered ? genre.colorHex || '#ffffff' : 'var(--color-border)', // Using a CSS variable or defaulting is fine, we'll let Tailwind classes handle the base border if we can, but since it's inline, we manage it here. We'll use a generic approach.
       }}
     >
+      {/* We need a clean way to handle the border color. Let's just use Tailwind for the default and inline for hover. */}
+      <div className={`absolute inset-0 border transition-colors duration-300 ${isHovered ? 'border-transparent' : 'border-zinc-200 dark:border-zinc-800'}`} />
+      <div 
+        className="absolute inset-0 transition-opacity duration-300 pointer-events-none opacity-0"
+        style={{
+          border: `1px solid ${genre.colorHex || '#ffffff'}`,
+          boxShadow: `0 0 20px ${(genre.colorHex || '#ffffff')}40`,
+          opacity: isHovered ? 1 : 0
+        }}
+      />
+
       <h3 
-        className="text-2xl font-black text-white uppercase tracking-tighter text-left transition-colors duration-300"
-        style={{ color: isHovered ? genre.colorHex || '#ffffff' : '#ffffff' }}
+        className={`text-2xl font-black uppercase tracking-tighter text-left transition-colors duration-300 z-10 ${isHovered ? '' : 'text-zinc-900 dark:text-white'}`}
+        style={{ color: isHovered ? genre.colorHex || '#000000' : undefined }}
       >
         {genre.name}
       </h3>
@@ -49,20 +59,20 @@ const ExplorePage = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <Loader2 size={32} className="text-muted animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted">Mapping Sectors</p>
+        <Loader2 size={32} className="text-zinc-500 dark:text-zinc-400 animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">Mapping Sectors</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-16 pb-32">
-      <header className="border-b border-border pb-12">
+      <header className="border-b border-zinc-200 dark:border-zinc-800 pb-12">
         <div className="flex items-center gap-4 mb-6">
-          <Compass size={48} className="text-white" />
-          <h1 className="text-6xl font-black tracking-tighter uppercase">Network Radar</h1>
+          <Compass size={48} className="text-zinc-900 dark:text-white" />
+          <h1 className="text-6xl font-black tracking-tighter uppercase text-zinc-900 dark:text-white">Network Radar</h1>
         </div>
-        <p className="text-muted text-xs font-bold uppercase tracking-[0.2em]">Navigate sonic territories</p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em]">Navigate sonic territories</p>
       </header>
 
       <section>

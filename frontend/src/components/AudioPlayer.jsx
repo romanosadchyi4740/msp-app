@@ -249,9 +249,9 @@ const AudioPlayer = () => {
   };
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-6xl bg-surface/90 backdrop-blur-xl border border-border px-8 py-3 flex items-center justify-between z-50 rounded-none shadow-2xl">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-6xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-8 py-3 flex items-center justify-between z-50 rounded-none shadow-2xl transition-colors duration-300">
       {broadcastStatus !== 'IDLE' && (
-        <div className="absolute bottom-full left-0 right-0 p-2 bg-red-900/20 backdrop-blur-md border-t border-red-900/50 flex items-center justify-between text-red-500">
+        <div className="absolute bottom-full left-0 right-0 p-2 bg-red-100/90 dark:bg-red-900/20 backdrop-blur-md border-t border-red-200 dark:border-red-900/50 flex items-center justify-between text-red-600 dark:text-red-500">
           <div className="flex items-center gap-2 px-4">
             <Radio size={14} className="animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-widest">
@@ -268,7 +268,7 @@ const AudioPlayer = () => {
               }
               leaveBroadcast();
             }}
-            className="flex items-center gap-2 px-4 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
+            className="flex items-center gap-2 px-4 hover:text-red-800 dark:hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
           >
             <X size={14} />
             {broadcastStatus === 'MASTER' ? 'Terminate Broadcast' : 'Disconnect'}
@@ -297,30 +297,30 @@ const AudioPlayer = () => {
             className="w-10 h-10 object-cover grayscale brightness-90 hover:grayscale-0 transition-all duration-500"
           />
         ) : (
-          <div className="w-10 h-10 bg-zinc-800 flex items-center justify-center">
-            <Music size={16} className="text-muted" />
+          <div className="w-10 h-10 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+            <Music size={16} className="text-zinc-400 dark:text-zinc-500" />
           </div>
         )}
         <div className="overflow-hidden flex-1">
-          <p className="text-[11px] font-black uppercase tracking-tight truncate text-white">{currentTrack.title}</p>
-          <p className="text-[10px] uppercase tracking-widest text-muted truncate">{currentTrack.authorName}</p>
+          <p className="text-[11px] font-black uppercase tracking-tight truncate text-zinc-900 dark:text-white">{currentTrack.title}</p>
+          <p className="text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">{currentTrack.authorName}</p>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => toggleLike(currentTrack.id)}
-            className={`transition-colors ${isLiked ? 'text-white' : 'text-muted hover:text-white'}`}
+            className={`transition-colors ${isLiked ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}
           >
             <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
           </button>
           <button 
             onClick={() => openPlaylistModal(currentTrack)}
-            className="text-muted hover:text-white transition-colors"
+            className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             <Plus size={14} />
           </button>
           <button 
             onClick={handleShareToChat}
-            className="text-muted hover:text-white transition-colors"
+            className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             <MessageSquare size={14} />
           </button>
@@ -333,16 +333,16 @@ const AudioPlayer = () => {
           <button 
             onClick={toggleLoopMode}
             disabled={broadcastStatus === 'SYNC'}
-            className="hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             title={`Loop: ${loopMode}`}
           >
-            {loopMode !== 'none' ? <Repeat size={16} className="text-white" /> : <Repeat size={16} className="text-muted" />}
+            {renderLoopIcon()}
           </button>
 
           <button 
             onClick={handleManualSkipPrevious}
             disabled={!hasPrevious || broadcastStatus === 'SYNC'}
-            className={`transition-colors ${hasPrevious && broadcastStatus !== 'SYNC' ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
+            className={`transition-colors ${hasPrevious && broadcastStatus !== 'SYNC' ? 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white' : 'text-zinc-200 dark:text-zinc-800 cursor-not-allowed'}`}
           >
             <SkipBack size={18} />
           </button>
@@ -350,7 +350,7 @@ const AudioPlayer = () => {
           <button 
             onClick={() => broadcastStatus !== 'SYNC' && togglePlayPause()}
             disabled={broadcastStatus === 'SYNC'}
-            className="text-white hover:scale-110 transition-transform p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-zinc-900 dark:text-white hover:scale-110 transition-transform p-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
           </button>
@@ -358,21 +358,21 @@ const AudioPlayer = () => {
           <button 
             onClick={handleManualSkipNext}
             disabled={!hasNext || broadcastStatus === 'SYNC'}
-            className={`transition-colors ${hasNext && broadcastStatus !== 'SYNC' ? 'text-muted hover:text-white' : 'text-zinc-800 cursor-not-allowed'}`}
+            className={`transition-colors ${hasNext && broadcastStatus !== 'SYNC' ? 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white' : 'text-zinc-200 dark:text-zinc-800 cursor-not-allowed'}`}
           >
             <SkipForward size={18} />
           </button>
 
           <button 
             onClick={toggleMute} 
-            className="text-muted hover:text-white transition-colors"
+            className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
         </div>
 
         <div className="w-full flex items-center gap-3">
-          <span className="text-[9px] font-medium text-muted w-10 text-right tabular-nums">
+          <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 w-10 text-right tabular-nums">
             {formatTime((progress / 100) * duration || 0)}
           </span>
           <div className={`flex-1 relative group h-4 flex items-center ${broadcastStatus === 'SYNC' ? 'pointer-events-none' : ''}`}>
@@ -385,14 +385,14 @@ const AudioPlayer = () => {
               disabled={broadcastStatus === 'SYNC'}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-default"
             />
-            <div className="w-full h-[1px] bg-zinc-800 relative">
+            <div className="w-full h-[1px] bg-zinc-200 dark:bg-zinc-800 relative">
               <div 
-                className="absolute h-full bg-white transition-all duration-100" 
+                className="absolute h-full bg-zinc-900 dark:bg-white transition-all duration-100" 
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
-          <span className="text-[9px] font-medium text-muted w-10 tabular-nums">
+          <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 w-10 tabular-nums">
             {formatTime(duration)}
           </span>
         </div>
@@ -410,9 +410,9 @@ const AudioPlayer = () => {
             onChange={(e) => setVolume(parseFloat(e.target.value))}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
-          <div className="w-full h-[1px] bg-zinc-800 relative">
+          <div className="w-full h-[1px] bg-zinc-200 dark:bg-zinc-800 relative">
             <div 
-              className="absolute h-full bg-white transition-all duration-100" 
+              className="absolute h-full bg-zinc-900 dark:bg-white transition-all duration-100" 
               style={{ width: `${volume * 100}%` }}
             />
           </div>

@@ -427,40 +427,40 @@ const PlaylistPage = () => {
       </section>
 
       {isOwner && (
-        <section className="pt-12 border-t border-border">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-6">Append Tracks</h3>
+        <section className="pt-12 border-t border-zinc-200 dark:border-zinc-800">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-6">Append Tracks</h3>
           <div className="relative max-w-xl">
-            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="SEARCH CATALOG..."
-              className="w-full bg-surface border border-border py-4 pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-white transition-colors"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
             />
           </div>
 
           {searchQuery.trim() && (
-            <div className="mt-4 max-w-xl border border-border bg-surface">
+            <div className="mt-4 max-w-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
               {isSearching ? (
-                <div className="p-6 flex justify-center"><Loader2 size={16} className="animate-spin text-muted" /></div>
+                <div className="p-6 flex justify-center"><Loader2 size={16} className="animate-spin text-zinc-500 dark:text-zinc-400" /></div>
               ) : searchResults.length > 0 ? (
                 searchResults.map(track => {
                   const isInPlaylist = playlist.tracks.some(t => t.id === track.id);
                   return (
-                    <div key={track.id} className="flex items-center justify-between p-4 border-b border-border/50 last:border-b-0 hover:bg-white/5 transition-colors">
+                    <div key={track.id} className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800/50 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-8 h-8 bg-zinc-800 flex-shrink-0">
-                          {track.coverUrl ? <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/> : <Music size={12} className="text-muted" />}
+                        <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 flex-shrink-0">
+                          {track.coverUrl ? <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/> : <Music size={12} className="text-zinc-400 dark:text-zinc-500" />}
                         </div>
                         <div className="overflow-hidden">
-                          <p className="text-[10px] font-black uppercase tracking-tight text-white truncate">{track.title}</p>
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-muted truncate">{track.authorName}</p>
+                          <p className="text-[10px] font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">{track.title}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">{track.authorName}</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => handleAddTrack(track.id)}
                         disabled={isInPlaylist}
-                        className="px-3 py-1 bg-white text-black text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:bg-zinc-800 disabled:text-muted hover:bg-zinc-200 transition-colors flex items-center gap-1"
+                        className="px-3 py-1 bg-zinc-900 text-white dark:bg-white dark:text-black text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:bg-zinc-200 disabled:text-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center gap-1"
                       >
                         {isInPlaylist ? 'Added' : <><Plus size={10}/> Add</>}
                       </button>
@@ -468,7 +468,7 @@ const PlaylistPage = () => {
                   );
                 })
               ) : (
-                <div className="p-6 text-center text-[10px] font-bold uppercase tracking-widest text-muted">No tracks found</div>
+                <div className="p-6 text-center text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">No tracks found</div>
               )}
             </div>
           )}
