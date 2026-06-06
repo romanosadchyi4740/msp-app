@@ -23,35 +23,35 @@ const IntegrationReviewCard = ({ request, onResolve }) => {
   };
 
   return (
-    <div className="border border-border bg-surface/30 p-6 space-y-6 animate-in slide-in-from-top-4">
-      <div className="flex items-center justify-between border-b border-border/50 pb-4">
+    <div className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-900/30 p-6 space-y-6 animate-in slide-in-from-top-4">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/50 pb-4">
         <div className="flex items-center gap-4">
-          <div className="w-8 h-8 bg-zinc-800 flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0">
             {request.requester.avatarUrl ? (
               <img src={request.requester.avatarUrl} className="w-full h-full object-cover grayscale" alt="" />
             ) : (
-              <User size={12} className="text-muted" />
+              <User size={12} className="text-zinc-400 dark:text-zinc-500" />
             )}
           </div>
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-white">{request.requester.displayName}</h4>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Proposes Integration</p>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white">{request.requester.displayName}</h4>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Proposes Integration</p>
           </div>
         </div>
-        <div className="text-[9px] font-mono text-zinc-500">
+        <div className="text-[9px] font-mono text-zinc-500 dark:text-zinc-400">
           Delta: +{request.proposedTracks.length} Transmissions
         </div>
       </div>
 
       <div className="space-y-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted">Proposed Data Delta:</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Proposed Data Delta:</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {request.proposedTracks.map(track => (
-            <div key={track.id} className="flex items-center gap-3 p-2 bg-black/20 border border-white/5">
+            <div key={track.id} className="flex items-center gap-3 p-2 bg-zinc-100 dark:bg-black/20 border border-zinc-200 dark:border-white/5">
               <span className="text-[10px] font-black text-green-500">+</span>
               <div className="overflow-hidden">
-                <p className="text-[10px] font-black uppercase tracking-tight text-white truncate">{track.title}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted truncate">{track.authorName}</p>
+                <p className="text-[10px] font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">{track.title}</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">{track.authorName}</p>
               </div>
             </div>
           ))}
@@ -62,14 +62,14 @@ const IntegrationReviewCard = ({ request, onResolve }) => {
         <button 
           onClick={() => handleResolve('ACCEPT')}
           disabled={resolving}
-          className="flex-1 py-3 bg-white text-black text-[9px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-1 py-3 bg-zinc-900 text-white dark:bg-white dark:text-black text-[9px] font-black uppercase tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {resolving ? <Loader2 size={12} className="animate-spin" /> : <><Check size={12} /> Execute Merge</>}
         </button>
         <button 
           onClick={() => handleResolve('REJECT')}
           disabled={resolving}
-          className="flex-1 py-3 border border-red-900/50 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          className="flex-1 py-3 border border-red-500/50 dark:border-red-900/50 text-red-600 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {resolving ? <Loader2 size={12} className="animate-spin" /> : <><X size={12} /> Reject Transmission</>}
         </button>

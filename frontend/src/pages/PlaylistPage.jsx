@@ -252,26 +252,26 @@ const PlaylistPage = () => {
         </div>
       )}
 
-      <header className="flex flex-col md:flex-row items-end gap-8 pb-12 border-b border-border">
-        <div className="w-48 h-48 flex-shrink-0 bg-surface border border-border">
+      <header className="flex flex-col md:flex-row items-end gap-8 pb-12 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="w-48 h-48 flex-shrink-0 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
           {playlist.coverUrl ? (
             <img src={playlist.coverUrl} alt="Cover" className="w-full h-full object-cover grayscale" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center"><Music size={32} className="text-muted" /></div>
+            <div className="w-full h-full flex items-center justify-center"><Music size={32} className="text-zinc-400 dark:text-zinc-500" /></div>
           )}
         </div>
         
         <div className="flex-1 w-full space-y-4">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="px-2 py-0.5 bg-white text-black text-[9px] font-black uppercase tracking-widest">Playlist</span>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 border border-border text-[9px] font-black uppercase tracking-widest text-muted">
+            <span className="px-2 py-0.5 bg-zinc-900 text-white dark:bg-white dark:text-black text-[9px] font-black uppercase tracking-widest">Playlist</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-200 dark:border-zinc-800 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
               {playlist.isPublic ? <Globe size={10} /> : <Lock size={10} />}
               {playlist.isPublic ? 'Public' : 'Private'}
             </div>
             {isOwner && (
               <button 
                 onClick={() => setShowConfirmDialog(true)}
-                className="px-2 py-0.5 border border-white/20 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white hover:border-white transition-colors"
+                className="px-2 py-0.5 border border-zinc-200 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors"
               >
                 Toggle Privacy
               </button>
@@ -280,7 +280,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={() => setShowSyncModal(true)}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-2 py-0.5 border border-white/20 text-[9px] font-black uppercase tracking-widest text-muted hover:text-white hover:border-white transition-colors"
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-200 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors"
               >
                 {isSyncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
                 Pull Updates
@@ -290,7 +290,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={handleProposeIntegration}
                 disabled={isProposing}
-                className="flex items-center gap-1.5 px-2 py-0.5 border border-white/20 text-[9px] font-black uppercase tracking-widest text-white hover:bg-white hover:text-black transition-colors"
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-900/20 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-900 dark:text-white hover:bg-zinc-900 hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
               >
                 {isProposing ? <Loader2 size={10} className="animate-spin" /> : <GitMerge size={10} />}
                 Initiate Integration Protocol
@@ -300,7 +300,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isDeleting}
-                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-900 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-500/50 dark:border-red-900 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
               >
                 {isDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
                 Dismantle Instance
@@ -310,7 +310,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={handleFork}
                 disabled={isForking}
-                className="flex items-center gap-1.5 px-2 py-0.5 bg-white text-black text-[9px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                className="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-900 text-white dark:bg-white dark:text-black text-[9px] font-black uppercase tracking-widest hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
               >
                 <GitFork size={10} />
                 Fork Sequence
@@ -318,13 +318,13 @@ const PlaylistPage = () => {
             )}
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate">{playlist.title}</h1>
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate text-zinc-900 dark:text-white">{playlist.title}</h1>
           
           {playlist.forkedFromId && (
             <div className="mt-1">
               <button 
                 onClick={() => navigate(`/playlists/${playlist.forkedFromId}`)}
-                className="text-[10px] font-mono text-muted hover:text-white transition-colors text-left"
+                className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
               >
                 &lt;Fork Origin: {playlist.forkedFromName} // Source Identity: {playlist.forkedFromOwnerName}&gt;
               </button>
@@ -332,10 +332,10 @@ const PlaylistPage = () => {
           )}
 
           {playlist.description && (
-            <p className="text-xs text-muted font-bold uppercase tracking-widest mt-2">{playlist.description}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest mt-2">{playlist.description}</p>
           )}
 
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
              Tracks: {playlist.tracksCount}
           </p>
         </div>
@@ -343,10 +343,10 @@ const PlaylistPage = () => {
 
       {isOwner && integrations.length > 0 && (
         <section className="space-y-4">
-          <div className="flex items-center gap-3 text-white border-b border-border/50 pb-2">
+          <div className="flex items-center gap-3 text-zinc-900 dark:text-white border-b border-zinc-200 dark:border-zinc-800/50 pb-2">
             <GitMerge size={16} />
-            <h3 className="text-xs font-black uppercase tracking-[0.2em]">Incoming Integration Protocols</h3>
-            <span className="px-2 py-0.5 bg-white text-black text-[9px] font-black">{integrations.length} Pending</span>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-900 dark:text-white">Incoming Integration Protocols</h3>
+            <span className="px-2 py-0.5 bg-zinc-900 text-white dark:bg-white dark:text-black text-[9px] font-black">{integrations.length} Pending</span>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {integrations.map(req => (
@@ -362,12 +362,12 @@ const PlaylistPage = () => {
 
       <section>
         {playlist.tracks.length === 0 ? (
-           <div className="border border-border border-dashed p-16 text-center">
-             <p className="text-[10px] font-black uppercase tracking-widest text-muted">This playlist is empty.</p>
+           <div className="border border-zinc-200 dark:border-zinc-800 border-dashed p-16 text-center">
+             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">This playlist is empty.</p>
            </div>
         ) : (
-          <div className="flex flex-col border border-border">
-            <div className="flex items-center gap-4 px-6 py-3 border-b border-border bg-surface/50 text-[9px] font-black uppercase tracking-widest text-muted">
+          <div className="flex flex-col border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-4 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
               <div className="w-8 text-center">#</div>
               <div className="flex-1">Title / Author</div>
               <div className="w-16 text-right">Time</div>
@@ -377,36 +377,36 @@ const PlaylistPage = () => {
             {playlist.tracks.map((track, idx) => (
               <div 
                 key={track.id} 
-                className="group flex items-center gap-4 px-6 py-4 hover:bg-white/5 transition-colors border-b border-border/50 last:border-b-0 cursor-pointer"
+                className={`group flex items-center gap-4 px-6 py-4 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors border-b border-zinc-200 dark:border-zinc-800/50 last:border-b-0 cursor-pointer ${currentTrack?.id === track.id ? 'bg-zinc-100 dark:bg-white/5' : ''}`}
                 onClick={() => handlePlayTrack(track)}
               >
-                <div className="w-8 text-center text-[10px] font-bold text-muted group-hover:text-white transition-colors">
+                <div className="w-8 text-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                   {currentTrack?.id === track.id && isPlaying ? (
-                     <div className="w-3 h-3 bg-white mx-auto rounded-full animate-pulse" />
+                     <div className="w-3 h-3 bg-zinc-900 dark:bg-white mx-auto rounded-full animate-pulse" />
                   ) : (
                     (idx + 1).toString().padStart(2, '0')
                   )}
                 </div>
                 
                 <div className="flex-1 flex items-center gap-4 overflow-hidden">
-                   <div className="w-10 h-10 bg-zinc-800 flex-shrink-0">
+                   <div className="w-10 h-10 bg-zinc-200 dark:bg-zinc-800 flex-shrink-0">
                      {track.coverUrl ? (
                        <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/>
                      ) : (
-                       <div className="w-full h-full flex items-center justify-center"><Music size={12} className="text-muted" /></div>
+                       <div className="w-full h-full flex items-center justify-center"><Music size={12} className="text-zinc-400 dark:text-zinc-500" /></div>
                      )}
                    </div>
                    <div className="overflow-hidden">
-                     <p className={`text-[11px] font-black uppercase tracking-tight truncate ${currentTrack?.id === track.id ? 'text-white' : 'text-zinc-300'}`}>
+                     <p className={`text-[11px] font-black uppercase tracking-tight truncate ${currentTrack?.id === track.id ? 'text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
                        {track.title}
                      </p>
-                     <p className="text-[9px] font-bold uppercase tracking-widest text-muted truncate">
+                     <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">
                        {track.authorName}
                      </p>
                    </div>
                 </div>
 
-                <div className="w-16 text-right text-[10px] font-medium tabular-nums text-muted group-hover:text-white transition-colors">
+                <div className="w-16 text-right text-[10px] font-medium tabular-nums text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                   {formatTime(track.duration)}
                 </div>
 
@@ -414,7 +414,7 @@ const PlaylistPage = () => {
                   <div className="w-10 flex justify-end">
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleRemoveTrack(track.id); }}
-                      className="text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
+                      className="text-zinc-500 dark:text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -476,9 +476,9 @@ const PlaylistPage = () => {
       )}
 
       {isDeleting && (
-        <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center space-y-8">
-          <Loader2 size={48} className="animate-spin text-white" />
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Dismantling Identity Node</p>
+        <div className="fixed inset-0 z-[150] bg-white/80 dark:bg-black/80 backdrop-blur-md flex flex-col items-center justify-center space-y-8">
+          <Loader2 size={48} className="animate-spin text-zinc-900 dark:text-white" />
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-900 dark:text-white">Dismantling Identity Node</p>
         </div>
       )}
 

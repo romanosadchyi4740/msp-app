@@ -198,7 +198,7 @@ const UserProfilePage = () => {
           {/* Albums Section */}
           <section>
             <div className="flex items-baseline justify-between mb-12 border-b border-zinc-200 dark:border-zinc-800 pb-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.4em] text-zinc-900 dark:text-white">Collections</h3>
+              <h3 className="text-xs font-black uppercase tracking-[0.4em] text-zinc-900 dark:text-white">Archives</h3>
               <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tabular-nums">{albums.length.toString().padStart(2, '0')}</span>
             </div>
             {albums.length === 0 ? (
