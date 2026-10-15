@@ -7,6 +7,9 @@ spring:
 
 minio:
   url: ${MINIO_URL:http://localhost:9000}
+  # Address browsers use for presigned URLs; differs from url when the backend runs in Docker
+  public-url: ${MINIO_PUBLIC_URL:${minio.url}}
+  region: ${MINIO_REGION:us-east-1}
   access-key: ${MINIO_USER:minio_user}
   secret-key: ${MINIO_PASSWORD:minio_password}
   bucket-name: ${MINIO_BUCKET_NAME:music-files}

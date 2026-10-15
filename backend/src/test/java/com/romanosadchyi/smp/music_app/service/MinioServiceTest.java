@@ -6,9 +6,9 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -24,8 +24,15 @@ class MinioServiceTest {
     @Mock
     MinioClient minioClient;
 
-    @InjectMocks
+    @Mock
+    MinioClient minioPresignClient;
+
     MinioService minioService;
+
+    @BeforeEach
+    void setUp() {
+        minioService = new MinioService(minioClient, minioPresignClient);
+    }
 
     @Test
     void init_BucketDoesNotExist_CreatesBucket() throws Exception {
@@ -61,11 +68,12 @@ class MinioServiceTest {
     void generatePresignedUrl_Success() throws Exception {
         ReflectionTestUtils.setField(minioService, "bucketName", "test-bucket");
         ReflectionTestUtils.setField(minioService, "presignedUrlExpirySeconds", 3600);
-        when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenReturn("http://presigned-url");
+        when(minioPresignClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenReturn("http://presigned-url");
 
         String url = minioService.generatePresignedUrl("objectName");
 
         assertEquals("http://presigned-url", url);
+        verify(minioClient, never()).getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class));
     }
 
     @Test
