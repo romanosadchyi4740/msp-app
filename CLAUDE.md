@@ -1,8 +1,12 @@
-# CLAUDE.md — SyncChord (built on msp-app)
+# CLAUDE.md
 
-Context for Claude Code. Put this file in the repository root of `romanosadchyi4740/msp-app`.
-The implementation plan lives in `docs/syncchord/IMPLEMENTATION_PLAN.md` (Ukrainian); work items are in
-Jira project **KAN** (`https://romanos4740.atlassian.net`). Reference every change to a KAN key.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+**Project: SyncChord, built on msp-app.** The implementation plan is meant to live in
+`docs/syncchord/IMPLEMENTATION_PLAN.md` (Ukrainian; **not committed yet**, so if it is missing, use the
+Jira tickets). Work items are in Jira project **KAN** (`https://romanos4740.atlassian.net`). Reference every
+change to a KAN key. `README.md` is a Ukrainian end-user/deployment manual for msp-app and has no
+developer information beyond the commands below.
 
 ## 1. What we are building
 
@@ -54,11 +58,41 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
 ```bash
 docker-compose up -d                         # Postgres 15 + MinIO for local dev
 cd backend && ./mvnw spring-boot:run         # API on :8080 (Flyway runs on start)
-cd backend && ./mvnw test                    # unit tests (MusicAppApplicationTests needs a DB)
+cd backend && ./mvnw test                    # all tests; MusicAppApplicationTests (@SpringBootTest) needs Postgres up
+cd backend && ./mvnw test -Dtest='!MusicAppApplicationTests'   # unit tests only, no DB needed
 cd backend && ./mvnw -Dtest=ChatServiceTest test
+cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
-cd frontend && npm run lint && npm run build
+cd frontend && npm run lint && npm run build # there is no frontend test runner yet
 ```
+
+Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
+(`minio_user/minio_password`), bucket `music-files`. All backend config is in
+`backend/src/main/resources/application.yaml` (env vars with committed defaults; there are no profiles yet).
+
+## 3a. How the existing msp-app pieces fit together
+
+- **REST auth**: `JwtAuthenticationFilter` turns `Authorization: Bearer <jwt>` into an `Authentication` whose
+  principal is the `User` entity (JWT subject = user UUID). Public/role rules are in `SecurityConfig`
+  (`/auth/**` is public; note it is not under `/api`). The frontend keeps the token in `localStorage`;
+  `axiosClient` attaches it and redirects to `/login` on 401.
+- **STOMP auth** happens only on `CONNECT`, in the inline `ChannelInterceptor` in `WebSocketConfig`. It reads the
+  `Authorization` native header and sets the session user. There is **no** per-destination authorization yet
+  (the room `ChannelInterceptor` from section 6 has to be added). Endpoints are `/ws` (SockJS, used by the
+  frontend) and `/ws-raw` (plain WebSocket, for Postman). The broker is the simple in-memory broker on
+  `/topic` and `/queue`, with app prefix `/app` and user prefix `/user`.
+- **Chat**: `MessageController` `@MessageMapping("/chat")` → `ChatService` persists the message (content is encrypted
+  transparently by the JPA `MessageEncryptionConverter` → `EncryptionUtil`) and fans out with `convertAndSendToUser(..., "/queue/messages")` to each
+  member. The `socketClient` singleton subscribes to `/user/queue/messages` in `onConnect`. Its
+  `subscribe()` returns `null` when not connected, so callers must subscribe after connect.
+- **Broadcast rooms (the existing sync feature)**: `BroadcastController` is a **stateless relay**
+  (`/app/broadcast/{id}/sync` → `@SendTo /topic/broadcast/{id}`) with no role check. All logic is
+  client-side in `components/AudioPlayer.jsx` + `store/playerStore.js`: the MASTER client publishes
+  play/pause/seek/track events, and SYNC clients send `REQUEST_SYNC` that the MASTER answers. SyncChord rooms
+  must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
+  section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
+- **Files**: uploaded to MinIO through `MinioService`; clients get presigned GET URLs (1 h expiry).
+- `DataSeeder` runs only when `data-seeder.enabled=true` (`@ConditionalOnProperty`).
 
 ## 4. Repository layout and conventions
 
@@ -177,7 +211,9 @@ and `RoomParticipant.rttMs`.
 
 ## 8. Working agreements
 
-- Branch per ticket: `KAN-<n>-short-slug`; commit messages start with the key (`KAN-12: ...`).
+- Branch per ticket, prefixed by purpose: `feature/KAN-<n>-short-slug` (new functionality),
+  `bugfix/KAN-<n>-short-slug` (non-urgent fixes), `hotfix/KAN-<n>-short-slug` (urgent fixes to released code).
+  Commit messages start with the key (`KAN-12: ...`).
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
 - New schema only through new Flyway migrations (`V17__...`); never edit applied migrations.
 - Never log tokens, SDP payloads, or message plaintext. Never commit secrets.
