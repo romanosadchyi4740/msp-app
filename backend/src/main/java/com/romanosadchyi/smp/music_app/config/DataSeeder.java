@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Component
@@ -28,8 +27,6 @@ public class DataSeeder implements CommandLineRunner {
 
     UserRepository userRepository;
     GenreRepository genreRepository;
-    
-    public static final UUID TEST_AUTHOR_ID = UUID.fromString("2ee659e2-b01e-4984-8fa2-2890e94b4d24");
 
     @Override
     @Transactional
@@ -45,9 +42,9 @@ public class DataSeeder implements CommandLineRunner {
                     .role(UserRole.ROLE_ARTIST)
                     .build();
 
-            testArtist.setId(TEST_AUTHOR_ID);
-            userRepository.save(testArtist);
-            log.info("Test Artist (User) created with ID: {}", TEST_AUTHOR_ID);
+            // The id is generated: assigning one makes save() merge a row that does not exist, which fails
+            testArtist = userRepository.save(testArtist);
+            log.info("Test Artist (User) created with ID: {}", testArtist.getId());
         }
 
         if (genreRepository.count() == 0) {

@@ -1,3 +1,6 @@
+# `docker compose up -d`                 -> postgres + minio only (run backend/frontend from source)
+# `docker compose --profile full up -d`  -> whole app: http://localhost:5173 (API on :8080), plus coturn
+# `docker compose --profile turn up -d`  -> infra + coturn only, for WebRTC testing with the apps run from source
 services:
   # 1. Головна база даних (для Auth, Music, Payment)
   postgres:
@@ -9,6 +12,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: music_app_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d music_app_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   # 2. MinIO (S3 сумісне сховище файлів)
   # Доступ до консолі: http://localhost:9001 (user/password)
@@ -24,6 +32,69 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # 3. Backend (Spring Boot, `local` profile with addresses of the containers above)
+  backend:
+    build: ./backend
+    container_name: music_app_backend
+    profiles: [full]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_DATASOURCE_URL: jdbc:postgresql://postgres:5432/music_app_db
+      MINIO_URL: http://minio:9000
+      # Presigned URLs are opened by the browser, so they must use the host address
+      MINIO_PUBLIC_URL: http://localhost:9000
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-5173}
+
+  # 4. Frontend (static build behind nginx; the browser calls the backend on :8080 directly)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8080
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-125635909882-acg0l3mbe76auvijfdru8oc1dbdbetjq.apps.googleusercontent.com}
+    container_name: music_app_frontend
+    profiles: [full]
+    depends_on:
+      - backend
+    ports:
+      # 5173 is the origin registered for Google sign-in; stop `npm run dev` first or set FRONTEND_PORT
+      - "${FRONTEND_PORT:-5173}:80"
+
+  # 5. TURN/STUN server for local WebRTC testing (credentials via the coturn `use-auth-secret` scheme)
+  coturn:
+    image: coturn/coturn:4.7.0
+    container_name: music_app_coturn
+    profiles: [full, turn]
+    # Only the listening port is published: in relay-only mode every browser talks to coturn on 3478, and the
+    # relay addresses it hands out are reached by coturn itself inside the Docker network
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+    command:
+      - --log-file=stdout
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --fingerprint
+      - --realm=syncchord.local
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET:-local_turn_secret}
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
 
 volumes:
   minio_data:

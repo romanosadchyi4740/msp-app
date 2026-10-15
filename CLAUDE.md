@@ -42,7 +42,7 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
 
 ## 2. Tech stack (as in the repo)
 
-- **Backend** `backend/`: Java 25, Spring Boot 4.0.6, Maven wrapper. webmvc, websocket (STOMP + SockJS),
+- **Backend** `backend/`: Java 25, Spring Boot 4.1.1, Maven wrapper. webmvc, websocket (STOMP + SockJS),
   security (stateless JWT, BCrypt, Google sign-in), data-jpa (Hibernate), Flyway, actuator, Lombok,
   MinIO client (S3-compatible). Base package `com.romanosadchyi.smp.music_app`.
 - **DB**: PostgreSQL 15, Flyway migrations `V1..V16` exist; **new migrations start at `V17__`**.
@@ -57,6 +57,8 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
 
 ```bash
 docker-compose up -d                         # Postgres 15 + MinIO for local dev
+docker compose --profile full up -d --build  # whole app in Docker: frontend :5173, API :8080, + coturn :3478
+docker compose --profile turn up -d          # infra + coturn only (WebRTC testing with apps run from source)
 cd backend && ./mvnw spring-boot:run         # API on :8080 (Flyway runs on start)
 cd backend && ./mvnw test                    # all tests; MusicAppApplicationTests (@SpringBootTest) needs Postgres up
 cd backend && ./mvnw test -Dtest='!MusicAppApplicationTests'   # unit tests only, no DB needed
@@ -209,7 +211,7 @@ and `RoomParticipant.rttMs`.
 - `setAllowedOriginPatterns("*")` on WebSocket endpoints; `/actuator/health` not public (ALB check fails).
 - Simple in-memory STOMP broker → one backend instance only (fine for MVP; later RabbitMQ STOMP relay or
   Redis pub/sub).
-- No Dockerfiles yet; `DataSeeder` mixes required genres with a demo artist.
+- `DataSeeder` mixes required genres with a demo artist.
 
 ## 8. Working agreements
 
