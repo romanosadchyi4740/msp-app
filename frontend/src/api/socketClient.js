@@ -1,5 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../config';
 
 class SocketClient {
   constructor() {
@@ -11,7 +12,7 @@ class SocketClient {
     this.onMessageReceived = onMessageReceived;
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },

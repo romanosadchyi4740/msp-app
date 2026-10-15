@@ -68,7 +68,11 @@ cd frontend && npm run lint && npm run build # there is no frontend test runner 
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
 (`minio_user/minio_password`), bucket `music-files`. All backend config is in
-`backend/src/main/resources/application.yaml` (env vars with committed defaults; there are no profiles yet).
+`backend/src/main/resources/`: `application.yaml` (shared), `application-local.yaml` (default profile; env vars
+with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTIVE=prod`; no defaults, fails to
+start if a variable is missing). Frontend config comes from Vite env vars (`VITE_API_URL`, `VITE_WS_URL`,
+`VITE_GOOGLE_CLIENT_ID`) read in `src/config.js`; dev defaults are in the committed `frontend/.env.development`,
+and `frontend/.env.example` lists them for builds.
 
 ## 3a. How the existing msp-app pieces fit together
 
@@ -197,8 +201,6 @@ and `RoomParticipant.rttMs`.
 
 ## 7. Known issues in the base project (fix before production; see Jira epic KAN-5)
 
-- Hardcoded `http://localhost:8080` in `frontend/src/api/axiosClient.js` and `socketClient.js`, CORS only
-  `http://localhost:5173`, `minio.url` hardcoded, `data-seeder.enabled: true` hardcoded.
 - `WebSocketConfig` logs the full `Authorization` header (JWT) at INFO. Remove it.
 - Secrets have committed working defaults (JWT secret, AES key, DB/MinIO passwords, Google client id).
   Treat them as public. Non-local profiles must fail to start without real secrets.
@@ -214,6 +216,8 @@ and `RoomParticipant.rttMs`.
 - Branch per ticket, prefixed by purpose: `feature/KAN-<n>-short-slug` (new functionality),
   `bugfix/KAN-<n>-short-slug` (non-urgent fixes), `hotfix/KAN-<n>-short-slug` (urgent fixes to released code).
   Commit messages start with the key (`KAN-12: ...`).
+- `development` is the integration branch: branch off it and open PRs against it (`gh pr create --base development`),
+  not `main`. The owner reviews and merges PRs; move the Jira ticket to Done after the merge.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
 - New schema only through new Flyway migrations (`V17__...`); never edit applied migrations.
 - Never log tokens, SDP payloads, or message plaintext. Never commit secrets.
