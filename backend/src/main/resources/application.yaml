@@ -1,11 +1,14 @@
+# Shared settings. Environment-specific values live in the profiles:
+#   local (default) - application-local.yaml, defaults match docker-compose.yml
+#   prod            - application-prod.yaml, every value must come from the environment
 spring:
   application:
     name: music-app
 
+  profiles:
+    default: local
+
   datasource:
-    url: ${DB_DATASOURCE_URL:jdbc:postgresql://localhost:5432/music_app_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   flyway:
@@ -24,22 +27,7 @@ spring:
 server.port: 8080
 
 minio:
-  url: http://localhost:9000
-  access-key: ${MINIO_USER:minio_user}
-  secret-key: ${MINIO_PASSWORD:minio_password}
-  bucket-name: music-files
   presigned-url-expiry-seconds: 3600
 
 jwt:
-  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
   expiration: ${JWT_EXPIRATION:86400000}
-
-encryption:
-  secret-key: ${ENCRYPTION_SECRET:12345678901234567890123456789012}
-
-google:
-  client:
-    id: ${GOOGLE_CLIENT_ID:125635909882-acg0l3mbe76auvijfdru8oc1dbdbetjq.apps.googleusercontent.com}
-
-data-seeder:
-  enabled: true

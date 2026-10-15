@@ -14,7 +14,7 @@ public class EncryptionUtil {
 
     private static String secretKey;
 
-    @Value("${encryption.secret-key:12345678901234567890123456789012}")
+    @Value("${encryption.secret-key}")
     public void setSecretKey(String key) {
         EncryptionUtil.secretKey = key;
     }
