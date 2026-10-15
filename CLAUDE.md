@@ -216,6 +216,8 @@ and `RoomParticipant.rttMs`.
 - Branch per ticket, prefixed by purpose: `feature/KAN-<n>-short-slug` (new functionality),
   `bugfix/KAN-<n>-short-slug` (non-urgent fixes), `hotfix/KAN-<n>-short-slug` (urgent fixes to released code).
   Commit messages start with the key (`KAN-12: ...`).
+- `development` is the integration branch: branch off it and open PRs against it (`gh pr create --base development`),
+  not `main`. The owner reviews and merges PRs; move the Jira ticket to Done after the merge.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
 - New schema only through new Flyway migrations (`V17__...`); never edit applied migrations.
 - Never log tokens, SDP payloads, or message plaintext. Never commit secrets.
