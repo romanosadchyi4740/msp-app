@@ -29,5 +29,6 @@ app:
     # Comma-separated list of allowed origins
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
+# Demo data (DemoDataSeeder); reference data such as genres is always seeded
 data-seeder:
   enabled: ${DATA_SEEDER_ENABLED:true}

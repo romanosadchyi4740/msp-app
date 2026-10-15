@@ -71,7 +71,9 @@ docker compose --profile full up -d --build
 * **`local`** (типовий, вмикається автоматично) — значення за замовчуванням відповідають `docker-compose.yml`, тому локальний запуск не потребує жодних налаштувань.
 * **`prod`** (вмикається змінною `SPRING_PROFILES_ACTIVE=prod`) — значень за замовчуванням немає; якщо хоча б одна змінна відсутня, сервер не запуститься.
 
-Змінні оточення серверної частини: `DB_DATASOURCE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MINIO_URL`, `MINIO_PUBLIC_URL` (необов'язкова; адреса MinIO для посилань, що відкриває браузер, за замовчуванням дорівнює `MINIO_URL`), `MINIO_REGION`, `MINIO_USER`, `MINIO_PASSWORD`, `MINIO_BUCKET_NAME`, `JWT_SECRET`, `JWT_EXPIRATION` (необов'язкова), `ENCRYPTION_SECRET`, `GOOGLE_CLIENT_ID`, `CORS_ALLOWED_ORIGINS` (список адрес клієнтської частини через кому), `DATA_SEEDER_ENABLED` (`true`/`false`).
+Змінні оточення серверної частини: `DB_DATASOURCE_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MINIO_URL`, `MINIO_PUBLIC_URL` (необов'язкова; адреса MinIO для посилань, що відкриває браузер, за замовчуванням дорівнює `MINIO_URL`), `MINIO_REGION`, `MINIO_USER`, `MINIO_PASSWORD`, `MINIO_BUCKET_NAME`, `JWT_SECRET`, `JWT_EXPIRATION` (необов'язкова), `ENCRYPTION_SECRET`, `GOOGLE_CLIENT_ID`, `CORS_ALLOWED_ORIGINS` (список адрес клієнтської частини через кому), `DATA_SEEDER_ENABLED` (`true`/`false`; лише для профілю `local` — створення демонстраційного користувача `artist@example.com`. Довідникові дані, як-от жанри, створюються в будь-якому профілі).
+
+Для перевірки стану сервера (наприклад, балансувальником навантаження) доступна адреса `GET /actuator/health`, яка не потребує автентифікації й повертає лише загальний статус.
 
 Для клієнтської частини адреси серверного інтерфейсу задаються змінними оточення під час збирання: `VITE_API_URL`, `VITE_WS_URL` (необов'язкова, за замовчуванням `${VITE_API_URL}/ws`) та `VITE_GOOGLE_CLIENT_ID`. Значення для локальної розробки містить файл `frontend/.env.development`; для збирання під інший домен скопіюйте `frontend/.env.example` у `frontend/.env.production.local` і вкажіть потрібні значення (або передайте їх як змінні оточення).
 

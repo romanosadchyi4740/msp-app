@@ -31,3 +31,14 @@ minio:
 
 jwt:
   expiration: ${JWT_EXPIRATION:86400000}
+
+# Only /actuator/health is exposed, and it returns just {"status": ...} (public, for the ALB health check)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
