@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +62,8 @@ class AccountDeletionIntegrationTest {
                         .build()))
                 .build());
         UUID chatId = openChat(alice, bob);
+        mockMvc.perform(put("/api/chats/" + chatId + "/accept").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().is2xxSuccessful());
         send(alice, chatId, "my track", track.getId());
         send(bob, chatId, "nice, sharing it", track.getId());
         broadcast(alice, "out now", track.getId());

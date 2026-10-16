@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.chats.internal.service;
 
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
+import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
@@ -16,8 +17,8 @@ import java.util.UUID;
 
 /**
  * On account deletion: the user's messages stay, shown under the anonymized account. The user leaves group chats but
- * stays a member of direct chats, so the other member still sees who they talked to. A chat whose remaining members
- * all have deleted accounts is deleted with its messages.
+ * stays a member of direct chats, so the other member still sees who they talked to. A direct chat the other member
+ * never accepted, and a chat whose remaining members all have deleted accounts, are deleted with their messages.
  */
 @Component
 @RequiredArgsConstructor
@@ -33,9 +34,10 @@ class ChatsUserDataCleanup implements UserDataCleanup {
         List<Chat> chats = chatRepository.findAllByParticipantIdForUpdate(userId);
         Set<UUID> deletedIds = userLookup.findDeletedIds(otherMemberIds(chats, userId));
         for (Chat chat : chats) {
-            if (!hasActiveMember(chat, userId, deletedIds)) {
+            boolean group = Boolean.TRUE.equals(chat.getIsGroup());
+            if (!hasActiveMember(chat, userId, deletedIds) || (!group && !acceptedByOthers(chat, userId))) {
                 chatRepository.delete(chat);
-            } else if (Boolean.TRUE.equals(chat.getIsGroup())) {
+            } else if (group) {
                 ChatMemberships.find(chat, userId).ifPresent(chat.getMemberships()::remove);
             }
         }
@@ -48,6 +50,16 @@ class ChatsUserDataCleanup implements UserDataCleanup {
                 .filter(memberId -> !memberId.equals(userId))
                 .distinct()
                 .toList();
+    }
+
+    /**
+     * Whether the other member of a direct chat accepted it; a pending or rejected invitation from a deleted account is
+     * dropped.
+     */
+    private static boolean acceptedByOthers(Chat chat, UUID userId) {
+        return chat.getMemberships().stream()
+                .filter(membership -> !membership.getUserId().equals(userId))
+                .allMatch(membership -> membership.getStatus() == ChatStatus.ACCEPTED);
     }
 
     private static boolean hasActiveMember(Chat chat, UUID userId, Set<UUID> deletedIds) {

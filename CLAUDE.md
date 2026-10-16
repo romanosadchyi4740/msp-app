@@ -161,9 +161,10 @@ packages are left; all code lives in a module:
   tables. Account deletion anonymizes the `users` row instead of deleting it and sets `users.deleted_at`, so
   `ON DELETE CASCADE` to `users` never fires: each `UserDataCleanup` deletes its rows itself. Other modules ask
   `UserLookup.findDeletedIds` which users are deleted, and `UserLookup.exists` is false for them, so a deleted
-  account can neither act nor be addressed. Exception by owner decision: chat messages stay, shown under the
-  anonymized account; the user leaves group chats but keeps direct-chat memberships, and a chat whose remaining
-  members all have deleted accounts is deleted with its messages (`ChatsUserDataCleanup`).
+  account can neither act nor be addressed; its profile and follow endpoints answer 404. Exception by owner decision:
+  chat messages stay, shown under the anonymized account; the user leaves group chats but keeps direct-chat
+  memberships, and a direct chat the other member never accepted, or a chat whose remaining members all have
+  deleted accounts, is deleted with its messages (`ChatsUserDataCleanup`).
 - Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, used by the
   `mapAll`/`mapPage` methods of the mappers), never one lookup per row.
 - Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)

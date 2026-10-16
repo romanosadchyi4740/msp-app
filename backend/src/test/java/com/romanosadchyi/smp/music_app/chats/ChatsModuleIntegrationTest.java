@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -106,6 +107,7 @@ class ChatsModuleIntegrationTest {
         Registered alice = register("Alice");
         Registered bob = register("Bob");
         UUID chatId = openChat(alice, bob);
+        accept(bob, chatId);
         send(bob, chatId, "from bob", null);
         send(alice, chatId, "from alice", null);
 
@@ -150,6 +152,27 @@ class ChatsModuleIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bob.bearer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[?(@.id == '%s')]".formatted(alice.id())).isEmpty());
+        mockMvc.perform(get("/api/users/" + alice.id()).header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/users/" + alice.id() + "/follow").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteAccount_InvitationNotYetAccepted_DeletesTheChat() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        UUID chatId = openChat(alice, bob);
+        send(alice, chatId, "hi, are you there?", null);
+
+        mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isNoContent());
+
+        assertThat(count("chats WHERE id = ?", chatId)).isZero();
+        assertThat(count("messages WHERE chat_id = ?", chatId)).isZero();
+        mockMvc.perform(get("/api/chats").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -175,6 +198,7 @@ class ChatsModuleIntegrationTest {
         Registered alice = register("Alice");
         Registered bob = register("Bob");
         UUID chatId = openChat(alice, bob);
+        accept(bob, chatId);
         send(alice, chatId, "from alice", null);
         send(bob, chatId, "from bob", null);
 
@@ -212,6 +236,11 @@ class ChatsModuleIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(JsonPath.read(response, "$.id"));
+    }
+
+    private void accept(Registered member, UUID chatId) throws Exception {
+        mockMvc.perform(put("/api/chats/" + chatId + "/accept").header(HttpHeaders.AUTHORIZATION, member.bearer()))
+                .andExpect(status().is2xxSuccessful());
     }
 
     private UUID createGroup(Registered creator, Registered... members) throws Exception {

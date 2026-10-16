@@ -84,7 +84,16 @@ const UserProfilePage = () => {
     );
   }
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="w-12 h-12 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
+          <UserIcon size={16} className="text-zinc-400 dark:text-zinc-500" />
+        </div>
+        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">Node Not Found</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-24 pb-32">

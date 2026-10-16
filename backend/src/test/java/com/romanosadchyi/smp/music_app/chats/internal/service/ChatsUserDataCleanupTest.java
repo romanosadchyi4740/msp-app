@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.chats.internal.service;
 
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
+import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import org.junit.jupiter.api.Test;
@@ -73,14 +74,41 @@ class ChatsUserDataCleanupTest {
     @Test
     void deleteUserData_DirectChatWithActiveMember_KeepsTheUsersMembership() {
         Chat chat = Chat.builder().isGroup(false).build();
-        ChatMembership own = ChatMemberships.add(chat, userId, null, true);
-        ChatMembership other = ChatMemberships.add(chat, otherId, null, false);
+        ChatMembership own = ChatMemberships.add(chat, userId, ChatStatus.ACCEPTED, true);
+        ChatMembership other = ChatMemberships.add(chat, otherId, ChatStatus.ACCEPTED, false);
         when(chatRepository.findAllByParticipantIdForUpdate(userId)).thenReturn(List.of(chat));
         when(userLookup.findDeletedIds(List.of(otherId))).thenReturn(Set.of());
 
         cleanup.deleteUserData(userId);
 
         assertThat(chat.getMemberships()).containsExactlyInAnyOrder(own, other);
+        verify(chatRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteUserData_DirectChatInvitationNotAccepted_DeletesTheChat() {
+        Chat chat = Chat.builder().isGroup(false).build();
+        ChatMemberships.add(chat, userId, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, otherId, ChatStatus.PENDING, false);
+        when(chatRepository.findAllByParticipantIdForUpdate(userId)).thenReturn(List.of(chat));
+        when(userLookup.findDeletedIds(List.of(otherId))).thenReturn(Set.of());
+
+        cleanup.deleteUserData(userId);
+
+        verify(chatRepository).delete(chat);
+    }
+
+    @Test
+    void deleteUserData_GroupInvitationNotAccepted_RemovesOnlyTheUser() {
+        Chat chat = Chat.builder().isGroup(true).build();
+        ChatMemberships.add(chat, userId, ChatStatus.ACCEPTED, true);
+        ChatMembership other = ChatMemberships.add(chat, otherId, ChatStatus.PENDING, false);
+        when(chatRepository.findAllByParticipantIdForUpdate(userId)).thenReturn(List.of(chat));
+        when(userLookup.findDeletedIds(List.of(otherId))).thenReturn(Set.of());
+
+        cleanup.deleteUserData(userId);
+
+        assertThat(chat.getMemberships()).containsExactly(other);
         verify(chatRepository, never()).delete(any());
     }
 

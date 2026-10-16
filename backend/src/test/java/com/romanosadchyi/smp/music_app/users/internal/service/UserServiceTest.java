@@ -50,11 +50,11 @@ class UserServiceTest {
     void getUserById_UserExists_ReturnsDto() {
         UUID id = UUID.randomUUID();
         User user = User.builder().id(id).displayName("Test").build();
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.of(user));
         when(userMappingService.map(user)).thenReturn(UserResponseDto.builder().id(id).displayName("Test").build());
 
         UserResponseDto res = userService.getUserById(id);
-        
+
         assertNotNull(res);
         assertEquals("Test", res.displayName());
     }
@@ -62,7 +62,7 @@ class UserServiceTest {
     @Test
     void getUserById_UserNotFound_ThrowsException() {
         UUID id = UUID.randomUUID();
-        when(userRepository.findById(id)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
         assertThrows(UserNotFoundException.class, () -> userService.getUserById(id));
     }
 
@@ -89,7 +89,7 @@ class UserServiceTest {
     void becomeArtist_UserExists_UpdatesRole() {
         UUID id = UUID.randomUUID();
         User user = User.builder().id(id).role(UserRole.ROLE_USER).build();
-        
+
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -103,17 +103,30 @@ class UserServiceTest {
     void followUser_ValidUsers_Follows() {
         UUID followerId = UUID.randomUUID();
         UUID followingId = UUID.randomUUID();
-        
+
         User follower = User.builder().id(followerId).following(new HashSet<>()).build();
         User following = User.builder().id(followingId).build();
 
-        when(userRepository.findById(followerId)).thenReturn(Optional.of(follower));
-        when(userRepository.findById(followingId)).thenReturn(Optional.of(following));
+        when(userRepository.findByIdAndDeletedAtIsNull(followerId)).thenReturn(Optional.of(follower));
+        when(userRepository.findByIdAndDeletedAtIsNull(followingId)).thenReturn(Optional.of(following));
 
         userService.followUser(followerId, followingId);
 
         assertTrue(follower.getFollowing().contains(following));
         verify(userRepository).save(follower);
+    }
+
+    @Test
+    void followUser_DeletedAccount_IsNotFound() {
+        UUID followerId = UUID.randomUUID();
+        UUID deletedId = UUID.randomUUID();
+        User follower = User.builder().id(followerId).following(new HashSet<>()).build();
+        when(userRepository.findByIdAndDeletedAtIsNull(followerId)).thenReturn(Optional.of(follower));
+        when(userRepository.findByIdAndDeletedAtIsNull(deletedId)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> userService.followUser(followerId, deletedId));
+        assertTrue(follower.getFollowing().isEmpty());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -126,7 +139,7 @@ class UserServiceTest {
     void unfollowUser_ValidUsers_Unfollows() {
         UUID followerId = UUID.randomUUID();
         UUID followingId = UUID.randomUUID();
-        
+
         User following = User.builder().id(followingId).build();
         User follower = User.builder().id(followerId).following(new HashSet<>(List.of(following))).build();
 
