@@ -2,20 +2,22 @@ package com.romanosadchyi.smp.music_app.chats.internal.service;
 
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
-import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
-import com.romanosadchyi.smp.music_app.chats.internal.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * On account deletion: removes the user from every chat and deletes the messages they sent. A chat left without
- * members is deleted; the other members keep their chats and their own messages.
+ * On account deletion: the user's messages stay, shown under the anonymized account. The user leaves group chats but
+ * stays a member of direct chats, so the other member still sees who they talked to. A chat whose remaining members
+ * all have deleted accounts is deleted with its messages.
  */
 @Component
 @RequiredArgsConstructor
@@ -23,19 +25,34 @@ import java.util.UUID;
 class ChatsUserDataCleanup implements UserDataCleanup {
 
     ChatRepository chatRepository;
-    ChatMembershipRepository chatMembershipRepository;
-    MessageRepository messageRepository;
+    UserLookup userLookup;
 
     @Override
     public void deleteUserData(UUID userId) {
-        for (ChatMembership membership : chatMembershipRepository.findAllByUserId(userId)) {
-            Chat chat = membership.getChat();
-            chat.getMemberships().remove(membership);
-            if (chat.getMemberships().isEmpty()) {
+        // Locked first: a member deleting their account at the same time waits and then sees this one as deleted
+        List<Chat> chats = chatRepository.findAllByParticipantIdForUpdate(userId);
+        Set<UUID> deletedIds = userLookup.findDeletedIds(otherMemberIds(chats, userId));
+        for (Chat chat : chats) {
+            if (!hasActiveMember(chat, userId, deletedIds)) {
                 chatRepository.delete(chat);
+            } else if (Boolean.TRUE.equals(chat.getIsGroup())) {
+                ChatMemberships.find(chat, userId).ifPresent(chat.getMemberships()::remove);
             }
         }
-        // After the chats above: a bulk delete bypasses the messages they cascade to
-        messageRepository.deleteAllBySenderId(userId);
+    }
+
+    private static List<UUID> otherMemberIds(List<Chat> chats, UUID userId) {
+        return chats.stream()
+                .flatMap(chat -> chat.getMemberships().stream())
+                .map(ChatMembership::getUserId)
+                .filter(memberId -> !memberId.equals(userId))
+                .distinct()
+                .toList();
+    }
+
+    private static boolean hasActiveMember(Chat chat, UUID userId, Set<UUID> deletedIds) {
+        return chat.getMemberships().stream()
+                .map(ChatMembership::getUserId)
+                .anyMatch(memberId -> !memberId.equals(userId) && !deletedIds.contains(memberId));
     }
 }

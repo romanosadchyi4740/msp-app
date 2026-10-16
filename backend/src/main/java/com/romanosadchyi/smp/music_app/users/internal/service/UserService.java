@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,7 +40,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserResponseDto> searchUsers(String query, int pageNo, int pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        return userRepository.findAllByDisplayNameContainingIgnoreCase(query, pageable)
+        return userRepository.findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull(query, pageable)
                 .map(userMappingService::map);
     }
 
@@ -124,6 +125,7 @@ public class UserService {
         user.setBiography(null);
         user.setProviderId(null);
         user.setProvider(null);
+        user.setDeletedAt(Instant.now());
 
         userRepository.save(user);
     }

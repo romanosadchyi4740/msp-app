@@ -34,7 +34,7 @@ class UserLookupService implements UserLookup {
     @Override
     @Transactional(readOnly = true)
     public boolean exists(UUID userId) {
-        return userRepository.existsById(userId);
+        return userRepository.existsByIdAndDeletedAtIsNull(userId);
     }
 
     @Override
@@ -66,7 +66,7 @@ class UserLookupService implements UserLookup {
     @Override
     @Transactional(readOnly = true)
     public Page<UserResponseDto> searchProfiles(String displayNameQuery, Pageable pageable) {
-        return userRepository.findAllByDisplayNameContainingIgnoreCase(displayNameQuery, pageable)
+        return userRepository.findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull(displayNameQuery, pageable)
                 .map(userMappingService::map);
     }
 
@@ -74,6 +74,15 @@ class UserLookupService implements UserLookup {
     @Transactional(readOnly = true)
     public Set<UUID> findFollowingIds(UUID userId) {
         return userRepository.findFollowingIds(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> findDeletedIds(Collection<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Set.of();
+        }
+        return userRepository.findDeletedIds(userIds);
     }
 
     private User getUser(UUID userId) {

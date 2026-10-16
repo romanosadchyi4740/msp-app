@@ -8,6 +8,7 @@ import com.romanosadchyi.smp.music_app.music.internal.entity.Album;
 import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
 import com.romanosadchyi.smp.music_app.music.internal.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.music.internal.repository.TrackRepository;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -16,9 +17,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -98,7 +102,76 @@ class ChatsModuleIntegrationTest {
     }
 
     @Test
-    void deleteAccount_RemovesTheUsersMembershipsAndMessagesOnly() throws Exception {
+    void deleteAccount_DirectChat_KeepsTheMessagesUnderTheAnonymizedUser() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        UUID chatId = openChat(alice, bob);
+        send(bob, chatId, "from bob", null);
+        send(alice, chatId, "from alice", null);
+
+        mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].content").value("from alice"))
+                .andExpect(jsonPath("$.content[0].sender.id").value(alice.id().toString()))
+                .andExpect(jsonPath("$.content[0].sender.displayName").value("Disconnected Node"));
+        mockMvc.perform(get("/api/chats").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].participants.length()").value(2))
+                .andExpect(jsonPath("$[0].participants[?(@.id == '%s')].displayName".formatted(alice.id()))
+                        .value("Disconnected Node"));
+        mockMvc.perform(post("/api/chats/with/" + alice.id()).header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(chatId.toString()));
+    }
+
+    @Test
+    void deleteAccount_TokenStillValid_CannotOpenChatsOrBeInvited() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        UUID chatId = openChat(alice, bob);
+
+        mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isNoContent());
+
+        Registered carol = register("Carol");
+        mockMvc.perform(post("/api/chats/with/" + carol.id()).header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/chats/cluster").header(HttpHeaders.AUTHORIZATION, carol.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"groupName\": \"Band\", \"participantIds\": [\"%s\"]}".formatted(alice.id())))
+                .andExpect(status().isNotFound());
+        assertThatThrownBy(() -> send(alice, chatId, "still here?", null))
+                .isInstanceOf(UserNotFoundException.class);
+        mockMvc.perform(get("/api/users/search").param("q", "Disconnected")
+                        .header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.id == '%s')]".formatted(alice.id())).isEmpty());
+    }
+
+    @Test
+    void deleteAccount_GroupChat_RemovesTheMemberButKeepsTheirMessages() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        Registered carol = register("Carol");
+        UUID groupId = createGroup(alice, bob, carol);
+        send(bob, groupId, "hi all", null);
+
+        mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isNoContent());
+
+        assertThat(count("chat_memberships WHERE user_id = ?", bob.id())).isZero();
+        mockMvc.perform(get("/api/chats/" + groupId + "/messages").header(HttpHeaders.AUTHORIZATION, carol.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].sender.displayName").value("Disconnected Node"));
+    }
+
+    @Test
+    void deleteAccount_BothMembersOfADirectChat_DeletesTheChat() throws Exception {
         Registered alice = register("Alice");
         Registered bob = register("Bob");
         UUID chatId = openChat(alice, bob);
@@ -107,26 +180,20 @@ class ChatsModuleIntegrationTest {
 
         mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
                 .andExpect(status().isNoContent());
+        assertThat(count("chats WHERE id = ?", chatId)).isOne();
 
-        assertThat(count("chat_memberships WHERE user_id = ?", alice.id())).isZero();
-        assertThat(count("messages WHERE sender_id = ?", alice.id())).isZero();
-        mockMvc.perform(get("/api/chats").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].participants.length()").value(1))
-                .andExpect(jsonPath("$[0].participants[0].id").value(bob.id().toString()))
-                .andExpect(jsonPath("$[0].lastMessage.content").value("from bob"));
+        mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isNoContent());
+        assertThat(count("chats WHERE id = ?", chatId)).isZero();
+        assertThat(count("messages WHERE chat_id = ?", chatId)).isZero();
+        assertThat(count("chat_memberships WHERE chat_id = ?", chatId)).isZero();
     }
 
     @Test
     void deleteAccount_LastMemberOfAGroup_DeletesTheGroup() throws Exception {
         Registered alice = register("Alice");
         Registered bob = register("Bob");
-        String response = mockMvc.perform(post("/api/chats/cluster").header(HttpHeaders.AUTHORIZATION, alice.bearer())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"groupName\": \"Band\", \"participantIds\": [\"%s\"]}".formatted(bob.id())))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        UUID groupId = UUID.fromString(JsonPath.read(response, "$.id"));
+        UUID groupId = createGroup(alice, bob);
         send(alice, groupId, "welcome", null);
 
         mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
@@ -142,6 +209,18 @@ class ChatsModuleIntegrationTest {
     private UUID openChat(Registered initiator, Registered recipient) throws Exception {
         String response = mockMvc.perform(post("/api/chats/with/" + recipient.id())
                         .header(HttpHeaders.AUTHORIZATION, initiator.bearer()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(JsonPath.read(response, "$.id"));
+    }
+
+    private UUID createGroup(Registered creator, Registered... members) throws Exception {
+        String memberIds = Arrays.stream(members)
+                .map(member -> "\"" + member.id() + "\"")
+                .collect(Collectors.joining(", "));
+        String response = mockMvc.perform(post("/api/chats/cluster").header(HttpHeaders.AUTHORIZATION, creator.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"groupName\": \"Band\", \"participantIds\": [%s]}".formatted(memberIds)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(JsonPath.read(response, "$.id"));

@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,7 +98,7 @@ class UserLookupServiceTest {
     @Test
     void searchProfiles_MapsMatchingUsers() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(userRepository.findAllByDisplayNameContainingIgnoreCase("art", pageable))
+        when(userRepository.findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull("art", pageable))
                 .thenReturn(new PageImpl<>(List.of(user)));
 
         assertThat(userLookup.searchProfiles("art", pageable).getContent())
@@ -108,10 +109,25 @@ class UserLookupServiceTest {
     @Test
     void existsAndFollowingIds_DelegateToRepository() {
         UUID followed = UUID.randomUUID();
-        when(userRepository.existsById(user.getId())).thenReturn(true);
+        when(userRepository.existsByIdAndDeletedAtIsNull(user.getId())).thenReturn(true);
         when(userRepository.findFollowingIds(user.getId())).thenReturn(Set.of(followed));
 
         assertThat(userLookup.exists(user.getId())).isTrue();
         assertThat(userLookup.findFollowingIds(user.getId())).containsExactly(followed);
+    }
+
+    @Test
+    void findDeletedIds_DelegatesToRepository() {
+        UUID deleted = UUID.randomUUID();
+        List<UUID> ids = List.of(user.getId(), deleted);
+        when(userRepository.findDeletedIds(ids)).thenReturn(Set.of(deleted));
+
+        assertThat(userLookup.findDeletedIds(ids)).containsExactly(deleted);
+    }
+
+    @Test
+    void findDeletedIds_NoIds_DoesNotQuery() {
+        assertThat(userLookup.findDeletedIds(List.of())).isEmpty();
+        verifyNoInteractions(userRepository);
     }
 }

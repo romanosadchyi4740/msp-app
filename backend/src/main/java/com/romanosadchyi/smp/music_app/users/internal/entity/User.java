@@ -7,6 +7,7 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -75,4 +76,10 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
+
+    /**
+     * When the account was deleted; the row stays, anonymized, so other modules' references keep working.
+     */
+    @Column(name = "deleted_at")
+    Instant deletedAt;
 }

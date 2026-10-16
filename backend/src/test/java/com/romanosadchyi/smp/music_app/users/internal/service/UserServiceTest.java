@@ -170,6 +170,7 @@ class UserServiceTest {
         assertNotEquals("real-password", user.getPassword());
         assertEquals("Disconnected Node", user.getDisplayName());
         assertNull(user.getAvatarUrl());
+        assertNotNull(user.getDeletedAt());
     }
 
     @Test

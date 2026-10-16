@@ -17,8 +17,4 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     @Modifying
     @Query("UPDATE Message m SET m.sharedTrackId = null WHERE m.sharedTrackId = :trackId")
     void detachTrack(@Param("trackId") UUID trackId);
-
-    @Modifying
-    @Query("DELETE FROM Message m WHERE m.senderId = :senderId")
-    void deleteAllBySenderId(@Param("senderId") UUID senderId);
 }
