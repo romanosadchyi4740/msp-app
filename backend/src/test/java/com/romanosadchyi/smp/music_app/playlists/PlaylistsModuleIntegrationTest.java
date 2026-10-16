@@ -6,6 +6,9 @@ import com.romanosadchyi.smp.music_app.music.internal.entity.Album;
 import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
 import com.romanosadchyi.smp.music_app.music.internal.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.music.internal.repository.TrackRepository;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,11 +20,15 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,6 +51,9 @@ class PlaylistsModuleIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    EntityManagerFactory entityManagerFactory;
 
     @Test
     void playlist_KeepsTrackOrderAndShowsTrackData() throws Exception {
@@ -179,17 +189,52 @@ class PlaylistsModuleIntegrationTest {
     }
 
     @Test
-    void userPublicPlaylists_ListsEachPlaylistWithItsTracks() throws Exception {
+    void userPublicPlaylists_ListsEachPlaylistWithItsTracksInOrder() throws Exception {
         Registered owner = register("Owner");
         Track first = saveTrack(owner.id(), saveAlbum(owner.id()));
         Track second = saveTrack(owner.id(), saveAlbum(owner.id()));
         createPlaylist(owner, first);
-        createPlaylist(owner, second, first);
+        UUID repeated = createPlaylist(owner, second, first, second);
+        createPlaylist(owner);
 
         mockMvc.perform(get("/api/playlists/user/" + owner.id()).header(HttpHeaders.AUTHORIZATION, owner.bearer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[*].tracksCount").value(containsInAnyOrder(1, 2)));
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[*].tracksCount").value(containsInAnyOrder(0, 1, 3)))
+                .andExpect(jsonPath("$[?(@.id == '%s')].tracks[*].id".formatted(repeated)).value(contains(
+                        second.getId().toString(), first.getId().toString(), second.getId().toString())));
+    }
+
+    @Test
+    void myPlaylists_MoreForks_TakeNoMoreStatements() throws Exception {
+        Registered owner = register("Owner");
+        Registered forker = register("Forker");
+        Track track = saveTrack(owner.id(), saveAlbum(owner.id()));
+        String myPlaylists = "/api/playlists/me";
+        String publicPlaylists = "/api/playlists/user/" + forker.id();
+        publicFork(forker, createPlaylist(owner, track));
+        long oneFork = statementsToList(myPlaylists, forker, 1);
+        long onePublicFork = statementsToList(publicPlaylists, forker, 1);
+
+        publicFork(forker, createPlaylist(owner, track));
+        publicFork(forker, createPlaylist(owner, track));
+
+        assertThat(statementsToList(myPlaylists, forker, 3)).isEqualTo(oneFork);
+        assertThat(statementsToList(publicPlaylists, forker, 3)).isEqualTo(onePublicFork);
+    }
+
+    /**
+     * The SQL statements a playlist list endpoint prepares, after checking it lists the expected forks.
+     */
+    private long statementsToList(String url, Registered user, int forks) throws Exception {
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+        mockMvc.perform(get(url).header(HttpHeaders.AUTHORIZATION, user.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(forks))
+                .andExpect(jsonPath("$[*].forkedFromOwnerName").value(everyItem(equalTo("Owner"))))
+                .andExpect(jsonPath("$[*].tracksCount").value(everyItem(equalTo(1))));
+        return statistics.getPrepareStatementCount();
     }
 
     private UUID createPlaylist(Registered owner, Track... tracks) throws Exception {
@@ -217,6 +262,16 @@ class PlaylistsModuleIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(JsonPath.read(response, "$.id"));
+    }
+
+    /**
+     * Forks are private when created; this makes the fork public so the public list shows it too.
+     */
+    private void publicFork(Registered user, UUID playlistId) throws Exception {
+        UUID forkId = fork(user, playlistId);
+        mockMvc.perform(put("/api/playlists/" + forkId + "/visibility").header(HttpHeaders.AUTHORIZATION, user.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isPublic").value(true));
     }
 
     private void propose(Registered user, UUID forkId) throws Exception {
