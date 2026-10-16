@@ -20,10 +20,9 @@ write operations. Your output is a findings report for the main agent and the ow
 
 ## Checklist
 **Module boundaries (CLAUDE.md section 4)**
-- No class outside a module imports its `internal` package. Legacy packages (`config`, `exception`, `model`,
-  `repository`, `rest`, `service`) may use `music.internal` only until KAN-70, never `users.internal` or
-  `storage.internal`. Extracted modules (`shared`, `users`, `storage`, `music`, ...) depend only on `shared` and other
-  modules' `external`.
+- No class outside a module imports its `internal` package, including the legacy packages (`model`, `rest`,
+  `service`) that remain until KAN-71. Extracted modules (`shared`, `users`, `storage`, `music`, ...) depend only on
+  `shared` and other modules' `external`.
 - `shared` imports nothing from feature code.
 - Cross-module references are UUID columns, not `@ManyToOne`/`@ManyToMany` to another module's entity.
 - New external interfaces live in `<module>.external` with `@NamedInterface("external")` in `package-info.java`;

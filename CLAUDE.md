@@ -91,9 +91,9 @@ and `frontend/.env.example` lists them for builds.
   (the room `ChannelInterceptor` from section 6 has to be added). Endpoints are `/ws` (SockJS, used by the
   frontend) and `/ws-raw` (plain WebSocket, for Postman). The broker is the simple in-memory broker on
   `/topic` and `/queue`, with app prefix `/app` and user prefix `/user`.
-- **Chat**: `MessageController` `@MessageMapping("/chat")` → `ChatService` persists the message (content is encrypted
-  transparently by the JPA `MessageEncryptionConverter` → `EncryptionUtil`) and fans out with `convertAndSendToUser(..., "/queue/messages")` to each
-  member. The `socketClient` singleton subscribes to `/user/queue/messages` in `onConnect`. Its
+- **Chat** (module `chats`): `MessageController` `@MessageMapping("/chat")` → `ChatMessageService` persists the message
+  (content is encrypted transparently by the JPA `MessageEncryptionConverter` → `EncryptionUtil`) and
+  `ChatMessageNotifier` fans out with `convertAndSendToUser(..., "/queue/messages")` to each member. The `socketClient` singleton subscribes to `/user/queue/messages` in `onConnect`. Its
   `subscribe()` returns `null` when not connected, so callers must subscribe after connect.
 - **Broadcast rooms (the existing sync feature)**: `BroadcastController` is a **stateless relay**
   (`/app/broadcast/{id}/sync` → `@SendTo /topic/broadcast/{id}`) with no role check. All logic is
@@ -156,7 +156,8 @@ it stays `@Disabled` until the legacy layered packages are extracted, and `share
   calls all beans of that type on account deletion; `rooms` asks `billing.external.PremiumChecker`.
   The same goes for references to another module's rows: deleting a track calls every
   `music.external.TrackDeletionCleanup` (playlists and chat messages drop the track), so `music` never touches their
-  tables. Until chats is a module, `service.LegacyTrackDeletionCleanup` does its part.
+  tables. Account deletion anonymizes the `users` row instead of deleting it, so `ON DELETE CASCADE` to `users`
+  never fires: each `UserDataCleanup` deletes its rows itself.
 - Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, used by the
   `mapAll`/`mapPage` methods of the mappers), never one lookup per row.
 - Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)

@@ -33,7 +33,7 @@ class ArchitectureTest {
      * {@code external} package.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"users", "storage", "playlists"})
+    @ValueSource(strings = {"users", "storage", "music", "playlists", "chats", "telemetry"})
     void moduleInternalIsUsedOnlyByItsModule(String module) {
         noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + "." + module + "..")
                 .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + "." + module + ".internal..")
@@ -41,21 +41,8 @@ class ArchitectureTest {
     }
 
     /**
-     * Like {@link #moduleInternalIsUsedOnlyByItsModule}, but the legacy packages may still use {@code music.internal}:
-     * chat messages and status broadcasts keep JPA links to {@code Track} until KAN-70 turns them into track ids.
-     * Extracted modules may not.
-     */
-    @Test
-    void musicInternalIsNotUsedByOtherModules() {
-        noClasses().that().resideInAnyPackage(BASE_PACKAGE + ".shared..", BASE_PACKAGE + ".users..",
-                        BASE_PACKAGE + ".storage..", BASE_PACKAGE + ".playlists..")
-                .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + ".music.internal..")
-                .check(importMainClasses());
-    }
-
-    /**
-     * {@code music} depends on nothing that is not yet a module, so extracting playlists and chats cannot create a
-     * cycle back into it.
+     * {@code music} depends on nothing that is not yet a module, so later extractions cannot create a cycle back
+     * into it.
      */
     @Test
     void musicDependsOnlyOnModules() {
@@ -74,6 +61,32 @@ class ArchitectureTest {
         classes().that().resideInAPackage(BASE_PACKAGE + ".playlists..")
                 .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
                         .or(resideInAnyPackage(BASE_PACKAGE + ".playlists..", BASE_PACKAGE + ".shared..",
+                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..")))
+                .check(importMainClasses());
+    }
+
+    /**
+     * Like {@link #musicDependsOnlyOnModules}: {@code chats} reads users, tracks and files only through their
+     * {@code external} interfaces.
+     */
+    @Test
+    void chatsDependsOnlyOnModules() {
+        classes().that().resideInAPackage(BASE_PACKAGE + ".chats..")
+                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
+                        .or(resideInAnyPackage(BASE_PACKAGE + ".chats..", BASE_PACKAGE + ".shared..",
+                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..",
+                                BASE_PACKAGE + ".storage.external..")))
+                .check(importMainClasses());
+    }
+
+    /**
+     * Like {@link #musicDependsOnlyOnModules}: {@code telemetry} reads users and tracks only through their lookups.
+     */
+    @Test
+    void telemetryDependsOnlyOnModules() {
+        classes().that().resideInAPackage(BASE_PACKAGE + ".telemetry..")
+                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
+                        .or(resideInAnyPackage(BASE_PACKAGE + ".telemetry..", BASE_PACKAGE + ".shared..",
                                 BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..")))
                 .check(importMainClasses());
     }
