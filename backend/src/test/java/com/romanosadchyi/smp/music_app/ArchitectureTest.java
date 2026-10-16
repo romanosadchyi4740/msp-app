@@ -35,5 +35,4 @@ class ArchitectureTest {
                         .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                         .importPackages(BASE_PACKAGE));
     }
-
 }

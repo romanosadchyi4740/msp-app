@@ -76,5 +76,4 @@ class JwtAuthenticationFilterTest {
         }
         return request;
     }
-
 }

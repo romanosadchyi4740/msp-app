@@ -70,5 +70,4 @@ public class AlbumController {
         albumService.deleteAlbum(id, user.id());
         return ResponseEntity.noContent().build();
     }
-
 }

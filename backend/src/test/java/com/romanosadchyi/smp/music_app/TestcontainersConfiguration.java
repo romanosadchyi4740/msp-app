@@ -45,5 +45,4 @@ public class TestcontainersConfiguration {
         return registry -> registry.add("minio.url",
                 () -> "http://" + s3Container.getHost() + ":" + s3Container.getMappedPort(S3_PORT));
     }
-
 }

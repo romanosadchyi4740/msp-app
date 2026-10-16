@@ -98,5 +98,4 @@ public class MinioService {
             log.error("Error occurred while deleting file from MinIO: {}", objectName, e);
         }
     }
-
 }

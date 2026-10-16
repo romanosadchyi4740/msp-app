@@ -145,7 +145,7 @@ class PlaylistServiceTest {
                 .id(originalId)
                 .title("Original")
                 .isPublic(true)
-                .tracks(new ArrayList<>(java.util.List.of(track)))
+                .tracks(new ArrayList<>(List.of(track)))
                 .build();
 
         when(playlistRepository.findById(originalId)).thenReturn(Optional.of(original));
@@ -189,9 +189,9 @@ class PlaylistServiceTest {
         Track track1 = Track.builder().id(UUID.randomUUID()).build();
         Track newTrack = Track.builder().id(UUID.randomUUID()).build();
         
-        Playlist origin = Playlist.builder().tracks(new ArrayList<>(java.util.List.of(track1))).build();
+        Playlist origin = Playlist.builder().tracks(new ArrayList<>(List.of(track1))).build();
         Playlist fork = Playlist.builder().id(forkId).ownerId(requesterId).forkedFrom(origin)
-                .tracks(new ArrayList<>(java.util.List.of(track1, newTrack))).build();
+                .tracks(new ArrayList<>(List.of(track1, newTrack))).build();
                 
         User requester = User.builder().id(requesterId).build();
 
@@ -215,9 +215,9 @@ class PlaylistServiceTest {
         
         Track track1 = Track.builder().id(UUID.randomUUID()).build();
         
-        Playlist origin = Playlist.builder().tracks(new ArrayList<>(java.util.List.of(track1))).build();
+        Playlist origin = Playlist.builder().tracks(new ArrayList<>(List.of(track1))).build();
         Playlist fork = Playlist.builder().id(forkId).ownerId(requesterId).forkedFrom(origin)
-                .tracks(new ArrayList<>(java.util.List.of(track1))).build();
+                .tracks(new ArrayList<>(List.of(track1))).build();
 
         when(playlistRepository.findById(forkId)).thenReturn(Optional.of(fork));
 
@@ -233,12 +233,12 @@ class PlaylistServiceTest {
         Track existingTrack = Track.builder().id(UUID.randomUUID()).build();
         Track proposedTrack = Track.builder().id(UUID.randomUUID()).build();
         
-        Playlist target = Playlist.builder().ownerId(ownerId).tracks(new ArrayList<>(java.util.List.of(existingTrack))).build();
+        Playlist target = Playlist.builder().ownerId(ownerId).tracks(new ArrayList<>(List.of(existingTrack))).build();
         IntegrationRequest request = IntegrationRequest.builder()
                 .id(requestId)
                 .status(RequestStatus.PENDING)
                 .targetPlaylist(target)
-                .proposedTracks(new HashSet<>(java.util.List.of(proposedTrack)))
+                .proposedTracks(new HashSet<>(List.of(proposedTrack)))
                 .build();
 
         when(integrationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
@@ -275,7 +275,7 @@ class PlaylistServiceTest {
     @Test
     void getMyPlaylists_ReturnsList() {
         UUID userId = UUID.randomUUID();
-        when(playlistRepository.findAllByOwnerId(userId)).thenReturn(java.util.List.of(new Playlist()));
+        when(playlistRepository.findAllByOwnerId(userId)).thenReturn(List.of(new Playlist()));
         
         List<PlaylistResponseDto> result = playlistService.getMyPlaylists(userId);
         
@@ -286,7 +286,7 @@ class PlaylistServiceTest {
     @Test
     void getUserPublicPlaylists_ReturnsList() {
         UUID userId = UUID.randomUUID();
-        when(playlistRepository.findAllByOwnerIdAndIsPublicTrue(userId)).thenReturn(java.util.List.of(new Playlist()));
+        when(playlistRepository.findAllByOwnerIdAndIsPublicTrue(userId)).thenReturn(List.of(new Playlist()));
         
         List<PlaylistResponseDto> result = playlistService.getUserPublicPlaylists(userId);
         
@@ -301,7 +301,7 @@ class PlaylistServiceTest {
         UUID trackId = UUID.randomUUID();
         
         Track track = Track.builder().id(trackId).build();
-        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).tracks(new ArrayList<>(java.util.List.of(track))).build();
+        Playlist playlist = Playlist.builder().id(playlistId).ownerId(ownerId).tracks(new ArrayList<>(List.of(track))).build();
 
         when(playlistRepository.findById(playlistId)).thenReturn(Optional.of(playlist));
         when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));

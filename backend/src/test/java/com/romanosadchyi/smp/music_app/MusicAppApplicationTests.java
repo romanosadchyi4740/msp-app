@@ -36,5 +36,4 @@ class MusicAppApplicationTests {
 				.isNotEmpty()
 				.allSatisfy(migration -> assertThat(migration.getState().isFailed()).isFalse());
 	}
-
 }

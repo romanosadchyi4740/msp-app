@@ -72,5 +72,4 @@ public class ReferenceDataSeeder implements CommandLineRunner {
             log.info("Successfully seeded {} genres.", genreColors.size());
         }
     }
-
 }

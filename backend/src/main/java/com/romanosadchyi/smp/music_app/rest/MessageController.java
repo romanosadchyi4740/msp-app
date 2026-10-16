@@ -56,5 +56,4 @@ public class MessageController {
             return ResponseEntity.internalServerError().build();
         }
     }
-
 }

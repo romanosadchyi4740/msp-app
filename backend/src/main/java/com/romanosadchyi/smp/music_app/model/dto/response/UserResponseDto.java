@@ -16,4 +16,5 @@ public record UserResponseDto(
         LocalDateTime createdAt,
         Integer followersCount,
         Integer followingCount
-) {}
+) {
+}

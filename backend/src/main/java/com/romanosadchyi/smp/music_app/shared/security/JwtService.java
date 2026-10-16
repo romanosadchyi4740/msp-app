@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app.shared.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -40,8 +41,8 @@ public class JwtService {
     /**
      * Reads the user from a token's claims.
      *
-     * @throws io.jsonwebtoken.JwtException if the signature is invalid or the token has expired
-     * @throws IllegalArgumentException     if the subject is not a UUID or the role claim is missing
+     * @throws JwtException             if the signature is invalid or the token has expired
+     * @throws IllegalArgumentException if the subject is not a UUID or the role claim is missing
      */
     public AuthenticatedUser parseToken(String token) {
         Claims claims = Jwts.parser()
@@ -60,5 +61,4 @@ public class JwtService {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-
 }

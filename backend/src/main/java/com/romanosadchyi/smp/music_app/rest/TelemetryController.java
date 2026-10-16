@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.TelemetryBroadcastRequest;
+import com.romanosadchyi.smp.music_app.model.dto.response.ConsensusPollResponse;
 import com.romanosadchyi.smp.music_app.model.dto.response.StatusBroadcastResponse;
 import com.romanosadchyi.smp.music_app.service.TelemetryService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
@@ -35,7 +36,7 @@ public class TelemetryController {
     }
 
     @PostMapping("/polls/options/{optionId}/vote")
-    public ResponseEntity<com.romanosadchyi.smp.music_app.model.dto.response.ConsensusPollResponse> voteOnOption(
+    public ResponseEntity<ConsensusPollResponse> voteOnOption(
             @PathVariable UUID optionId,
             @AuthenticationPrincipal AuthenticatedUser user) {
         return ResponseEntity.ok(telemetryService.voteOnOption(optionId, user.id()));

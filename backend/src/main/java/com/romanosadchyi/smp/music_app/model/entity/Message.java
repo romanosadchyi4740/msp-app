@@ -51,5 +51,4 @@ public class Message {
     @CreationTimestamp
     @Column(name = "timestamp", updatable = false)
     LocalDateTime timestamp;
-
 }

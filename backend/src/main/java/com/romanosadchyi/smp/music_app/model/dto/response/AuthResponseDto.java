@@ -5,4 +5,5 @@ public record AuthResponseDto(
         String displayName,
         String userId,
         String role
-) {}
+) {
+}

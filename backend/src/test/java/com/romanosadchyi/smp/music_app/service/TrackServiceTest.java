@@ -27,6 +27,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -66,7 +67,7 @@ class TrackServiceTest {
         Album album = Album.builder().id(albumId).author(author).coverUrl("album-cover.jpg").build();
         Genre genre = Genre.builder().id(UUID.randomUUID()).build();
         
-        TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, java.util.Set.of(genre.getId()));
+        TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, Set.of(genre.getId()));
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
@@ -94,7 +95,7 @@ class TrackServiceTest {
         Album album = Album.builder().id(albumId).author(author).coverUrl("album-cover.jpg").build();
         Genre genre = Genre.builder().id(UUID.randomUUID()).build();
         
-        TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, java.util.Set.of(genre.getId()));
+        TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, Set.of(genre.getId()));
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
@@ -110,7 +111,7 @@ class TrackServiceTest {
     void createTrack_UserNotArtist_ThrowsException() {
         UUID authorId = UUID.randomUUID();
         User author = User.builder().id(authorId).role(UserRole.ROLE_USER).build(); // Not an artist
-        TrackCreateDto dto = new TrackCreateDto("Test", 120, null, UUID.randomUUID(), null, java.util.Set.of());
+        TrackCreateDto dto = new TrackCreateDto("Test", 120, null, UUID.randomUUID(), null, Set.of());
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));

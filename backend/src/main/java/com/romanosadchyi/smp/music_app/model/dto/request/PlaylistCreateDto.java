@@ -4,4 +4,5 @@ public record PlaylistCreateDto(
         String title,
         String description,
         boolean isPublic
-) {}
+) {
+}

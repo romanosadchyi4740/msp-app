@@ -74,5 +74,4 @@ class JwtStompChannelInterceptorTest {
         accessor.setLeaveMutable(true);
         return MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
     }
-
 }

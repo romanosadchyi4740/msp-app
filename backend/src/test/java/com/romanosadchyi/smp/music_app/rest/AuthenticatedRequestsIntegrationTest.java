@@ -87,5 +87,4 @@ class AuthenticatedRequestsIntegrationTest {
 
     private record Registered(String id, String token) {
     }
-
 }

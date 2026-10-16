@@ -24,5 +24,4 @@ public record AuthenticatedUser(UUID id, String email, String role) implements P
     public List<GrantedAuthority> authorities() {
         return List.of(new SimpleGrantedAuthority(role));
     }
-
 }

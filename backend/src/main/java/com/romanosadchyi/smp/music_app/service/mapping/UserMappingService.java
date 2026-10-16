@@ -20,5 +20,4 @@ public class UserMappingService {
                 .followingCount(user.getFollowing() != null ? user.getFollowing().size() : 0)
                 .build();
     }
-
 }

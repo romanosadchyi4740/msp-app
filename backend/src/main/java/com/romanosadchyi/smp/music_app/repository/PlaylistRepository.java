@@ -19,5 +19,4 @@ public interface PlaylistRepository extends JpaRepository<Playlist, UUID> {
     @Modifying
     @Query("UPDATE Playlist p SET p.forkedFrom = null WHERE p.forkedFrom = :playlist")
     void detachParentPlaylist(@Param("playlist") Playlist playlist);
-
 }

@@ -10,4 +10,5 @@ public record GenreResponseDto(
         String name,
         String slug,
         String colorHex
-) {}
+) {
+}

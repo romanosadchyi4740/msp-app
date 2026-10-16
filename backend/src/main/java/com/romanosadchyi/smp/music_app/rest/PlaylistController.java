@@ -128,5 +128,4 @@ public class PlaylistController {
         log.info("User {} fetching pending integrations for origin: {}", user.id(), id);
         return ResponseEntity.ok(playlistService.getPendingIntegrations(id, user.id()));
     }
-
 }

@@ -18,6 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -93,7 +97,7 @@ class AlbumServiceTest {
                 .id(albumId)
                 .title("To Delete")
                 .author(author)
-                .tracks(new ArrayList<>(java.util.List.of(track)))
+                .tracks(new ArrayList<>(List.of(track)))
                 .build();
 
         when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
@@ -145,13 +149,13 @@ class AlbumServiceTest {
 
     @Test
     void getAllAlbums_ReturnsPage() {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
-        org.springframework.data.domain.Page<Album> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Album()));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Album> page = new PageImpl<>(List.of(new Album()));
 
         when(albumRepository.findAll(pageable)).thenReturn(page);
         when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
 
-        org.springframework.data.domain.Page<AlbumResponseDto> result = albumService.getAllAlbums(pageable);
+        Page<AlbumResponseDto> result = albumService.getAllAlbums(pageable);
         assertEquals(1, result.getTotalElements());
     }
 
@@ -159,7 +163,7 @@ class AlbumServiceTest {
     void getAlbumsByAuthor_ReturnsList() {
         UUID authorId = UUID.randomUUID();
         Album album = Album.builder().id(UUID.randomUUID()).build();
-        when(albumRepository.findAllByAuthorId(authorId)).thenReturn(java.util.List.of(album));
+        when(albumRepository.findAllByAuthorId(authorId)).thenReturn(List.of(album));
         when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
 
         List<AlbumResponseDto> result = albumService.getAlbumsByAuthor(authorId);
@@ -169,25 +173,25 @@ class AlbumServiceTest {
     @Test
     void searchAlbums_WithAuthorId_ReturnsPage() {
         UUID authorId = UUID.randomUUID();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
-        org.springframework.data.domain.Page<Album> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Album()));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Album> page = new PageImpl<>(List.of(new Album()));
 
         when(albumRepository.findAllByAuthorIdAndTitleContainingIgnoreCase(authorId, "query", pageable)).thenReturn(page);
         when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
 
-        org.springframework.data.domain.Page<AlbumResponseDto> result = albumService.searchAlbums("query", authorId, pageable);
+        Page<AlbumResponseDto> result = albumService.searchAlbums("query", authorId, pageable);
         assertEquals(1, result.getTotalElements());
     }
 
     @Test
     void searchAlbums_WithoutAuthorId_ReturnsPage() {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
-        org.springframework.data.domain.Page<Album> page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(new Album()));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Album> page = new PageImpl<>(List.of(new Album()));
 
         when(albumRepository.findAllByTitleContainingIgnoreCase("query", pageable)).thenReturn(page);
         when(albumMappingService.map(any(Album.class))).thenReturn(new AlbumResponseDto(null, "Title", null, null, null, null, null, null));
 
-        org.springframework.data.domain.Page<AlbumResponseDto> result = albumService.searchAlbums("query", null, pageable);
+        Page<AlbumResponseDto> result = albumService.searchAlbums("query", null, pageable);
         assertEquals(1, result.getTotalElements());
     }
 }

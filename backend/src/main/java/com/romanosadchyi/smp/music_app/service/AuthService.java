@@ -126,5 +126,4 @@ public class AuthService {
     private static AuthenticatedUser toAuthenticatedUser(User user) {
         return new AuthenticatedUser(user.getId(), user.getEmail(), user.getRole().name());
     }
-
 }

@@ -54,5 +54,4 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
         }
         return message;
     }
-
 }

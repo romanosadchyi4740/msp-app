@@ -1,5 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
+import com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.service.ChatService;
@@ -39,7 +41,7 @@ public class ChatController {
     }
 
     @PostMapping("/cluster")
-    public ChatResponseDto createCluster(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto request) {
+    public ChatResponseDto createCluster(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody ClusterCreateRequestDto request) {
         log.info("Creating cluster {} with {} participants", request.groupName(), request.participantIds().size());
         return chatService.createCluster(user.id(), request);
     }
@@ -74,7 +76,7 @@ public class ChatController {
     }
 
     @GetMapping("/{chatId}/members")
-    public List<com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto> getChatMembers(
+    public List<ChatMembershipDto> getChatMembers(
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID chatId) {
         log.info("Getting members for chat {}", chatId);

@@ -71,5 +71,4 @@ class JwtServiceTest {
         ReflectionTestUtils.setField(service, "jwtExpiration", expiration);
         return service;
     }
-
 }

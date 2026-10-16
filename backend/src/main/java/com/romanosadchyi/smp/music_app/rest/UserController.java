@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -63,13 +64,13 @@ public class UserController {
     }
 
     @GetMapping("/{id}/tracks")
-    public ResponseEntity<java.util.List<com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto>> getUserTracks(@PathVariable UUID id) {
+    public ResponseEntity<List<TrackResponseDto>> getUserTracks(@PathVariable UUID id) {
         log.info("Getting tracks for user with ID: {}", id);
         return ResponseEntity.ok(userService.getUserTracks(id));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<org.springframework.data.domain.Page<UserResponseDto>> searchUsers(
+    public ResponseEntity<Page<UserResponseDto>> searchUsers(
             @RequestParam("q") String query,
             @RequestParam(value = "pageNo", defaultValue = "0") int pageNo,
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
@@ -93,7 +94,7 @@ public class UserController {
     }
 
     @GetMapping("/following")
-    public ResponseEntity<java.util.List<UserResponseDto>> getFollowing(@AuthenticationPrincipal AuthenticatedUser user) {
+    public ResponseEntity<List<UserResponseDto>> getFollowing(@AuthenticationPrincipal AuthenticatedUser user) {
         log.info("Getting following for user {}", user.id());
         return ResponseEntity.ok(userService.getFollowing(user.id()));
     }
@@ -104,5 +105,4 @@ public class UserController {
         userService.terminateIdentity(user.id());
         return ResponseEntity.noContent().build();
     }
-
 }

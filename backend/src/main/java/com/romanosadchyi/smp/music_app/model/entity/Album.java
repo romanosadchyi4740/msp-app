@@ -60,5 +60,4 @@ public class Album {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
-
 }

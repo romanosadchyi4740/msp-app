@@ -106,5 +106,4 @@ public class TrackController {
         log.info("Getting recommended tracks for user {}", user.id());
         return ResponseEntity.ok(trackService.getRecommendedTracks(user.id()));
     }
-
 }

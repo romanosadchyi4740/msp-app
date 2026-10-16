@@ -13,4 +13,5 @@ public record ChatResponseDto(
         ChatMessageResponseDto lastMessage,
         UUID initiatorId,
         String status
-) {}
+) {
+}

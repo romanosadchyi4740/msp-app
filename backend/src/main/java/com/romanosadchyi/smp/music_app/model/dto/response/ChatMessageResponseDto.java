@@ -15,4 +15,5 @@ public record ChatMessageResponseDto(
         TrackResponseDto sharedTrack,
         Integer sharedTrackTimestamp,
         String fileUrl
-) {}
+) {
+}
