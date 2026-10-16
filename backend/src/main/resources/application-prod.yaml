@@ -27,6 +27,3 @@ app:
   cors:
     # Comma-separated list of allowed origins
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
-
-data-seeder:
-  enabled: ${DATA_SEEDER_ENABLED}

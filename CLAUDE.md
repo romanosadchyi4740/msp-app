@@ -98,12 +98,15 @@ and `frontend/.env.example` lists them for builds.
   must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
 - **Files**: uploaded to MinIO through `MinioService`; clients get presigned GET URLs (1 h expiry).
-- `DataSeeder` runs only when `data-seeder.enabled=true` (`@ConditionalOnProperty`).
+- Seeders: `ReferenceDataSeeder` (genres) runs in every profile; `DemoDataSeeder` (`artist@example.com`) only in
+  `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
+- `GET /actuator/health` is public and returns only the overall status (ALB health check); no other actuator
+  endpoints are exposed.
 
 ## 4. Repository layout and conventions
 
 Layered packages under `backend/src/main/java/com/romanosadchyi/smp/music_app/`:
-`config/` (Security, WebSocket, MinIO, JWT filter, DataSeeder), `rest/` (REST controllers and STOMP
+`config/` (Security, WebSocket, MinIO, JWT filter, data seeders), `rest/` (REST controllers and STOMP
 `@MessageMapping` handlers), `service/` (+ `service/mapping/*MappingService` for entity↔DTO),
 `repository/` (Spring Data JPA), `model/entity`, `model/dto/request`, `model/dto/response`,
 `model/enums`, `model/converter`, `exception/` (+ `GlobalExceptionHandler`), `util/`.
@@ -208,10 +211,9 @@ and `RoomParticipant.rttMs`.
   Treat them as public. Non-local profiles must fail to start without real secrets.
 - `EncryptionUtil`: AES-CBC with a fixed IV and silent decrypt fallback. Target AES-GCM, random 12-byte
   IV per message, versioned ciphertext prefix, data migration for existing `messages`.
-- `setAllowedOriginPatterns("*")` on WebSocket endpoints; `/actuator/health` not public (ALB check fails).
+- `setAllowedOriginPatterns("*")` on WebSocket endpoints.
 - Simple in-memory STOMP broker → one backend instance only (fine for MVP; later RabbitMQ STOMP relay or
   Redis pub/sub).
-- `DataSeeder` mixes required genres with a demo artist.
 
 ## 8. Working agreements
 
