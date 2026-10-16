@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class EncryptionUtilTest {
 
-    private final String validSecretKey = "12345678901234567890123456789012"; // 32 bytes
+    final String validSecretKey = "12345678901234567890123456789012"; // 32 bytes
 
     @BeforeEach
     void setUp() {

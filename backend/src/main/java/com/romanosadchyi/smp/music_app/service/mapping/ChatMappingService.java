@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,18 +19,18 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatMappingService {
 
-    UserMappingService userMappingService;
+    UserLookup userLookup;
     ChatMessageMappingService messageMappingService;
 
     public ChatResponseDto map(Chat chat, UUID currentUserId) {
         ChatMembership currentUserMembership = chat.getMemberships().stream()
-                .filter(m -> m.getUser().getId().equals(currentUserId))
+                .filter(m -> m.getUserId().equals(currentUserId))
                 .findFirst()
                 .orElse(null);
 
         UUID initiatorId = chat.getMemberships().stream()
                 .filter(ChatMembership::isAdmin)
-                .map(m -> m.getUser().getId())
+                .map(m -> m.getUserId())
                 .findFirst()
                 .orElse(null);
 
@@ -38,7 +39,7 @@ public class ChatMappingService {
                 .isGroup(chat.getIsGroup() != null && chat.getIsGroup())
                 .name(chat.getName())
                 .participants(chat.getMemberships().stream()
-                        .map(m -> userMappingService.map(m.getUser()))
+                        .map(m -> userLookup.getProfile(m.getUserId()))
                         .collect(Collectors.toList()))
                 .lastMessage(chat.getMessages().stream()
                         .max(Comparator.comparing(Message::getTimestamp))

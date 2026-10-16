@@ -44,9 +44,8 @@ public class Album {
     @Enumerated(EnumType.STRING)
     AlbumStatus status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    User author;
+    @Column(name = "author_id", nullable = false)
+    UUID authorId;
 
     @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("trackNumber ASC")

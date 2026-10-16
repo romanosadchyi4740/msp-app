@@ -8,15 +8,14 @@ import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.ChatStatus;
 import com.romanosadchyi.smp.music_app.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMessageMappingService;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,7 +27,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -51,7 +49,7 @@ class ChatServiceTest {
     MessageRepository messageRepository;
 
     @Mock
-    UserRepository userRepository;
+    UserLookup userLookup;
     
     @Mock
     TrackRepository trackRepository;
@@ -73,13 +71,11 @@ class ChatServiceTest {
         UUID creatorId = UUID.randomUUID();
         UUID participantId = UUID.randomUUID();
         
-        User creator = User.builder().id(creatorId).build();
-        User participant = User.builder().id(participantId).build();
         
         ClusterCreateRequestDto dto = new ClusterCreateRequestDto("Hacker Group", Set.of(creatorId, participantId));
 
-        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
-        when(userRepository.findById(participantId)).thenReturn(Optional.of(participant));
+        when(userLookup.exists(creatorId)).thenReturn(true);
+        when(userLookup.exists(participantId)).thenReturn(true);
         
         when(chatRepository.save(any(Chat.class))).thenAnswer(i -> {
             Chat c = i.getArgument(0);
@@ -105,11 +101,10 @@ class ChatServiceTest {
         UUID chatId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         
-        User user = User.builder().id(userId).build();
         Chat chat = Chat.builder().id(chatId).build();
         ChatMembership membership = ChatMembership.builder()
                 .chat(chat)
-                .user(user)
+                .userId(userId)
                 .status(ChatStatus.PENDING)
                 .isAdmin(false)
                 .build();
@@ -132,11 +127,10 @@ class ChatServiceTest {
         UUID chatId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         
-        User user = User.builder().id(userId).build();
         Chat chat = Chat.builder().id(chatId).build();
         ChatMembership membership = ChatMembership.builder()
                 .chat(chat)
-                .user(user)
+                .userId(userId)
                 .status(ChatStatus.ACCEPTED)
                 .isAdmin(true) // Initiator
                 .build();
@@ -153,11 +147,10 @@ class ChatServiceTest {
         UUID chatId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         
-        User user = User.builder().id(userId).build();
         Chat chat = Chat.builder().id(chatId).build();
         ChatMembership membership = ChatMembership.builder()
                 .chat(chat)
-                .user(user)
+                .userId(userId)
                 .status(ChatStatus.PENDING)
                 .build();
         chat.getMemberships().add(membership);
@@ -175,14 +168,13 @@ class ChatServiceTest {
         UUID senderId = UUID.randomUUID();
         UUID chatId = UUID.randomUUID();
         
-        User sender = User.builder().id(senderId).build();
         Chat chat = Chat.builder().id(chatId).build();
-        ChatMembership membership = ChatMembership.builder().chat(chat).user(sender).status(ChatStatus.ACCEPTED).build();
+        ChatMembership membership = ChatMembership.builder().chat(chat).userId(senderId).status(ChatStatus.ACCEPTED).build();
         chat.getMemberships().add(membership);
         
         ChatMessageRequestDto request = new ChatMessageRequestDto(chatId, null, "Hello", null, null, null);
         
-        when(userRepository.findById(senderId)).thenReturn(Optional.of(sender));
+        when(userLookup.exists(senderId)).thenReturn(true);
         when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
         when(messageRepository.save(any(Message.class))).thenAnswer(i -> i.getArgument(0));
         when(mappingService.map(any(Message.class))).thenReturn(
@@ -199,12 +191,10 @@ class ChatServiceTest {
     void getOrCreateChatDto_NewChat_CreatesChatAndMemberships() {
         UUID user1Id = UUID.randomUUID();
         UUID user2Id = UUID.randomUUID();
-        User user1 = User.builder().id(user1Id).build();
-        User user2 = User.builder().id(user2Id).build();
 
         when(chatRepository.findChatBetweenUsers(user1Id, user2Id)).thenReturn(Optional.empty());
-        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-        when(userRepository.findById(user2Id)).thenReturn(Optional.of(user2));
+        when(userLookup.exists(user1Id)).thenReturn(true);
+        when(userLookup.exists(user2Id)).thenReturn(true);
         when(chatRepository.save(any(Chat.class))).thenAnswer(i -> i.getArgument(0));
 
         chatService.getOrCreateChatDto(user1Id, user2Id);

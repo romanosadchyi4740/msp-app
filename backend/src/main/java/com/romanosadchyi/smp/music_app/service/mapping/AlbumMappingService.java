@@ -3,6 +3,7 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class AlbumMappingService {
 
     TrackMappingService trackMappingService;
+    UserLookup userLookup;
 
     public AlbumResponseDto map(Album album) {
         List<TrackResponseDto> tracksDto =
@@ -31,8 +33,8 @@ public class AlbumMappingService {
                 album.getTitle(),
                 album.getDescription(),
                 album.getCoverUrl(),
-                album.getAuthor().getId(),
-                album.getAuthor().getDisplayName(),
+                album.getAuthorId(),
+                userLookup.getSummary(album.getAuthorId()).displayName(),
                 album.getReleaseDate(),
                 tracksDto
         );

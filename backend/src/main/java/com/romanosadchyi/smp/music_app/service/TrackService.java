@@ -7,14 +7,15 @@ import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Genre;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -33,7 +34,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class TrackService {
 
     TrackRepository trackRepository;
-    UserRepository userRepository;
+    UserLookup userLookup;
     AlbumRepository albumRepository;
     GenreRepository genreRepository;
     MinioService minioService;
@@ -51,10 +51,9 @@ public class TrackService {
 
     @Transactional
     public void createTrack(UUID authorId, TrackCreateDto dto, MultipartFile file) {
-        User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + authorId));
+        UserSummary author = userLookup.getSummary(authorId);
 
-        if (author.getRole() != UserRole.ROLE_ARTIST) {
+        if (author.role() != UserRole.ROLE_ARTIST) {
             throw new UserNotAuthorizedException("Only artists can upload tracks");
         }
 
@@ -69,7 +68,7 @@ public class TrackService {
         Album album = albumRepository.findById(dto.albumId())
                 .orElseThrow(() -> new AlbumNotFoundException("Album not found"));
 
-        if (!album.getAuthor().getId().equals(authorId)) {
+        if (!album.getAuthorId().equals(authorId)) {
             throw new UserNotAuthorizedException("You can only add tracks to your own albums");
         }
         
@@ -92,7 +91,7 @@ public class TrackService {
         Track track = trackMappingService.map(dto).toBuilder()
                 .fileKey("PENDING")
                 .fileHash(fileHash)
-                .author(author)
+                .authorId(authorId)
                 .album(album)
                 .genres(new HashSet<>(genres))
                 .build();
@@ -163,32 +162,37 @@ public class TrackService {
 
     @Transactional
     public void likeTrack(UUID userId, UUID trackId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        requireUser(userId);
         Track track = trackRepository.findById(trackId)
                 .orElseThrow(() -> new TrackNotFoundException("Track not found"));
 
-        user.getLikedTracks().add(track);
-        userRepository.save(user);
+        track.getLikedByUserIds().add(userId);
+        trackRepository.save(track);
     }
 
     @Transactional
     public void unlikeTrack(UUID userId, UUID trackId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        requireUser(userId);
         Track track = trackRepository.findById(trackId)
                 .orElseThrow(() -> new TrackNotFoundException("Track not found"));
 
-        user.getLikedTracks().remove(track);
-        userRepository.save(user);
+        track.getLikedByUserIds().remove(userId);
+        trackRepository.save(track);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrackResponseDto> getTracksByAuthor(UUID authorId) {
+        requireUser(authorId);
+        return trackRepository.findAllByAuthorId(authorId).stream()
+                .map(trackMappingService::map)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<TrackResponseDto> getLikedTracks(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        requireUser(userId);
 
-        return user.getLikedTracks().stream()
+        return trackRepository.findAllLikedBy(userId).stream()
                 .map(trackMappingService::map)
                 .toList();
     }
@@ -202,10 +206,9 @@ public class TrackService {
 
     @Transactional(readOnly = true)
     public RecommendedResponseDto getRecommendedTracks(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        requireUser(userId);
 
-        Set<Track> likedTracks = user.getLikedTracks();
+        List<Track> likedTracks = trackRepository.findAllLikedBy(userId);
         
         if (likedTracks == null || likedTracks.isEmpty()) {
             Pageable top10 = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -246,5 +249,11 @@ public class TrackService {
                 .toList();
 
         return new RecommendedResponseDto(topGenre.getName(), recommendedTracks);
+    }
+
+    private void requireUser(UUID userId) {
+        if (!userLookup.exists(userId)) {
+            throw new UserNotFoundException("User not found with id: " + userId);
+        }
     }
 }

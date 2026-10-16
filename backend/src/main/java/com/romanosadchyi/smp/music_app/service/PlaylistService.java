@@ -2,8 +2,6 @@ package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.PlaylistNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
@@ -11,14 +9,15 @@ import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDt
 import com.romanosadchyi.smp.music_app.model.entity.IntegrationRequest;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.RequestStatus;
 import com.romanosadchyi.smp.music_app.repository.IntegrationRequestRepository;
 import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.IntegrationMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.PlaylistMappingService;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -40,7 +39,7 @@ public class PlaylistService {
 
     PlaylistRepository playlistRepository;
     TrackRepository trackRepository;
-    UserRepository userRepository;
+    UserLookup userLookup;
     IntegrationRequestRepository integrationRequestRepository;
     PlaylistMappingService playlistMappingService;
     IntegrationMappingService integrationMappingService;
@@ -231,12 +230,13 @@ public class PlaylistService {
             throw new IllegalArgumentException("No new transmissions to propose");
         }
 
-        User requester = userRepository.findById(requesterId)
-                .orElseThrow(() -> new UserNotFoundException("Requester not found"));
+        if (!userLookup.exists(requesterId)) {
+            throw new UserNotFoundException("Requester not found");
+        }
 
         IntegrationRequest request = IntegrationRequest.builder()
                 .targetPlaylist(origin)
-                .requester(requester)
+                .requesterId(requesterId)
                 .proposedTracks(deltaTracks)
                 .status(RequestStatus.PENDING)
                 .build();

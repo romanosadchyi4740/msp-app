@@ -3,10 +3,9 @@ package com.romanosadchyi.smp.music_app.service;
 import com.romanosadchyi.smp.music_app.model.dto.response.GlobalSearchResponseDto;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
-import com.romanosadchyi.smp.music_app.service.mapping.UserMappingService;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,18 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SearchService {
 
-    UserRepository userRepository;
+    UserLookup userLookup;
     AlbumRepository albumRepository;
     TrackRepository trackRepository;
-    UserMappingService userMappingService;
-    AlbumMappingService albumMappingService;
+        AlbumMappingService albumMappingService;
     TrackMappingService trackMappingService;
 
     @Transactional(readOnly = true)
     public GlobalSearchResponseDto globalSearch(String query, int size) {
         var pageable = PageRequest.of(0, size);
         return GlobalSearchResponseDto.builder()
-                .users(userRepository.findAllByDisplayNameContainingIgnoreCase(query, pageable).map(userMappingService::map))
+                .users(userLookup.searchProfiles(query, pageable))
                 .albums(albumRepository.findAllByTitleContainingIgnoreCase(query, pageable).map(albumMappingService::map))
                 .tracks(trackRepository.findAllByTitleContainingIgnoreCase(query, pageable).map(trackMappingService::map))
                 .build();

@@ -1,6 +1,5 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
@@ -8,14 +7,14 @@ import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDt
 import com.romanosadchyi.smp.music_app.model.entity.IntegrationRequest;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.RequestStatus;
 import com.romanosadchyi.smp.music_app.repository.IntegrationRequestRepository;
 import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.IntegrationMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.PlaylistMappingService;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,7 +41,7 @@ class PlaylistServiceTest {
     TrackRepository trackRepository;
 
     @Mock
-    UserRepository userRepository;
+    UserLookup userLookup;
 
     @Mock
     IntegrationRequestRepository integrationRequestRepository;
@@ -193,10 +192,9 @@ class PlaylistServiceTest {
         Playlist fork = Playlist.builder().id(forkId).ownerId(requesterId).forkedFrom(origin)
                 .tracks(new ArrayList<>(List.of(track1, newTrack))).build();
                 
-        User requester = User.builder().id(requesterId).build();
 
         when(playlistRepository.findById(forkId)).thenReturn(Optional.of(fork));
-        when(userRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(userLookup.exists(requesterId)).thenReturn(true);
         when(integrationRequestRepository.save(any(IntegrationRequest.class))).thenAnswer(i -> i.getArgument(0));
 
         playlistService.proposeIntegration(forkId, requesterId);

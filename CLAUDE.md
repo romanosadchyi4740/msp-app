@@ -35,7 +35,7 @@ Only rules that change how code is written are listed here; the full requirement
 | Free plan lesson limit **40 min**; Premium unlimited | Server-side timer ends the lesson; the client only displays it | — |
 | Late joiner / reconnect gets a full state snapshot | Every join path sends a snapshot; clients never assume they saw every update | FR-10 |
 | Uploads only for material the user owns or public domain | `rightsConfirmed` must be true to create a tab | R14 |
-| Account deletion removes all personal data | Every new user-linked table needs cascade/cleanup and a deletion test | FR-2, NFR-6 |
+| Account deletion removes all personal data | Every module that stores user-linked data implements `users.external.UserDataCleanup` (with a test) | FR-2, NFR-6 |
 
 Out of scope for the MVP (Won't): UI localization (the UI is English only; do not add i18n), mobile app, lesson recording, third-party tab catalogue, rooms > 5
 (future SFU such as LiveKit/mediasoup), AI features.
@@ -102,8 +102,8 @@ and `frontend/.env.example` lists them for builds.
   must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
 - **Files**: uploaded to MinIO through `MinioService`; clients get presigned GET URLs (1 h expiry).
-- Seeders: `ReferenceDataSeeder` (genres; moves to the `music` module in KAN-64) runs in every profile; `DemoDataSeeder` (`artist@example.com`) only in
-  `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
+- Seeders: `ReferenceDataSeeder` (genres; moves to the `music` module in KAN-64) runs in every profile; `users.internal.config.DemoDataSeeder`
+  (`artist@example.com`) only in `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
 - `GET /actuator/health` is public and returns only the overall status (ALB health check); no other actuator
   endpoints are exposed.
 
@@ -153,6 +153,9 @@ it stays `@Disabled` until the legacy layered packages are extracted, and `share
 - **No cycles.** When a flow naturally points the other way, invert it with an interface:
   `users.external.UserDataCleanup` is implemented by each module that stores user data, and `users`
   calls all beans of that type on account deletion; `rooms` asks `billing.external.PremiumChecker`.
+  Until the music and playlists modules exist, `service.LegacyUserDataCleanup` deletes their part.
+- Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)
+  next to their own data, `UserResponseDto` where a response embeds the full public profile.
 - The current user comes from `shared.security.AuthenticatedUser` (id, email, role from the JWT), not
   from the `User` entity, so `shared` never depends on `users`.
 - The hot sync path (host command → state broadcast) stays a direct call inside `sync`.
@@ -165,7 +168,9 @@ it stays `@Disabled` until the legacy layered packages are extracted, and `share
 Follow the existing style:
 - Java formatting: refer to types through imports, never fully qualified names in code or Javadoc, unless two
   types with the same simple name clash in one file. A file ends with the last `}` followed by exactly one
-  newline, and there is no blank line before that last `}`.
+  newline, and there is no blank line before that last `}`. Fields get their modifiers from Lombok
+  `@FieldDefaults` (entities `level = PRIVATE`, beans also `makeFinal = true`); do not write `private`/`final`
+  on fields. Test classes keep fields package-private, as in the existing tests.
 - Entities: `@Entity @Table`, Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
   @FieldDefaults(level = AccessLevel.PRIVATE)`, `@Builder.Default` for collections/defaults,
   `@Enumerated(EnumType.STRING)`, **UUID primary keys** (`GenerationType.UUID`), LAZY relations.
@@ -278,7 +283,8 @@ and `RoomParticipant.rttMs`.
   `bugfix/KAN-<n>-short-slug` (non-urgent fixes), `hotfix/KAN-<n>-short-slug` (urgent fixes to released code).
   Commit messages start with the key (`KAN-12: ...`).
 - `development` is the integration branch: branch off it and open PRs against it (`gh pr create --base development`),
-  not `main`. The owner reviews and merges PRs; move the Jira ticket to Done after the merge.
+  not `main`. The owner reviews and merges PRs. Move the Jira ticket along with the work: In Progress when
+  starting, In Review when the PR is opened, Done after the merge.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
 - New schema only through new Flyway migrations (`V17__...`); never edit applied migrations.
 - Never log tokens, SDP payloads, or message plaintext. Never commit secrets.

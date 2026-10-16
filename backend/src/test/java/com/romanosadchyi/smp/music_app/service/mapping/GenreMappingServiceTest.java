@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class GenreMappingServiceTest {
 
-    private final GenreMappingService genreMappingService = new GenreMappingService();
+    final GenreMappingService genreMappingService = new GenreMappingService();
 
     @Test
     void map_ReturnsDto() {

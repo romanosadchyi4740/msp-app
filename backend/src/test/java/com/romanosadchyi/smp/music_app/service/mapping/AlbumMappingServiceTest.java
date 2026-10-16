@@ -4,7 +4,9 @@ import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +28,9 @@ class AlbumMappingServiceTest {
     @Mock
     TrackMappingService trackMappingService;
 
+    @Mock
+    UserLookup userLookup;
+
     @InjectMocks
     AlbumMappingService albumMappingService;
 
@@ -33,14 +38,15 @@ class AlbumMappingServiceTest {
     void map_WithTracks_ReturnsDto() {
         UUID albumId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
-        User author = User.builder().id(authorId).displayName("Author Name").build();
+        UserSummary author = new UserSummary(authorId, "Author Name", null, UserRole.ROLE_USER);
+        when(userLookup.getSummary(author.id())).thenReturn(author);
         Track track = Track.builder().id(UUID.randomUUID()).build();
         Album album = Album.builder()
                 .id(albumId)
                 .title("Album Title")
                 .description("Desc")
                 .coverUrl("url")
-                .author(author)
+                .authorId(author.id())
                 .releaseDate(LocalDate.now())
                 .tracks(List.of(track))
                 .build();
@@ -64,13 +70,14 @@ class AlbumMappingServiceTest {
     void map_WithoutTracks_ReturnsDtoWithEmptyTracks() {
         UUID albumId = UUID.randomUUID();
         UUID authorId = UUID.randomUUID();
-        User author = User.builder().id(authorId).displayName("Author Name").build();
+        UserSummary author = new UserSummary(authorId, "Author Name", null, UserRole.ROLE_USER);
+        when(userLookup.getSummary(author.id())).thenReturn(author);
         Album album = Album.builder()
                 .id(albumId)
                 .title("Album Title")
                 .description("Desc")
                 .coverUrl("url")
-                .author(author)
+                .authorId(author.id())
                 .releaseDate(LocalDate.now())
                 .tracks(null) // Null tracks
                 .build();

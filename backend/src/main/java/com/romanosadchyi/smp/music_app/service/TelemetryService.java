@@ -1,42 +1,48 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TelemetryBroadcastRequest;
 import com.romanosadchyi.smp.music_app.model.dto.response.*;
 import com.romanosadchyi.smp.music_app.model.entity.*;
 import com.romanosadchyi.smp.music_app.repository.*;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
-import com.romanosadchyi.smp.music_app.service.mapping.UserMappingService;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TelemetryService {
 
-    private final StatusBroadcastRepository broadcastRepository;
-    private final PollOptionRepository pollOptionRepository;
-    private final PollVoteRepository pollVoteRepository;
-    private final UserRepository userRepository;
-    private final TrackRepository trackRepository;
-    
-    private final UserMappingService userMappingService;
-    private final TrackMappingService trackMappingService;
+    StatusBroadcastRepository broadcastRepository;
+    PollOptionRepository pollOptionRepository;
+    PollVoteRepository pollVoteRepository;
+    UserLookup userLookup;
+    TrackRepository trackRepository;
+
+    TrackMappingService trackMappingService;
 
     @Transactional
     public StatusBroadcastResponse createBroadcast(TelemetryBroadcastRequest request, UUID authorId) {
-        User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (!userLookup.exists(authorId)) {
+            throw new UserNotFoundException("User not found");
+        }
 
         Track attachedTrack = null;
         if (request.attachedTrackId() != null) {
@@ -45,7 +51,7 @@ public class TelemetryService {
         }
 
         StatusBroadcast broadcast = StatusBroadcast.builder()
-                .author(author)
+                .authorId(authorId)
                 .content(request.content())
                 .attachedTrack(attachedTrack)
                 .timestamp(Instant.now())
@@ -74,14 +80,17 @@ public class TelemetryService {
 
     @Transactional(readOnly = true)
     public Page<StatusBroadcastResponse> getFeed(UUID currentUserId, Pageable pageable) {
-        Page<StatusBroadcast> broadcasts = broadcastRepository.findFeedForUser(currentUserId, pageable);
+        Set<UUID> authorIds = new HashSet<>(userLookup.findFollowingIds(currentUserId));
+        authorIds.add(currentUserId);
+        Page<StatusBroadcast> broadcasts = broadcastRepository.findAllByAuthorIds(authorIds, pageable);
         return broadcasts.map(b -> mapToResponse(b, currentUserId));
     }
 
     @Transactional
     public ConsensusPollResponse voteOnOption(UUID optionId, UUID voterId) {
-        User voter = userRepository.findById(voterId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (!userLookup.exists(voterId)) {
+            throw new UserNotFoundException("User not found");
+        }
 
         PollOption selectedOption = pollOptionRepository.findById(optionId)
                 .orElseThrow(() -> new RuntimeException("Poll option not found"));
@@ -107,7 +116,7 @@ public class TelemetryService {
             // No vote exists -> Create new vote
             PollVote vote = PollVote.builder()
                     .option(selectedOption)
-                    .voter(voter)
+                    .voterId(voterId)
                     .build();
             selectedOption.getVotes().add(vote);
             pollVoteRepository.save(vote);
@@ -122,7 +131,7 @@ public class TelemetryService {
         StatusBroadcast broadcast = broadcastRepository.findById(broadcastId)
                 .orElseThrow(() -> new RuntimeException("Broadcast not found"));
 
-        if (!broadcast.getAuthor().getId().equals(currentUserId)) {
+        if (!broadcast.getAuthorId().equals(currentUserId)) {
             throw new RuntimeException("User is not authorized to delete this broadcast");
         }
 
@@ -130,7 +139,7 @@ public class TelemetryService {
     }
 
     private StatusBroadcastResponse mapToResponse(StatusBroadcast broadcast, UUID currentUserId) {
-        UserResponseDto authorDto = userMappingService.map(broadcast.getAuthor());
+        UserResponseDto authorDto = userLookup.getProfile(broadcast.getAuthorId());
         
         TrackResponseDto trackDto = null;
         if (broadcast.getAttachedTrack() != null) {
@@ -163,7 +172,7 @@ public class TelemetryService {
         for (PollOption opt : poll.getOptions()) {
             if (opt.getVotes() != null) {
                 Optional<PollVote> userVote = opt.getVotes().stream()
-                        .filter(v -> v.getVoter().getId().equals(currentUserId))
+                        .filter(v -> v.getVoterId().equals(currentUserId))
                         .findFirst();
                 if (userVote.isPresent()) {
                     hasVoted = true;

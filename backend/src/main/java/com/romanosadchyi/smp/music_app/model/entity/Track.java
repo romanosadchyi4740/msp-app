@@ -45,9 +45,8 @@ public class Track {
     @Column(name = "track_number")
     Integer trackNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    User author;
+    @Column(name = "author_id", nullable = false)
+    UUID authorId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "album_id")
@@ -61,6 +60,15 @@ public class Track {
     )
     @Builder.Default
     Set<Genre> genres = new HashSet<>();
+
+    /**
+     * Ids of the users who liked the track; the {@code user_liked_tracks} rows are owned here.
+     */
+    @ElementCollection
+    @CollectionTable(name = "user_liked_tracks", joinColumns = @JoinColumn(name = "track_id"))
+    @Column(name = "user_id")
+    @Builder.Default
+    Set<UUID> likedByUserIds = new HashSet<>();
 
     @Column(name = "cover_url")
     String coverUrl;

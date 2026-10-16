@@ -5,7 +5,9 @@ import com.romanosadchyi.smp.music_app.model.dto.response.ConsensusPollResponse;
 import com.romanosadchyi.smp.music_app.model.dto.response.StatusBroadcastResponse;
 import com.romanosadchyi.smp.music_app.service.TelemetryService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +19,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/telemetry")
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TelemetryController {
 
-    private final TelemetryService telemetryService;
+    TelemetryService telemetryService;
 
     @PostMapping("/broadcast")
     public ResponseEntity<StatusBroadcastResponse> createBroadcast(

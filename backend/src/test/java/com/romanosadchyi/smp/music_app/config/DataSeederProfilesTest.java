@@ -1,7 +1,8 @@
 package com.romanosadchyi.smp.music_app.config;
 
 import com.romanosadchyi.smp.music_app.repository.GenreRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.users.internal.config.DemoDataSeeder;
+import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 

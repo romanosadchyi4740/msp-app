@@ -4,8 +4,9 @@ import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,7 +29,7 @@ class PlaylistMappingServiceTest {
     TrackMappingService trackMappingService;
 
     @Mock
-    UserRepository userRepository;
+    UserLookup userLookup;
 
     @InjectMocks
     PlaylistMappingService playlistMappingService;
@@ -67,7 +68,7 @@ class PlaylistMappingServiceTest {
         UUID ownerId = UUID.randomUUID();
         
         UUID originOwnerId = UUID.randomUUID();
-        User originOwner = User.builder().id(originOwnerId).displayName("Origin Owner").build();
+        UserSummary originOwner = new UserSummary(originOwnerId, "Origin Owner", null, UserRole.ROLE_USER);
         Playlist origin = Playlist.builder().id(UUID.randomUUID()).title("Origin Playlist").ownerId(originOwnerId).build();
         
         Playlist playlist = Playlist.builder()
@@ -78,7 +79,7 @@ class PlaylistMappingServiceTest {
                 .tracks(null)
                 .build();
 
-        when(userRepository.findById(originOwnerId)).thenReturn(Optional.of(originOwner));
+        when(userLookup.findSummary(originOwnerId)).thenReturn(Optional.of(originOwner));
 
         PlaylistResponseDto result = playlistMappingService.map(playlist);
 

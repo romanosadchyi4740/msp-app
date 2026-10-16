@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.GenreResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 public class TrackMappingService {
 
     GenreMappingService genreMappingService;
+    UserLookup userLookup;
 
     public Track map(TrackCreateDto trackCreateDto) {
         return Track.builder()
@@ -47,8 +49,8 @@ public class TrackMappingService {
         return TrackResponseDto.builder()
                 .id(track.getId())
                 .title(track.getTitle())
-                .authorName(track.getAuthor().getDisplayName())
-                .authorId(track.getAuthor().getId())
+                .authorName(userLookup.getSummary(track.getAuthorId()).displayName())
+                .authorId(track.getAuthorId())
                 .albumTitle(albumTitle)
                 .duration(track.getDuration())
                 .coverUrl(coverUrl)
@@ -72,8 +74,8 @@ public class TrackMappingService {
         return TrackResponseDto.builder()
                 .id(track.getId())
                 .title(track.getTitle())
-                .authorName(track.getAuthor().getDisplayName())
-                .authorId(track.getAuthor().getId())
+                .authorName(userLookup.getSummary(track.getAuthorId()).displayName())
+                .authorId(track.getAuthorId())
                 .albumTitle(albumTitle)
                 .duration(track.getDuration())
                 .coverUrl(coverUrl)

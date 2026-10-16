@@ -2,12 +2,12 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.ChatStatus;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 class ChatMappingServiceTest {
 
     @Mock
-    UserMappingService userMappingService;
+    UserLookup userLookup;
 
     @Mock
     ChatMessageMappingService messageMappingService;
@@ -41,11 +41,9 @@ class ChatMappingServiceTest {
         UUID currentUserId = UUID.randomUUID();
         UUID adminUserId = UUID.randomUUID();
         
-        User currentUser = User.builder().id(currentUserId).build();
-        User adminUser = User.builder().id(adminUserId).build();
 
-        ChatMembership currentMembership = ChatMembership.builder().user(currentUser).status(ChatStatus.ACCEPTED).isAdmin(false).build();
-        ChatMembership adminMembership = ChatMembership.builder().user(adminUser).status(ChatStatus.PENDING).isAdmin(true).build();
+        ChatMembership currentMembership = ChatMembership.builder().userId(currentUserId).status(ChatStatus.ACCEPTED).isAdmin(false).build();
+        ChatMembership adminMembership = ChatMembership.builder().userId(adminUserId).status(ChatStatus.PENDING).isAdmin(true).build();
 
         Message msg1 = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now().minusDays(1)).build();
         Message msg2 = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now()).build();
@@ -58,8 +56,8 @@ class ChatMappingServiceTest {
                 .messages(new HashSet<>(Set.of(msg1, msg2)))
                 .build();
 
-        when(userMappingService.map(currentUser)).thenReturn(UserResponseDto.builder().id(currentUserId).build());
-        when(userMappingService.map(adminUser)).thenReturn(UserResponseDto.builder().id(adminUserId).build());
+        when(userLookup.getProfile(currentUserId)).thenReturn(UserResponseDto.builder().id(currentUserId).build());
+        when(userLookup.getProfile(adminUserId)).thenReturn(UserResponseDto.builder().id(adminUserId).build());
         when(messageMappingService.map(msg2)).thenReturn(ChatMessageResponseDto.builder().id(msg2.getId()).build());
 
         ChatResponseDto result = chatMappingService.map(chat, currentUserId);

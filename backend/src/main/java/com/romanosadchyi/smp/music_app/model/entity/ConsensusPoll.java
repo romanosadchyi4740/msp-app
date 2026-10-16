@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,20 +15,21 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ConsensusPoll {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    UUID id;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "broadcast_id", nullable = false, unique = true)
-    private StatusBroadcast broadcast;
+    StatusBroadcast broadcast;
 
     @Column(nullable = false)
-    private String question;
+    String question;
 
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
-    private List<PollOption> options = new ArrayList<>();
+    List<PollOption> options = new ArrayList<>();
 }

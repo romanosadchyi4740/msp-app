@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -13,26 +14,26 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class StatusBroadcast {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    private User author;
+    @Column(name = "author_id", nullable = false)
+    UUID authorId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attached_track_id")
-    private Track attachedTrack;
+    Track attachedTrack;
 
     @Column(nullable = false)
-    private Instant timestamp;
+    Instant timestamp;
 
     @OneToOne(mappedBy = "broadcast", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private ConsensusPoll poll;
+    ConsensusPoll poll;
 }
