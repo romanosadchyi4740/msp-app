@@ -83,6 +83,14 @@ const useAuthStore = create((set) => ({
     try {
       const response = await axiosClient.post('/api/users/me/become-artist');
       const updatedUser = response.data;
+
+      // The role is a token claim, so the backend sends a new token with ROLE_ARTIST
+      const authorization = response.headers.authorization;
+      if (authorization?.startsWith('Bearer ')) {
+        const newToken = authorization.substring(7);
+        localStorage.setItem('token', newToken);
+        set({ token: newToken });
+      }
       
       // Update local storage and state with the new role
       const currentUser = JSON.parse(localStorage.getItem('user'));

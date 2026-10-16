@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.config;
+package com.romanosadchyi.smp.music_app.shared.config;
 
 import io.minio.MinioClient;
 import lombok.AccessLevel;

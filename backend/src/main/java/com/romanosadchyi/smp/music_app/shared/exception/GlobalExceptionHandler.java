@@ -1,6 +1,5 @@
-package com.romanosadchyi.smp.music_app.exception;
+package com.romanosadchyi.smp.music_app.shared.exception;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.ErrorResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,21 +10,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({
-            UserNotFoundException.class,
-            TrackNotFoundException.class,
-            PlaylistNotFoundException.class,
-            AlbumNotFoundException.class,
-            ChatNotFoundException.class
-    })
-    public ResponseEntity<ErrorResponseDto> handleNotFoundException(RuntimeException e) {
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleNotFoundException(NotFoundException e) {
         return createErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
-    @ExceptionHandler(MusicTrackFileAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponseDto> handleMusicTrackFileAlreadyExistsException(
-            MusicTrackFileAlreadyExistsException e
-    ) {
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponseDto> handleConflictException(ConflictException e) {
         return createErrorResponse(HttpStatus.CONFLICT, e.getMessage());
     }
 

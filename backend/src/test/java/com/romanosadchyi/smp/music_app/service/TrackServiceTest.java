@@ -2,7 +2,7 @@ package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.MusicTrackFileAlreadyExistsException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.RecommendedResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;

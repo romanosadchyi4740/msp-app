@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.util;
+package com.romanosadchyi.smp.music_app.shared.util;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

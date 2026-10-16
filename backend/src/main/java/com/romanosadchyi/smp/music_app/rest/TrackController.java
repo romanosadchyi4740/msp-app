@@ -3,8 +3,8 @@ package com.romanosadchyi.smp.music_app.rest;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.RecommendedResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.TrackService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,12 +31,12 @@ public class TrackController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public void createTrack(@AuthenticationPrincipal User user,
+    public void createTrack(@AuthenticationPrincipal AuthenticatedUser user,
                             @ModelAttribute TrackCreateDto dto,
                             @RequestParam("file") MultipartFile file) {
-        log.info("Creating track for user: {}", user.getId());
+        log.info("Creating track for user: {}", user.id());
         log.debug("TaskCreateDto: {}", dto);
-        trackService.createTrack(user.getId(), dto, file);
+        trackService.createTrack(user.id(), dto, file);
     }
 
     @GetMapping("/{id}")
@@ -72,23 +72,23 @@ public class TrackController {
     }
 
     @PostMapping("/{id}/like")
-    public ResponseEntity<Void> likeTrack(@AuthenticationPrincipal User user, @PathVariable UUID id) {
-        log.info("User {} liking track {}", user.getId(), id);
-        trackService.likeTrack(user.getId(), id);
+    public ResponseEntity<Void> likeTrack(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        log.info("User {} liking track {}", user.id(), id);
+        trackService.likeTrack(user.id(), id);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}/like")
-    public ResponseEntity<Void> unlikeTrack(@AuthenticationPrincipal User user, @PathVariable UUID id) {
-        log.info("User {} unliking track {}", user.getId(), id);
-        trackService.unlikeTrack(user.getId(), id);
+    public ResponseEntity<Void> unlikeTrack(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        log.info("User {} unliking track {}", user.id(), id);
+        trackService.unlikeTrack(user.id(), id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/liked")
-    public ResponseEntity<List<TrackResponseDto>> getLikedTracks(@AuthenticationPrincipal User user) {
-        log.info("Getting liked tracks for user {}", user.getId());
-        return ResponseEntity.ok(trackService.getLikedTracks(user.getId()));
+    public ResponseEntity<List<TrackResponseDto>> getLikedTracks(@AuthenticationPrincipal AuthenticatedUser user) {
+        log.info("Getting liked tracks for user {}", user.id());
+        return ResponseEntity.ok(trackService.getLikedTracks(user.id()));
     }
 
     @GetMapping("/genre/{genreId}")
@@ -102,9 +102,9 @@ public class TrackController {
     }
 
     @GetMapping("/recommended")
-    public ResponseEntity<RecommendedResponseDto> getRecommendedTracks(@AuthenticationPrincipal User user) {
-        log.info("Getting recommended tracks for user {}", user.getId());
-        return ResponseEntity.ok(trackService.getRecommendedTracks(user.getId()));
+    public ResponseEntity<RecommendedResponseDto> getRecommendedTracks(@AuthenticationPrincipal AuthenticatedUser user) {
+        log.info("Getting recommended tracks for user {}", user.id());
+        return ResponseEntity.ok(trackService.getRecommendedTracks(user.id()));
     }
 
 }

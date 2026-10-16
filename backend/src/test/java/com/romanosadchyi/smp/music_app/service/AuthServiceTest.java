@@ -6,6 +6,8 @@ import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
+import com.romanosadchyi.smp.music_app.shared.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -44,7 +46,7 @@ class AuthServiceTest {
         
         User savedUser = User.builder().id(UUID.randomUUID()).email("test@test.com").displayName("TestUser").role(UserRole.ROLE_USER).build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(jwtService.generateToken(savedUser)).thenReturn("jwt_token");
+        when(jwtService.generateToken(new AuthenticatedUser(savedUser.getId(), "test@test.com", "ROLE_USER"))).thenReturn("jwt_token");
 
         AuthResponseDto response = authService.register(dto);
 
@@ -70,7 +72,7 @@ class AuthServiceTest {
         
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass123", "encoded_pass")).thenReturn(true);
-        when(jwtService.generateToken(user)).thenReturn("jwt_token");
+        when(jwtService.generateToken(new AuthenticatedUser(user.getId(), "test@test.com", "ROLE_USER"))).thenReturn("jwt_token");
 
         AuthResponseDto response = authService.login(dto);
 

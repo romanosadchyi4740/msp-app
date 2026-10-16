@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.config;
+package com.romanosadchyi.smp.music_app.shared.config;
 
 import org.junit.jupiter.api.Test;
 import com.romanosadchyi.smp.music_app.IntegrationTest;

@@ -1,7 +1,7 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.AlbumNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.AlbumCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;

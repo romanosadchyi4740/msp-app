@@ -2,8 +2,8 @@ package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.ChatService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,21 +27,21 @@ public class ChatController {
     ChatService chatService;
 
     @GetMapping
-    public List<ChatResponseDto> getUserChats(@AuthenticationPrincipal User user) {
-        log.info("Getting chats for user: {}", user.getId());
-        return chatService.getUserChats(user.getId());
+    public List<ChatResponseDto> getUserChats(@AuthenticationPrincipal AuthenticatedUser user) {
+        log.info("Getting chats for user: {}", user.id());
+        return chatService.getUserChats(user.id());
     }
 
     @PostMapping("/with/{recipientId}")
-    public ChatResponseDto getOrCreateChat(@AuthenticationPrincipal User user, @PathVariable UUID recipientId) {
-        log.info("Getting or creating chat between {} and {}", user.getId(), recipientId);
-        return chatService.getOrCreateChatDto(user.getId(), recipientId);
+    public ChatResponseDto getOrCreateChat(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID recipientId) {
+        log.info("Getting or creating chat between {} and {}", user.id(), recipientId);
+        return chatService.getOrCreateChatDto(user.id(), recipientId);
     }
 
     @PostMapping("/cluster")
-    public ChatResponseDto createCluster(@AuthenticationPrincipal User user, @RequestBody com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto request) {
+    public ChatResponseDto createCluster(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto request) {
         log.info("Creating cluster {} with {} participants", request.groupName(), request.participantIds().size());
-        return chatService.createCluster(user.getId(), request);
+        return chatService.createCluster(user.id(), request);
     }
 
     @GetMapping("/{chatId}/messages")
@@ -53,20 +53,20 @@ public class ChatController {
     }
 
     @PutMapping("/{chatId}/accept")
-    public ChatResponseDto acceptChat(@AuthenticationPrincipal User user, @PathVariable UUID chatId) {
-        log.info("User {} accepting chat {}", user.getId(), chatId);
-        return chatService.acceptChat(chatId, user.getId());
+    public ChatResponseDto acceptChat(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID chatId) {
+        log.info("User {} accepting chat {}", user.id(), chatId);
+        return chatService.acceptChat(chatId, user.id());
     }
 
     @PutMapping("/{chatId}/reject")
-    public void rejectChat(@AuthenticationPrincipal User user, @PathVariable UUID chatId) {
-        log.info("User {} rejecting chat {}", user.getId(), chatId);
-        chatService.rejectChat(chatId, user.getId());
+    public void rejectChat(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID chatId) {
+        log.info("User {} rejecting chat {}", user.id(), chatId);
+        chatService.rejectChat(chatId, user.id());
     }
 
     @PostMapping("/{chatId}/membership/{userId}/decline")
-    public void declineMembership(@AuthenticationPrincipal User authUser, @PathVariable UUID chatId, @PathVariable UUID userId) {
-        if (!authUser.getId().equals(userId)) {
+    public void declineMembership(@AuthenticationPrincipal AuthenticatedUser authUser, @PathVariable UUID chatId, @PathVariable UUID userId) {
+        if (!authUser.id().equals(userId)) {
             throw new IllegalArgumentException("Cannot decline membership for another user");
         }
         log.info("User {} declining membership for chat {}", userId, chatId);
@@ -75,18 +75,18 @@ public class ChatController {
 
     @GetMapping("/{chatId}/members")
     public List<com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto> getChatMembers(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID chatId) {
         log.info("Getting members for chat {}", chatId);
-        return chatService.getChatMembers(chatId, user.getId());
+        return chatService.getChatMembers(chatId, user.id());
     }
 
     @PostMapping("/{chatId}/members")
     public void inviteMembers(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID chatId,
             @RequestBody List<UUID> userIds) {
-        log.info("User {} inviting {} members to chat {}", user.getId(), userIds.size(), chatId);
-        chatService.inviteMembers(chatId, user.getId(), userIds);
+        log.info("User {} inviting {} members to chat {}", user.id(), userIds.size(), chatId);
+        chatService.inviteMembers(chatId, user.id(), userIds);
     }
 }

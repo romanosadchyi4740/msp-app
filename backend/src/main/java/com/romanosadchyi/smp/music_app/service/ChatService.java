@@ -251,7 +251,7 @@ public class ChatService {
         chat.getMemberships().stream()
                 .filter(m -> m.getUser().getId().equals(requesterId))
                 .findFirst()
-                .orElseThrow(() -> new com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException("Requester is not a member of this chat"));
+                .orElseThrow(() -> new com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException("Requester is not a member of this chat"));
 
         return chat.getMemberships().stream()
                 .map(m -> com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto.builder()
@@ -276,10 +276,10 @@ public class ChatService {
         ChatMembership requesterMembership = chat.getMemberships().stream()
                 .filter(m -> m.getUser().getId().equals(requesterId))
                 .findFirst()
-                .orElseThrow(() -> new com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException("Requester is not a member of this chat"));
+                .orElseThrow(() -> new com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException("Requester is not a member of this chat"));
 
         if (requesterMembership.getStatus() != com.romanosadchyi.smp.music_app.model.enums.ChatStatus.ACCEPTED) {
-            throw new com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException("Requester is not an active member of this cluster");
+            throw new com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException("Requester is not an active member of this cluster");
         }
 
         List<UUID> existingMemberIds = chat.getMemberships().stream()

@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.model.converter;
 
-import com.romanosadchyi.smp.music_app.util.EncryptionUtil;
+import com.romanosadchyi.smp.music_app.shared.util.EncryptionUtil;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 

@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.config.common;
+package com.romanosadchyi.smp.music_app.shared.constants;
 
 import lombok.experimental.UtilityClass;
 
