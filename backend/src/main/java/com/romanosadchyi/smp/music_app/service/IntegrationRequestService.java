@@ -18,6 +18,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -38,26 +39,11 @@ public class IntegrationRequestService {
 
     @Transactional
     public IntegrationRequestResponseDto proposeIntegration(UUID forkId, UUID requesterId) {
-        Playlist fork = playlistRepository.findById(forkId)
-                .orElseThrow(() -> new PlaylistNotFoundException("Forked playlist not found"));
+        Playlist fork = findPlaylist(forkId, "Forked playlist not found");
+        requireOwner(fork, requesterId, "Only the fork owner can propose integration");
+        Playlist origin = requireOrigin(fork);
 
-        if (!fork.getOwnerId().equals(requesterId)) {
-            throw new UserNotAuthorizedException("Only the fork owner can propose integration");
-        }
-
-        Playlist origin = fork.getForkedFrom();
-        if (origin == null) {
-            throw new IllegalArgumentException("This playlist is not a fork, cannot propose integration");
-        }
-
-        Set<UUID> originTrackIds = origin.getTracks().stream()
-                .map(Track::getId)
-                .collect(Collectors.toSet());
-
-        Set<Track> deltaTracks = fork.getTracks().stream()
-                .filter(track -> !originTrackIds.contains(track.getId()))
-                .collect(Collectors.toSet());
-
+        Set<Track> deltaTracks = tracksMissingFrom(origin, fork.getTracks());
         if (deltaTracks.isEmpty()) {
             throw new IllegalArgumentException("No new transmissions to propose");
         }
@@ -78,12 +64,8 @@ public class IntegrationRequestService {
 
     @Transactional(readOnly = true)
     public List<IntegrationRequestResponseDto> getPendingIntegrations(UUID originId, UUID ownerId) {
-        Playlist origin = playlistRepository.findById(originId)
-                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
-
-        if (!origin.getOwnerId().equals(ownerId)) {
-            throw new UserNotAuthorizedException("Only the playlist owner can view integration requests");
-        }
+        Playlist origin = findPlaylist(originId, "Playlist not found");
+        requireOwner(origin, ownerId, "Only the playlist owner can view integration requests");
 
         return integrationRequestRepository.findAllByTargetPlaylistIdAndStatusOrderByCreatedAtDesc(originId, RequestStatus.PENDING)
                 .stream()
@@ -95,29 +77,14 @@ public class IntegrationRequestService {
     public IntegrationRequestResponseDto resolveIntegration(UUID requestId, String action, UUID ownerId) {
         IntegrationRequest request = integrationRequestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Integration request not found"));
-
-        Playlist targetPlaylist = request.getTargetPlaylist();
-
-        if (!targetPlaylist.getOwnerId().equals(ownerId)) {
-            throw new UserNotAuthorizedException("Only the playlist owner can resolve integration requests");
-        }
+        requireOwner(request.getTargetPlaylist(), ownerId, "Only the playlist owner can resolve integration requests");
 
         if (request.getStatus() != RequestStatus.PENDING) {
             throw new IllegalArgumentException("Request is already resolved");
         }
 
         if ("ACCEPT".equalsIgnoreCase(action)) {
-            Set<UUID> existingTrackIds = targetPlaylist.getTracks().stream()
-                    .map(Track::getId)
-                    .collect(Collectors.toSet());
-
-            for (Track track : request.getProposedTracks()) {
-                if (!existingTrackIds.contains(track.getId())) {
-                    targetPlaylist.getTracks().add(track);
-                }
-            }
-            playlistRepository.save(targetPlaylist);
-            request.setStatus(RequestStatus.ACCEPTED);
+            accept(request);
         } else if ("REJECT".equalsIgnoreCase(action)) {
             request.setStatus(RequestStatus.REJECTED);
         } else {
@@ -125,5 +92,44 @@ public class IntegrationRequestService {
         }
 
         return integrationMappingService.map(integrationRequestRepository.save(request));
+    }
+
+    private void accept(IntegrationRequest request) {
+        Playlist targetPlaylist = request.getTargetPlaylist();
+        targetPlaylist.getTracks().addAll(tracksMissingFrom(targetPlaylist, request.getProposedTracks()));
+        playlistRepository.save(targetPlaylist);
+        request.setStatus(RequestStatus.ACCEPTED);
+    }
+
+    private Playlist findPlaylist(UUID playlistId, String notFoundMessage) {
+        return playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException(notFoundMessage));
+    }
+
+    private static void requireOwner(Playlist playlist, UUID userId, String message) {
+        if (!playlist.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException(message);
+        }
+    }
+
+    private static Playlist requireOrigin(Playlist fork) {
+        Playlist origin = fork.getForkedFrom();
+        if (origin == null) {
+            throw new IllegalArgumentException("This playlist is not a fork, cannot propose integration");
+        }
+        return origin;
+    }
+
+    /**
+     * The given tracks that the playlist does not contain yet, compared by id.
+     */
+    private static Set<Track> tracksMissingFrom(Playlist playlist, Collection<Track> tracks) {
+        Set<UUID> existingTrackIds = playlist.getTracks().stream()
+                .map(Track::getId)
+                .collect(Collectors.toSet());
+
+        return tracks.stream()
+                .filter(track -> !existingTrackIds.contains(track.getId()))
+                .collect(Collectors.toSet());
     }
 }

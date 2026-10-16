@@ -38,35 +38,43 @@ public class TrackUploadService {
     @Transactional
     public void createTrack(UUID authorId, TrackCreateDto dto, MultipartFile file) {
         TrackUploadValidator.Target target = trackUploadValidator.validate(authorId, dto);
-
         String fileHash = sha256Hex(file);
+        ensureNotDuplicate(fileHash);
+
+        // The file key contains the generated track id, so the track is saved first
+        Track savedTrack = trackRepository.save(buildTrack(authorId, dto, target, fileHash));
+        trackRepository.flush();
+
+        savedTrack.setFileKey(storeFile(savedTrack.getId(), file));
+        if (savedTrack.getCoverUrl() == null) {
+            savedTrack.setCoverUrl(target.album().getCoverUrl());
+        }
+
+        trackRepository.save(savedTrack);
+    }
+
+    private void ensureNotDuplicate(String fileHash) {
         if (trackRepository.existsByFileHash(fileHash)) {
             throw new MusicTrackFileAlreadyExistsException(
                     "This audio file already exists in the system (Duplicate detected)."
             );
         }
+    }
 
-        Track track = trackMappingService.map(dto).toBuilder()
+    private Track buildTrack(UUID authorId, TrackCreateDto dto, TrackUploadValidator.Target target, String fileHash) {
+        return trackMappingService.map(dto).toBuilder()
                 .fileKey("PENDING")
                 .fileHash(fileHash)
                 .authorId(authorId)
                 .album(target.album())
                 .genres(new HashSet<>(target.genres()))
                 .build();
+    }
 
-        // The file key contains the generated track id, so the track is saved first
-        Track savedTrack = trackRepository.save(track);
-        trackRepository.flush();
-
-        String fileKey = "tracks/" + savedTrack.getId() + fileExtension(file);
+    private String storeFile(UUID trackId, MultipartFile file) {
+        String fileKey = "tracks/" + trackId + fileExtension(file);
         fileStorage.upload(file, fileKey);
-
-        savedTrack.setFileKey(fileKey);
-        if (savedTrack.getCoverUrl() == null) {
-            savedTrack.setCoverUrl(target.album().getCoverUrl());
-        }
-
-        trackRepository.save(savedTrack);
+        return fileKey;
     }
 
     private static String fileExtension(MultipartFile file) {

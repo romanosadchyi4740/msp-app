@@ -31,37 +31,48 @@ public class PlaylistTrackService {
 
     @Transactional
     public PlaylistResponseDto addTrackToPlaylist(UUID userId, UUID playlistId, UUID trackId) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+        Playlist playlist = findOwnedPlaylist(playlistId, userId,
+                "You can only add tracks to your own playlists");
+        Track track = findTrack(trackId);
 
-        if (!playlist.getOwnerId().equals(userId)) {
-            throw new UserNotAuthorizedException("You can only add tracks to your own playlists");
-        }
-
-        Track track = trackRepository.findById(trackId)
-                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
         playlist.getTracks().add(track);
+        useTrackCoverIfMissing(playlist, track);
 
-        if (playlist.getCoverUrl() == null && track.getCoverUrl() != null) {
-            playlist.setCoverUrl(track.getCoverUrl());
-        }
-
-        return playlistMappingService.map(playlistRepository.save(playlist));
+        return saveAndMap(playlist);
     }
 
     @Transactional
     public PlaylistResponseDto removeTrackFromPlaylist(UUID userId, UUID playlistId, UUID trackId) {
-        Playlist playlist = playlistRepository.findById(playlistId)
-                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+        Playlist playlist = findOwnedPlaylist(playlistId, userId,
+                "You can only remove tracks from your own playlists");
+        Track track = findTrack(trackId);
 
-        if (!playlist.getOwnerId().equals(userId)) {
-            throw new UserNotAuthorizedException("You can only remove tracks from your own playlists");
-        }
-
-        Track track = trackRepository.findById(trackId)
-                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
         playlist.getTracks().remove(track);
 
+        return saveAndMap(playlist);
+    }
+
+    private Playlist findOwnedPlaylist(UUID playlistId, UUID userId, String notOwnerMessage) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
+        if (!playlist.getOwnerId().equals(userId)) {
+            throw new UserNotAuthorizedException(notOwnerMessage);
+        }
+        return playlist;
+    }
+
+    private Track findTrack(UUID trackId) {
+        return trackRepository.findById(trackId)
+                .orElseThrow(() -> new TrackNotFoundException("Track not found"));
+    }
+
+    private void useTrackCoverIfMissing(Playlist playlist, Track track) {
+        if (playlist.getCoverUrl() == null && track.getCoverUrl() != null) {
+            playlist.setCoverUrl(track.getCoverUrl());
+        }
+    }
+
+    private PlaylistResponseDto saveAndMap(Playlist playlist) {
         return playlistMappingService.map(playlistRepository.save(playlist));
     }
 }
