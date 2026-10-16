@@ -1,0 +1,25 @@
+# Profile for @IntegrationTest. The datasource and minio.url come from Testcontainers
+# (TestcontainersConfiguration); nothing here points at the local docker-compose services.
+minio:
+  public-url: ${minio.url}
+  region: us-east-1
+  access-key: test
+  secret-key: test
+  bucket-name: music-files-test
+
+jwt:
+  secret: 7d2f1c9a4e8b3f6a0c5d2e9b8a7f4c1e3b6d9a2f5c8e1b4d7a0f3c6e9b2d5a8f
+
+encryption:
+  secret-key: test-encryption-key-32-chars-ok!
+
+google:
+  client:
+    id: test-client-id.apps.googleusercontent.com
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173
+
+data-seeder:
+  enabled: false

@@ -60,8 +60,8 @@ docker-compose up -d                         # Postgres 15 + MinIO for local dev
 docker compose --profile full up -d --build  # whole app in Docker: frontend :5173, API :8080, + coturn :3478
 docker compose --profile turn up -d          # infra + coturn only (WebRTC testing with apps run from source)
 cd backend && ./mvnw spring-boot:run         # API on :8080 (Flyway runs on start)
-cd backend && ./mvnw test                    # all tests; MusicAppApplicationTests (@SpringBootTest) needs Postgres up
-cd backend && ./mvnw test -Dtest='!MusicAppApplicationTests'   # unit tests only, no DB needed
+cd backend && ./mvnw test                    # all tests; integration tests run on Testcontainers: only a Docker daemon needed
+cd backend && ./mvnw test -DexcludedGroups=integration   # unit tests only, no Docker needed
 cd backend && ./mvnw -Dtest=ChatServiceTest test
 cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
@@ -126,6 +126,9 @@ Follow the existing style:
   returns the UUID string. Per-user STOMP delivery uses `convertAndSendToUser(userId.toString(), ...)`.
 - Tests: JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, `@Mock`/`@InjectMocks`), one test
   class per service/mapper under `backend/src/test/...`. Add tests for every new service.
+  Integration tests are annotated `@IntegrationTest` (full context, `test` profile, Postgres + S3Mock
+  Testcontainers shared per run; never the local docker-compose services) and use no other test annotations,
+  so they share one cached context.
 - Frontend: pages in `src/pages`, components in `src/components/<area>`, global state in Zustand stores
   in `src/store`, HTTP through `src/api/axiosClient.js`, STOMP through `src/api/socketClient.js`.
 - The msp-app UI uses sci-fi wording (Nodes, Clusters, Transmissions); SyncChord screens use plain
