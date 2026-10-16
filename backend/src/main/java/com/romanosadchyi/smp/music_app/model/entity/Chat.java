@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,4 +50,24 @@ public class Chat {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
+
+    public Optional<ChatMembership> membershipOf(UUID userId) {
+        return memberships.stream()
+                .filter(m -> m.getUserId().equals(userId))
+                .findFirst();
+    }
+
+    /**
+     * Adds a membership for {@code userId} to this chat and returns it; the caller saves it.
+     */
+    public ChatMembership addMember(UUID userId, ChatStatus status, boolean admin) {
+        ChatMembership membership = ChatMembership.builder()
+                .chat(this)
+                .userId(userId)
+                .status(status)
+                .isAdmin(admin)
+                .build();
+        memberships.add(membership);
+        return membership;
+    }
 }

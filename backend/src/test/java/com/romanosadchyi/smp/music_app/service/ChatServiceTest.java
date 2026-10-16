@@ -1,30 +1,17 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.ChatMembership;
-import com.romanosadchyi.smp.music_app.model.entity.Message;
-import com.romanosadchyi.smp.music_app.model.enums.ChatStatus;
-import com.romanosadchyi.smp.music_app.music.internal.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatRepository;
-import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMappingService;
-import com.romanosadchyi.smp.music_app.service.mapping.ChatMessageMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,145 +32,17 @@ class ChatServiceTest {
     ChatMembershipRepository chatMembershipRepository;
 
     @Mock
-    MessageRepository messageRepository;
-
-    @Mock
     UserLookup userLookup;
-    
-    @Mock
-    TrackRepository trackRepository;
-
-    @Mock
-    ChatMessageMappingService mappingService;
 
     @Mock
     ChatMappingService chatMappingService;
 
-    @Mock
-    SimpMessagingTemplate messagingTemplate;
-
-    @InjectMocks
     ChatService chatService;
 
-    @Test
-    void createCluster_ValidData_CreatesGroupChatAndMemberships() {
-        UUID creatorId = UUID.randomUUID();
-        UUID participantId = UUID.randomUUID();
-        
-        
-        ClusterCreateRequestDto dto = new ClusterCreateRequestDto("Hacker Group", Set.of(creatorId, participantId));
-
-        when(userLookup.exists(creatorId)).thenReturn(true);
-        when(userLookup.exists(participantId)).thenReturn(true);
-        
-        when(chatRepository.save(any(Chat.class))).thenAnswer(i -> {
-            Chat c = i.getArgument(0);
-            c.setId(UUID.randomUUID());
-            return c;
-        });
-
-        when(chatMappingService.map(any(Chat.class), eq(creatorId))).thenReturn(
-            new ChatResponseDto(UUID.randomUUID(), true, "Hacker Group", null, null, creatorId, "ACCEPTED")
-        );
-
-        ChatResponseDto response = chatService.createCluster(creatorId, dto);
-
-        assertNotNull(response);
-        assertEquals("Hacker Group", response.name());
-        assertTrue(response.isGroup());
-        verify(chatRepository).save(any(Chat.class));
-        verify(chatMembershipRepository).saveAll(any());
-    }
-
-    @Test
-    void acceptChat_UserIsPendingParticipant_UpdatesStatus() {
-        UUID chatId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        
-        Chat chat = Chat.builder().id(chatId).build();
-        ChatMembership membership = ChatMembership.builder()
-                .chat(chat)
-                .userId(userId)
-                .status(ChatStatus.PENDING)
-                .isAdmin(false)
-                .build();
-        chat.getMemberships().add(membership);
-
-        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
-        when(chatMappingService.map(any(Chat.class), eq(userId))).thenReturn(
-            new ChatResponseDto(chatId, false, null, null, null, null, "ACCEPTED")
-        );
-
-        ChatResponseDto response = chatService.acceptChat(chatId, userId);
-
-        assertEquals(ChatStatus.ACCEPTED, membership.getStatus());
-        assertEquals("ACCEPTED", response.status());
-        verify(chatMembershipRepository).save(membership);
-    }
-
-    @Test
-    void acceptChat_UserIsAdmin_ThrowsIllegalArgumentException() {
-        UUID chatId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        
-        Chat chat = Chat.builder().id(chatId).build();
-        ChatMembership membership = ChatMembership.builder()
-                .chat(chat)
-                .userId(userId)
-                .status(ChatStatus.ACCEPTED)
-                .isAdmin(true) // Initiator
-                .build();
-        chat.getMemberships().add(membership);
-
-        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
-
-        assertThrows(IllegalArgumentException.class, () -> chatService.acceptChat(chatId, userId));
-        verify(chatMembershipRepository, never()).save(any(ChatMembership.class));
-    }
-
-    @Test
-    void rejectChat_UserIsParticipant_UpdatesStatusToRejected() {
-        UUID chatId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        
-        Chat chat = Chat.builder().id(chatId).build();
-        ChatMembership membership = ChatMembership.builder()
-                .chat(chat)
-                .userId(userId)
-                .status(ChatStatus.PENDING)
-                .build();
-        chat.getMemberships().add(membership);
-
-        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
-
-        chatService.rejectChat(chatId, userId);
-
-        assertEquals(ChatStatus.REJECTED, membership.getStatus());
-        verify(chatMembershipRepository).save(membership);
-    }
-
-    @Test
-    void processMessage_ValidData_SavesAndBroadcasts() {
-        UUID senderId = UUID.randomUUID();
-        UUID chatId = UUID.randomUUID();
-        
-        Chat chat = Chat.builder().id(chatId).build();
-        ChatMembership membership = ChatMembership.builder().chat(chat).userId(senderId).status(ChatStatus.ACCEPTED).build();
-        chat.getMemberships().add(membership);
-        
-        ChatMessageRequestDto request = new ChatMessageRequestDto(chatId, null, "Hello", null, null, null);
-        
-        when(userLookup.exists(senderId)).thenReturn(true);
-        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
-        when(messageRepository.save(any(Message.class))).thenAnswer(i -> i.getArgument(0));
-        when(mappingService.map(any(Message.class))).thenReturn(
-            new ChatMessageResponseDto(UUID.randomUUID(), chatId, null, "Hello", null, null, null, null)
-        );
-
-        chatService.processMessage(request, senderId);
-
-        verify(messageRepository).save(any(Message.class));
-        verify(messagingTemplate).convertAndSendToUser(eq(senderId.toString()), eq("/queue/messages"), any(ChatMessageResponseDto.class));
+    @BeforeEach
+    void setUp() {
+        chatService = new ChatService(chatRepository,
+                new DirectChatResolver(chatRepository, chatMembershipRepository, userLookup), chatMappingService);
     }
 
     @Test
@@ -203,21 +62,6 @@ class ChatServiceTest {
             Set<ChatMembership> set = (Set<ChatMembership>) memberships;
             return set.size() == 2;
         }));
-    }
-
-    @Test
-    void getMessageHistory_ReturnsPage() {
-        UUID chatId = UUID.randomUUID();
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Message> page = new PageImpl<>(List.of(new Message()));
-        
-        when(messageRepository.findByChatIdOrderByTimestampDesc(eq(chatId), any(Pageable.class))).thenReturn(page);
-        when(mappingService.map(any(Message.class))).thenReturn(
-            new ChatMessageResponseDto(UUID.randomUUID(), chatId, null, "Hello", null, null, null, null)
-        );
-
-        Page<ChatMessageResponseDto> result = chatService.getMessageHistory(chatId, pageable);
-        assertEquals(1, result.getTotalElements());
     }
 
     @Test

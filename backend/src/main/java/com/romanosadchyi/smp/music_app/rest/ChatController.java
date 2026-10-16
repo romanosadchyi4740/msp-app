@@ -4,7 +4,10 @@ import com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
+import com.romanosadchyi.smp.music_app.service.ChatMembershipService;
+import com.romanosadchyi.smp.music_app.service.ChatMessageService;
 import com.romanosadchyi.smp.music_app.service.ChatService;
+import com.romanosadchyi.smp.music_app.service.GroupChatService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,9 @@ import java.util.UUID;
 public class ChatController {
 
     ChatService chatService;
+    GroupChatService groupChatService;
+    ChatMembershipService chatMembershipService;
+    ChatMessageService chatMessageService;
 
     @GetMapping
     public List<ChatResponseDto> getUserChats(@AuthenticationPrincipal AuthenticatedUser user) {
@@ -43,7 +49,7 @@ public class ChatController {
     @PostMapping("/cluster")
     public ChatResponseDto createCluster(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody ClusterCreateRequestDto request) {
         log.info("Creating cluster {} with {} participants", request.groupName(), request.participantIds().size());
-        return chatService.createCluster(user.id(), request);
+        return groupChatService.createCluster(user.id(), request);
     }
 
     @GetMapping("/{chatId}/messages")
@@ -51,19 +57,19 @@ public class ChatController {
             @PathVariable UUID chatId,
             @PageableDefault(size = 20) Pageable pageable) {
         log.info("Getting message history for chat with ID: {}", chatId);
-        return chatService.getMessageHistory(chatId, pageable);
+        return chatMessageService.getMessageHistory(chatId, pageable);
     }
 
     @PutMapping("/{chatId}/accept")
     public ChatResponseDto acceptChat(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID chatId) {
         log.info("User {} accepting chat {}", user.id(), chatId);
-        return chatService.acceptChat(chatId, user.id());
+        return chatMembershipService.acceptChat(chatId, user.id());
     }
 
     @PutMapping("/{chatId}/reject")
     public void rejectChat(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID chatId) {
         log.info("User {} rejecting chat {}", user.id(), chatId);
-        chatService.rejectChat(chatId, user.id());
+        chatMembershipService.rejectChat(chatId, user.id());
     }
 
     @PostMapping("/{chatId}/membership/{userId}/decline")
@@ -72,7 +78,7 @@ public class ChatController {
             throw new IllegalArgumentException("Cannot decline membership for another user");
         }
         log.info("User {} declining membership for chat {}", userId, chatId);
-        chatService.rejectChat(chatId, userId);
+        chatMembershipService.rejectChat(chatId, userId);
     }
 
     @GetMapping("/{chatId}/members")
@@ -80,7 +86,7 @@ public class ChatController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID chatId) {
         log.info("Getting members for chat {}", chatId);
-        return chatService.getChatMembers(chatId, user.id());
+        return chatMembershipService.getChatMembers(chatId, user.id());
     }
 
     @PostMapping("/{chatId}/members")
@@ -89,6 +95,6 @@ public class ChatController {
             @PathVariable UUID chatId,
             @RequestBody List<UUID> userIds) {
         log.info("User {} inviting {} members to chat {}", user.id(), userIds.size(), chatId);
-        chatService.inviteMembers(chatId, user.id(), userIds);
+        groupChatService.inviteMembers(chatId, user.id(), userIds);
     }
 }
