@@ -1,0 +1,52 @@
+package com.romanosadchyi.smp.music_app.playlists.internal.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
+
+@Entity
+@Table(name = "integration_requests")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class IntegrationRequest {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_playlist_id", nullable = false)
+    Playlist targetPlaylist;
+
+    @Column(name = "requester_id", nullable = false)
+    UUID requesterId;
+
+    /**
+     * Ids of tracks in the music module; their order is not stored.
+     */
+    @ElementCollection
+    @CollectionTable(name = "integration_request_tracks", joinColumns = @JoinColumn(name = "request_id"))
+    @Column(name = "track_id", nullable = false)
+    @Builder.Default
+    Set<UUID> proposedTrackIds = new LinkedHashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    RequestStatus status = RequestStatus.PENDING;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    LocalDateTime createdAt;
+}
