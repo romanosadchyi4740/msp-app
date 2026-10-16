@@ -57,8 +57,8 @@ class DirectChatResolverTest {
     @Test
     void existingChat_RejectedMembershipsAreReopened() {
         Chat chat = Chat.builder().id(UUID.randomUUID()).build();
-        chat.addMember(initiator, ChatStatus.REJECTED, false);
-        chat.addMember(recipient, ChatStatus.REJECTED, true);
+        ChatMemberships.add(chat, initiator, ChatStatus.REJECTED, false);
+        ChatMemberships.add(chat, recipient, ChatStatus.REJECTED, true);
         when(chatRepository.findChatBetweenUsers(initiator, recipient)).thenReturn(Optional.of(chat));
 
         assertThat(resolver.getOrCreate(initiator, recipient)).isSameAs(chat);
@@ -71,8 +71,8 @@ class DirectChatResolverTest {
     @Test
     void existingChat_AcceptedMembershipsAreLeftAlone() {
         Chat chat = Chat.builder().id(UUID.randomUUID()).build();
-        chat.addMember(initiator, ChatStatus.ACCEPTED, false);
-        chat.addMember(recipient, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, initiator, ChatStatus.ACCEPTED, false);
+        ChatMemberships.add(chat, recipient, ChatStatus.ACCEPTED, true);
         when(chatRepository.findChatBetweenUsers(initiator, recipient)).thenReturn(Optional.of(chat));
 
         resolver.getOrCreate(initiator, recipient);
@@ -93,7 +93,7 @@ class DirectChatResolverTest {
     }
 
     private static void assertMembership(Chat chat, UUID userId, ChatStatus status, boolean admin) {
-        ChatMembership membership = chat.membershipOf(userId).orElseThrow();
+        ChatMembership membership = ChatMemberships.find(chat, userId).orElseThrow();
         assertThat(membership.getStatus()).isEqualTo(status);
         assertThat(membership.isAdmin()).isEqualTo(admin);
     }

@@ -44,14 +44,14 @@ public class GroupChatService {
                 .isGroup(true)
                 .name(request.groupName())
                 .build());
-        chat.addMember(creatorId, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, creatorId, ChatStatus.ACCEPTED, true);
 
         for (UUID participantId : request.participantIds()) {
             if (participantId.equals(creatorId)) {
                 continue;
             }
             requireUser(participantId);
-            chat.addMember(participantId, ChatStatus.PENDING, false);
+            ChatMemberships.add(chat, participantId, ChatStatus.PENDING, false);
         }
 
         chatMembershipRepository.saveAll(chat.getMemberships());
@@ -67,7 +67,7 @@ public class GroupChatService {
             throw new IllegalArgumentException("Cannot invite members to a 1-on-1 chat");
         }
 
-        ChatMembership requesterMembership = chat.membershipOf(requesterId)
+        ChatMembership requesterMembership = ChatMemberships.find(chat, requesterId)
                 .orElseThrow(() -> new UserNotAuthorizedException("Requester is not a member of this chat"));
         if (requesterMembership.getStatus() != ChatStatus.ACCEPTED) {
             throw new UserNotAuthorizedException("Requester is not an active member of this cluster");
@@ -82,7 +82,7 @@ public class GroupChatService {
                 .toList();
         newMemberIds.forEach(this::requireUser);
         List<ChatMembership> newMemberships = newMemberIds.stream()
-                .map(id -> chat.addMember(id, ChatStatus.PENDING, false))
+                .map(id -> ChatMemberships.add(chat, id, ChatStatus.PENDING, false))
                 .toList();
 
         if (!newMemberships.isEmpty()) {

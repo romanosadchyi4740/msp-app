@@ -59,7 +59,7 @@ public class ChatMembershipService {
     @Transactional(readOnly = true)
     public List<ChatMembershipDto> getChatMembers(UUID chatId, UUID requesterId) {
         Chat chat = findChat(chatId);
-        if (chat.membershipOf(requesterId).isEmpty()) {
+        if (ChatMemberships.find(chat, requesterId).isEmpty()) {
             throw new UserNotAuthorizedException("Requester is not a member of this chat");
         }
 
@@ -82,7 +82,7 @@ public class ChatMembershipService {
     }
 
     private static ChatMembership participantMembership(Chat chat, UUID userId) {
-        return chat.membershipOf(userId)
+        return ChatMemberships.find(chat, userId)
                 .orElseThrow(() -> new IllegalArgumentException("User is not a participant of this chat"));
     }
 }

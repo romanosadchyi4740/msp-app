@@ -118,8 +118,8 @@ class ChatMembershipServiceTest {
         UUID requester = UUID.randomUUID();
         UUID other = UUID.randomUUID();
         Chat chat = Chat.builder().id(UUID.randomUUID()).build();
-        chat.addMember(requester, ChatStatus.ACCEPTED, true);
-        chat.addMember(other, ChatStatus.PENDING, false);
+        ChatMemberships.add(chat, requester, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, other, ChatStatus.PENDING, false);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(userLookup.findSummaries(anyList())).thenReturn(Map.of(
                 requester, new UserSummary(requester, "Me", "me.png", UserRole.ROLE_USER),
@@ -136,7 +136,7 @@ class ChatMembershipServiceTest {
     @Test
     void getChatMembers_NotAMember_IsNotAuthorized() {
         Chat chat = Chat.builder().id(UUID.randomUUID()).build();
-        chat.addMember(UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
 
         assertThrows(UserNotAuthorizedException.class, () -> chatService.getChatMembers(chat.getId(), UUID.randomUUID()));

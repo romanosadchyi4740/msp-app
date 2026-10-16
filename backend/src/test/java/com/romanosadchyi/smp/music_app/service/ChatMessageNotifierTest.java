@@ -29,8 +29,8 @@ class ChatMessageNotifierTest {
         UUID first = UUID.randomUUID();
         UUID second = UUID.randomUUID();
         Chat chat = Chat.builder().id(UUID.randomUUID()).build();
-        chat.addMember(first, ChatStatus.ACCEPTED, true);
-        chat.addMember(second, ChatStatus.PENDING, false);
+        ChatMemberships.add(chat, first, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, second, ChatStatus.PENDING, false);
         ChatMessageResponseDto message = new ChatMessageResponseDto(UUID.randomUUID(), chat.getId(), null, "Hi", null, null, null, null);
 
         notifier.deliver(chat, message);

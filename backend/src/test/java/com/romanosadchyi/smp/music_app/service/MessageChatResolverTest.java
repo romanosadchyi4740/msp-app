@@ -54,7 +54,7 @@ class MessageChatResolverTest {
 
     @Test
     void byChatId_SenderIsMember_ReturnsChat() {
-        chat.addMember(senderId, ChatStatus.ACCEPTED, false);
+        ChatMemberships.add(chat, senderId, ChatStatus.ACCEPTED, false);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
 
         assertThat(resolver.resolve(request(chat.getId(), null), senderId)).isSameAs(chat);
@@ -64,7 +64,7 @@ class MessageChatResolverTest {
     @Test
     void byRecipient_UsesTheDirectChat() {
         UUID recipient = UUID.randomUUID();
-        chat.addMember(senderId, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, senderId, ChatStatus.ACCEPTED, true);
         when(directChatResolver.getOrCreate(senderId, recipient)).thenReturn(chat);
 
         assertThat(resolver.resolve(request(null, recipient), senderId)).isSameAs(chat);
@@ -72,7 +72,7 @@ class MessageChatResolverTest {
 
     @Test
     void rejectedSender_ReopensTheChatAsAdmin() {
-        ChatMembership membership = chat.addMember(senderId, ChatStatus.REJECTED, false);
+        ChatMembership membership = ChatMemberships.add(chat, senderId, ChatStatus.REJECTED, false);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
 
         resolver.resolve(request(chat.getId(), null), senderId);

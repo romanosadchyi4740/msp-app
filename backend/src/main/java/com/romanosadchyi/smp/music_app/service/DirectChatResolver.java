@@ -34,10 +34,10 @@ public class DirectChatResolver {
     }
 
     private Chat reopen(Chat chat, UUID initiatorId, UUID recipientId) {
-        chat.membershipOf(initiatorId)
+        ChatMemberships.find(chat, initiatorId)
                 .filter(m -> m.getStatus() == ChatStatus.REJECTED)
                 .ifPresent(m -> reset(m, ChatStatus.ACCEPTED, true));
-        chat.membershipOf(recipientId)
+        ChatMemberships.find(chat, recipientId)
                 .filter(m -> m.getStatus() == ChatStatus.REJECTED)
                 .ifPresent(m -> reset(m, ChatStatus.PENDING, false));
         return chat;
@@ -54,8 +54,8 @@ public class DirectChatResolver {
         requireUser(recipientId);
 
         Chat chat = chatRepository.save(Chat.builder().isGroup(false).build());
-        chat.addMember(initiatorId, ChatStatus.ACCEPTED, true);
-        chat.addMember(recipientId, ChatStatus.PENDING, false);
+        ChatMemberships.add(chat, initiatorId, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, recipientId, ChatStatus.PENDING, false);
         chatMembershipRepository.saveAll(chat.getMemberships());
         return chat;
     }

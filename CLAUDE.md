@@ -180,6 +180,8 @@ Follow the existing style:
 - Entities: `@Entity @Table`, Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
   @FieldDefaults(level = AccessLevel.PRIVATE)`, `@Builder.Default` for collections/defaults,
   `@Enumerated(EnumType.STRING)`, **UUID primary keys** (`GenerationType.UUID`), LAZY relations.
+  Entities hold data only: no methods besides the Lombok-generated ones. Logic goes into services, or into a
+  small helper class next to them (e.g. `ChatMemberships`).
 - Services/controllers: `@RequiredArgsConstructor @FieldDefaults(level = PRIVATE, makeFinal = true)`,
   `@Slf4j`, `@Transactional` on writes. DTOs are Java `record`s (`@Builder` where useful).
 - Mapping is done in `*MappingService` beans, not in controllers.
@@ -225,7 +227,9 @@ The lab class model (lab 7) uses `Long`/BIGSERIAL ids, `Instant`, and `USER/ADMI
 | `SyncCommand` (transient DTO) | type PLAY/PAUSE/SEEK/SET_TEMPO/METRONOME/LOAD_TAB/REQUEST_SYNC, argument, senderId, clientTime | never stored |
 | `SignalMessage` (transient DTO) | type OFFER/ANSWER/ICE_CANDIDATE, fromId, toId, payload (SDP/ICE) | relayed only |
 
-Enums are stored as VARCHAR with CHECK constraints in SQL. All FKs indexed.
+Enums are stored as VARCHAR with CHECK constraints in SQL. All FKs indexed. The operations listed with the
+entities (`create`, `join`, `apply`, `positionAt`, ...) are the lab model's; in code they are service methods,
+because entities hold data only (section 4).
 
 ## 6. Real-time protocol (the innovative core)
 

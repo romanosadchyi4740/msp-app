@@ -80,15 +80,15 @@ class GroupChatServiceTest {
         UUID existing = UUID.randomUUID();
         UUID invited = UUID.randomUUID();
         Chat chat = Chat.builder().id(UUID.randomUUID()).isGroup(true).build();
-        chat.addMember(requester, ChatStatus.ACCEPTED, true);
-        chat.addMember(existing, ChatStatus.PENDING, false);
+        ChatMemberships.add(chat, requester, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, existing, ChatStatus.PENDING, false);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(userLookup.exists(invited)).thenReturn(true);
 
         chatService.inviteMembers(chat.getId(), requester, List.of(existing, invited));
 
         assertEquals(3, chat.getMemberships().size());
-        assertEquals(ChatStatus.PENDING, chat.membershipOf(invited).orElseThrow().getStatus());
+        assertEquals(ChatStatus.PENDING, ChatMemberships.find(chat, invited).orElseThrow().getStatus());
         verify(chatMembershipRepository).saveAll(argThat(memberships -> ((List<?>) memberships).size() == 1));
     }
 
@@ -106,7 +106,7 @@ class GroupChatServiceTest {
     void inviteMembers_PendingRequester_IsNotAuthorized() {
         UUID requester = UUID.randomUUID();
         Chat chat = Chat.builder().id(UUID.randomUUID()).isGroup(true).build();
-        chat.addMember(requester, ChatStatus.PENDING, false);
+        ChatMemberships.add(chat, requester, ChatStatus.PENDING, false);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
 
         assertThrows(UserNotAuthorizedException.class,
@@ -120,7 +120,7 @@ class GroupChatServiceTest {
         UUID known = UUID.randomUUID();
         UUID unknown = UUID.randomUUID();
         Chat chat = Chat.builder().id(UUID.randomUUID()).isGroup(true).build();
-        chat.addMember(requester, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, requester, ChatStatus.ACCEPTED, true);
         when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(userLookup.exists(known)).thenReturn(true);
         when(userLookup.exists(unknown)).thenReturn(false);

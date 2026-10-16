@@ -42,7 +42,7 @@ public class MessageChatResolver {
 
         Chat chat = findChat(request, senderId);
 
-        ChatMembership senderMembership = chat.membershipOf(senderId)
+        ChatMembership senderMembership = ChatMemberships.find(chat, senderId)
                 .orElseThrow(() -> new IllegalArgumentException("User not in chat"));
         if (senderMembership.getStatus() == ChatStatus.REJECTED) {
             senderMembership.setStatus(ChatStatus.PENDING);
