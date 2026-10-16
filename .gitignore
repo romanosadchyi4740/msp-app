@@ -33,3 +33,6 @@ build/
 .vscode/
 
 .mcp.json
+
+# Python bytecode (Claude Code helper scripts)
+__pycache__/

@@ -296,6 +296,12 @@ and `RoomParticipant.rttMs`.
   not `main`. The owner reviews and merges PRs. Move the Jira ticket along with the work: In Progress when
   starting, In Review when the PR is opened, Done after the merge.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
+- Project skills in `.claude/skills/`: `kan-ticket` (ticket, branch, PR and Jira workflow), `modulith-extract`
+  (extracting a module), `split-service` (splitting an oversized service). Their Java helpers are in
+  `.claude/scripts/java/` (`java_style.py --check` checks the mechanical style rules of section 4).
+- Project agents in `.claude/agents/`: `code-reviewer` (read-only review of the branch against these rules; run it
+  before opening or updating a PR) and `test-gap-finder` (lists untested branches; writes tests under
+  `backend/src/test` only when asked).
 - New schema only through new Flyway migrations (`V17__...`); never edit applied migrations.
 - Never log tokens, SDP payloads, or message plaintext. Never commit secrets.
 - Do not touch Terraform state or run `terraform apply`; the owner runs `plan/apply` with their credentials.
