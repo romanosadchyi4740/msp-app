@@ -1,13 +1,13 @@
 package com.romanosadchyi.smp.music_app.service;
 
-import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.ConsensusPollRequest;
 import com.romanosadchyi.smp.music_app.model.dto.request.TelemetryBroadcastRequest;
 import com.romanosadchyi.smp.music_app.model.dto.response.StatusBroadcastResponse;
 import com.romanosadchyi.smp.music_app.model.entity.StatusBroadcast;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.music.external.TrackNotFoundException;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.StatusBroadcastRepository;
-import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TelemetryMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;

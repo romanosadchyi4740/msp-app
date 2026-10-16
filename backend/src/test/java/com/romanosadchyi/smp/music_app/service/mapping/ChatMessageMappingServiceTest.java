@@ -1,10 +1,11 @@
 package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;

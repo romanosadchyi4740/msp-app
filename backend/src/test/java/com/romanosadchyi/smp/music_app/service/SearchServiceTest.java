@@ -1,12 +1,10 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.GlobalSearchResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.Album;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
-import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
-import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
+import com.romanosadchyi.smp.music_app.music.external.AlbumLookup;
+import com.romanosadchyi.smp.music_app.music.external.AlbumResponseDto;
+import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;
@@ -33,16 +31,10 @@ class SearchServiceTest {
     UserLookup userLookup;
 
     @Mock
-    AlbumRepository albumRepository;
+    TrackLookup trackLookup;
 
     @Mock
-    TrackRepository trackRepository;
-
-    @Mock
-    AlbumMappingService albumMappingService;
-
-    @Mock
-    TrackMappingService trackMappingService;
+    AlbumLookup albumLookup;
 
     @InjectMocks
     SearchService searchService;
@@ -53,12 +45,12 @@ class SearchServiceTest {
         int size = 10;
 
         Page<UserResponseDto> usersPage = new PageImpl<>(List.of(UserResponseDto.builder().build()));
-        Page<Album> albumsPage = new PageImpl<>(List.of(new Album()));
-        Page<Track> tracksPage = new PageImpl<>(List.of(new Track()));
+        Page<AlbumResponseDto> albumsPage = new PageImpl<>(List.of(new AlbumResponseDto(null, null, null, null, null, null, null, null)));
+        Page<TrackResponseDto> tracksPage = new PageImpl<>(List.of(TrackResponseDto.builder().build()));
 
         when(userLookup.searchProfiles(eq(query), any(Pageable.class))).thenReturn(usersPage);
-        when(albumRepository.findAllByTitleContainingIgnoreCase(eq(query), any(Pageable.class))).thenReturn(albumsPage);
-        when(trackRepository.findAllByTitleContainingIgnoreCase(eq(query), any(Pageable.class))).thenReturn(tracksPage);
+        when(albumLookup.searchAlbums(eq(query), any(Pageable.class))).thenReturn(albumsPage);
+        when(trackLookup.searchTracks(eq(query), any(Pageable.class))).thenReturn(tracksPage);
 
         GlobalSearchResponseDto response = searchService.globalSearch(query, size);
 
@@ -68,7 +60,7 @@ class SearchServiceTest {
         assertNotNull(response.tracks());
 
         verify(userLookup).searchProfiles(eq(query), any(Pageable.class));
-        verify(albumRepository).findAllByTitleContainingIgnoreCase(eq(query), any(Pageable.class));
-        verify(trackRepository).findAllByTitleContainingIgnoreCase(eq(query), any(Pageable.class));
+        verify(albumLookup).searchAlbums(eq(query), any(Pageable.class));
+        verify(trackLookup).searchTracks(eq(query), any(Pageable.class));
     }
 }

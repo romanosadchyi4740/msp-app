@@ -4,7 +4,7 @@ import com.romanosadchyi.smp.music_app.exception.PlaylistNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
 import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.PlaylistMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;

@@ -103,7 +103,7 @@ and `frontend/.env.example` lists them for builds.
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
-- Seeders: `ReferenceDataSeeder` (genres; moves to the `music` module in KAN-64) runs in every profile; `users.internal.config.DemoDataSeeder`
+- Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`
   (`artist@example.com`) only in `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
 - `GET /actuator/health` is public and returns only the overall status (ALB health check); no other actuator
   endpoints are exposed.
@@ -154,7 +154,12 @@ it stays `@Disabled` until the legacy layered packages are extracted, and `share
 - **No cycles.** When a flow naturally points the other way, invert it with an interface:
   `users.external.UserDataCleanup` is implemented by each module that stores user data, and `users`
   calls all beans of that type on account deletion; `rooms` asks `billing.external.PremiumChecker`.
-  Until the music and playlists modules exist, `service.LegacyUserDataCleanup` deletes their part.
+  The same goes for references to another module's rows: deleting a track calls every
+  `music.external.TrackDeletionCleanup` (playlists and chat messages drop the track), so `music` never touches their
+  tables. Until playlists and chats are modules, `service.LegacyUserDataCleanup` and
+  `service.LegacyTrackDeletionCleanup` do their part.
+- Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, used by the
+  `mapAll`/`mapPage` methods of the mappers), never one lookup per row.
 - Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)
   next to their own data, `UserResponseDto` where a response embeds the full public profile.
 - The current user comes from `shared.security.AuthenticatedUser` (id, email, role from the JWT), not

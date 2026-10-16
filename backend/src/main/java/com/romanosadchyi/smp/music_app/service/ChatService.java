@@ -1,7 +1,6 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.ChatNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto;
@@ -9,10 +8,12 @@ import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.*;
 import com.romanosadchyi.smp.music_app.model.enums.ChatStatus;
+import com.romanosadchyi.smp.music_app.music.external.TrackNotFoundException;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.repository.MessageRepository;
-import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMessageMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;

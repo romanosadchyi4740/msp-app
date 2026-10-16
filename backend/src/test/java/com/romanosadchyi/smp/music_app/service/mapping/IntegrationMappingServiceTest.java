@@ -1,11 +1,12 @@
 package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.IntegrationRequest;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
 import com.romanosadchyi.smp.music_app.model.enums.RequestStatus;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +59,7 @@ class IntegrationMappingServiceTest {
         TrackResponseDto trackDto = TrackResponseDto.builder().id(track.getId()).build();
 
         when(userLookup.getProfile(requesterId)).thenReturn(requesterDto);
-        when(trackMappingService.map(track)).thenReturn(trackDto);
+        when(trackMappingService.mapAll(anyCollection())).thenReturn(List.of(trackDto));
 
         IntegrationRequestResponseDto result = integrationMappingService.map(request);
 
