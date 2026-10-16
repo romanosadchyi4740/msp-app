@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,20 +15,21 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class PollOption {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "poll_id", nullable = false)
-    private ConsensusPoll poll;
+    ConsensusPoll poll;
 
     @Column(name = "option_text", nullable = false)
-    private String optionText;
+    String optionText;
 
     @OneToMany(mappedBy = "option", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @Builder.Default
-    private List<PollVote> votes = new ArrayList<>();
+    List<PollVote> votes = new ArrayList<>();
 }

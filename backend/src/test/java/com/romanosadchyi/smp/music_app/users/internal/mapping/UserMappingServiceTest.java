@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class UserMappingServiceTest {
 
-    private final UserMappingService userMappingService = new UserMappingService();
+    final UserMappingService userMappingService = new UserMappingService();
 
     @Test
     void map_ReturnsDto() {

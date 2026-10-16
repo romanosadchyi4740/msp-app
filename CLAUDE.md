@@ -168,7 +168,9 @@ it stays `@Disabled` until the legacy layered packages are extracted, and `share
 Follow the existing style:
 - Java formatting: refer to types through imports, never fully qualified names in code or Javadoc, unless two
   types with the same simple name clash in one file. A file ends with the last `}` followed by exactly one
-  newline, and there is no blank line before that last `}`.
+  newline, and there is no blank line before that last `}`. Fields get their modifiers from Lombok
+  `@FieldDefaults` (entities `level = PRIVATE`, beans also `makeFinal = true`); do not write `private`/`final`
+  on fields. Test classes keep fields package-private, as in the existing tests.
 - Entities: `@Entity @Table`, Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
   @FieldDefaults(level = AccessLevel.PRIVATE)`, `@Builder.Default` for collections/defaults,
   `@Enumerated(EnumType.STRING)`, **UUID primary keys** (`GenerationType.UUID`), LAZY relations.
