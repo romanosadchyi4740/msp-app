@@ -25,5 +25,4 @@ public class GenreService {
                 .map(genreMappingService::map)
                 .collect(Collectors.toList());
     }
-
 }

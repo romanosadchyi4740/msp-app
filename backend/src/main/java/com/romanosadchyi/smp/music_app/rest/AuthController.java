@@ -41,5 +41,4 @@ public class AuthController {
         log.info("Authenticating user via Google");
         return ResponseEntity.ok(authService.authenticateWithGoogle(request.googleToken()));
     }
-
 }

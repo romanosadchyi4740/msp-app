@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.config;
+package com.romanosadchyi.smp.music_app.shared.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
@@ -88,5 +88,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
 }

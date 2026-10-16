@@ -11,4 +11,5 @@ public record IntegrationRequestResponseDto(
         List<TrackResponseDto> proposedTracks,
         String status,
         LocalDateTime createdAt
-) {}
+) {
+}

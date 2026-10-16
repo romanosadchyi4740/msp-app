@@ -6,9 +6,11 @@ import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.GenreMappingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +33,7 @@ class GenreServiceTest {
     @Test
     void getAllGenres_ReturnsList() {
         Genre genre = Genre.builder().id(UUID.randomUUID()).name("Pop").build();
-        when(genreRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Sort.class))).thenReturn(List.of(genre));
+        when(genreRepository.findAll(ArgumentMatchers.any(Sort.class))).thenReturn(List.of(genre));
         when(genreMappingService.map(genre)).thenReturn(new GenreResponseDto(genre.getId(), "Pop", null, null));
 
         List<GenreResponseDto> result = genreService.getAllGenres();

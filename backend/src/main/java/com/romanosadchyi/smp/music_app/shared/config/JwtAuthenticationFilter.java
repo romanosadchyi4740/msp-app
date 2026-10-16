@@ -1,7 +1,7 @@
-package com.romanosadchyi.smp.music_app.config;
+package com.romanosadchyi.smp.music_app.shared.config;
 
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
-import com.romanosadchyi.smp.music_app.service.JwtService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
+import com.romanosadchyi.smp.music_app.shared.security.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,8 +18,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.UUID;
 
+/**
+ * Authenticates {@code Authorization: Bearer <jwt>} requests. The principal is an {@link AuthenticatedUser} built
+ * from the token's claims; the user is not loaded from the database.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -27,7 +30,6 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     JwtService jwtService;
-    UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -36,8 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userId;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -45,28 +45,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            jwt = authHeader.substring(7);
-            userId = jwtService.extractUserId(jwt);
-
-            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {
-                    if (jwtService.isTokenValid(jwt)) {
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                user.getAuthorities()
-                        );
-                        authToken.setDetails(
-                                new WebAuthenticationDetailsSource().buildDetails(request)
-                        );
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                    }
-                });
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                AuthenticatedUser user = jwtService.parseToken(authHeader.substring(7));
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(user, null, user.authorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
         }
         filterChain.doFilter(request, response);
     }
-
 }

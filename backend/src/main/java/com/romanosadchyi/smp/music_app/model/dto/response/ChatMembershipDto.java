@@ -12,4 +12,5 @@ public record ChatMembershipDto(
         String avatarUrl,
         ChatStatus status,
         boolean isAdmin
-) {}
+) {
+}

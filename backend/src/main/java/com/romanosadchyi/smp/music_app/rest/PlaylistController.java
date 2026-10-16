@@ -4,8 +4,8 @@ import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.PlaylistService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,17 +28,17 @@ public class PlaylistController {
 
     @PostMapping
     public ResponseEntity<PlaylistResponseDto> createPlaylist(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedUser user,
             @RequestBody PlaylistCreateDto dto
     ) {
-        log.info("Creating playlist for user: {}", user.getId());
-        return ResponseEntity.ok(playlistService.createPlaylist(user.getId(), dto));
+        log.info("Creating playlist for user: {}", user.id());
+        return ResponseEntity.ok(playlistService.createPlaylist(user.id(), dto));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<PlaylistResponseDto>> getMyPlaylists(@AuthenticationPrincipal User user) {
-        log.info("Getting playlists for user: {}", user.getId());
-        return ResponseEntity.ok(playlistService.getMyPlaylists(user.getId()));
+    public ResponseEntity<List<PlaylistResponseDto>> getMyPlaylists(@AuthenticationPrincipal AuthenticatedUser user) {
+        log.info("Getting playlists for user: {}", user.id());
+        return ResponseEntity.ok(playlistService.getMyPlaylists(user.id()));
     }
 
     @GetMapping("/user/{userId}")
@@ -50,83 +50,82 @@ public class PlaylistController {
     @GetMapping("/{id}")
     public ResponseEntity<PlaylistResponseDto> getPlaylist(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
         log.info("Getting playlist with ID: {}", id);
-        UUID userId = (user != null) ? user.getId() : null;
+        UUID userId = (user != null) ? user.id() : null;
         return ResponseEntity.ok(playlistService.getPlaylistById(id, userId));
     }
 
     @PostMapping("/{id}/fork")
     public ResponseEntity<PlaylistResponseDto> forkPlaylist(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        log.info("Forking playlist {} for user: {}", id, user.getId());
-        return ResponseEntity.ok(playlistService.forkPlaylist(id, user.getId()));
+        log.info("Forking playlist {} for user: {}", id, user.id());
+        return ResponseEntity.ok(playlistService.forkPlaylist(id, user.id()));
     }
     
     @PostMapping("/{id}/sync-origin")
     public ResponseEntity<PlaylistSyncResponseDto> syncOrigin(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        log.info("Syncing playlist {} with origin for user: {}", id, user.getId());
-        return ResponseEntity.ok(playlistService.syncOrigin(id, user.getId()));
+        log.info("Syncing playlist {} with origin for user: {}", id, user.id());
+        return ResponseEntity.ok(playlistService.syncOrigin(id, user.id()));
     }
 
     @PutMapping("/{id}/visibility")
     public ResponseEntity<PlaylistResponseDto> toggleVisibility(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
         log.info("Toggling visibility for playlist: {}", id);
-        return ResponseEntity.ok(playlistService.toggleVisibility(id, user.getId()));
+        return ResponseEntity.ok(playlistService.toggleVisibility(id, user.id()));
     }
 
     @PostMapping("/{playlistId}/tracks/{trackId}")
     public ResponseEntity<PlaylistResponseDto> addTrack(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID playlistId,
             @PathVariable UUID trackId
     ) {
         log.info("Adding track {} to playlist: {}", trackId, playlistId);
-        return ResponseEntity.ok(playlistService.addTrackToPlaylist(user.getId(), playlistId, trackId));
+        return ResponseEntity.ok(playlistService.addTrackToPlaylist(user.id(), playlistId, trackId));
     }
     
     @DeleteMapping("/{playlistId}/tracks/{trackId}")
     public ResponseEntity<PlaylistResponseDto> removeTrack(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID playlistId,
             @PathVariable UUID trackId
     ) {
         log.info("Removing track {} from playlist: {}", trackId, playlistId);
-        return ResponseEntity.ok(playlistService.removeTrackFromPlaylist(user.getId(), playlistId, trackId));
+        return ResponseEntity.ok(playlistService.removeTrackFromPlaylist(user.id(), playlistId, trackId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePlaylist(@AuthenticationPrincipal User user, @PathVariable UUID id) {
-        log.info("User {} requested dismantling of instance: {}", user.getId(), id);
-        playlistService.deletePlaylist(id, user.getId());
+    public ResponseEntity<Void> deletePlaylist(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        log.info("User {} requested dismantling of instance: {}", user.id(), id);
+        playlistService.deletePlaylist(id, user.id());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/propose-integration")
     public ResponseEntity<IntegrationRequestResponseDto> proposeIntegration(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        log.info("User {} proposing integration for fork: {}", user.getId(), id);
-        return ResponseEntity.ok(playlistService.proposeIntegration(id, user.getId()));
+        log.info("User {} proposing integration for fork: {}", user.id(), id);
+        return ResponseEntity.ok(playlistService.proposeIntegration(id, user.id()));
     }
 
     @GetMapping("/{id}/integrations")
     public ResponseEntity<List<IntegrationRequestResponseDto>> getIntegrations(
             @PathVariable UUID id,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        log.info("User {} fetching pending integrations for origin: {}", user.getId(), id);
-        return ResponseEntity.ok(playlistService.getPendingIntegrations(id, user.getId()));
+        log.info("User {} fetching pending integrations for origin: {}", user.id(), id);
+        return ResponseEntity.ok(playlistService.getPendingIntegrations(id, user.id()));
     }
-
 }

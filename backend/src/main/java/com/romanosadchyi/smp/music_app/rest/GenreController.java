@@ -24,5 +24,4 @@ public class GenreController {
     public ResponseEntity<List<GenreResponseDto>> getAllGenres() {
         return ResponseEntity.ok(genreService.getAllGenres());
     }
-
 }

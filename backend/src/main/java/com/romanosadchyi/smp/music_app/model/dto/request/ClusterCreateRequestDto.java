@@ -9,4 +9,5 @@ import java.util.UUID;
 public record ClusterCreateRequestDto(
         String groupName,
         Set<UUID> participantIds
-) {}
+) {
+}

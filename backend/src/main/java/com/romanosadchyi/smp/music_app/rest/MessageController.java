@@ -1,9 +1,9 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.ChatService;
 import com.romanosadchyi.smp.music_app.service.MinioService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -30,10 +30,9 @@ public class MessageController {
 
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessageRequestDto chatMessageRequestDto, Authentication authentication) {
-        User sender = (User) authentication.getPrincipal();
-        log.info("Processing WebSocket message from {}: {}",
-                Objects.requireNonNull(sender).getEmail(), chatMessageRequestDto);
-        chatService.processMessage(chatMessageRequestDto, sender.getId());
+        AuthenticatedUser sender = (AuthenticatedUser) authentication.getPrincipal();
+        log.info("Processing WebSocket message from {}", Objects.requireNonNull(sender).id());
+        chatService.processMessage(chatMessageRequestDto, sender.id());
     }
 
     @PostMapping("/upload")
@@ -57,5 +56,4 @@ public class MessageController {
             return ResponseEntity.internalServerError().build();
         }
     }
-
 }

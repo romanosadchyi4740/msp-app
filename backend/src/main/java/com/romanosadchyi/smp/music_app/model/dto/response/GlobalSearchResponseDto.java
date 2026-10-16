@@ -8,4 +8,5 @@ public record GlobalSearchResponseDto(
     Page<UserResponseDto> users,
     Page<AlbumResponseDto> albums,
     Page<TrackResponseDto> tracks
-) {}
+) {
+}

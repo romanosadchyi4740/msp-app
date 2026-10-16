@@ -72,5 +72,4 @@ public class Track {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
-
 }

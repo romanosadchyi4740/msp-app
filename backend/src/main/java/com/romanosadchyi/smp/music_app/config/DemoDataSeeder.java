@@ -51,5 +51,4 @@ public class DemoDataSeeder implements CommandLineRunner {
             log.info("Test Artist (User) created with ID: {}", testArtist.getId());
         }
     }
-
 }

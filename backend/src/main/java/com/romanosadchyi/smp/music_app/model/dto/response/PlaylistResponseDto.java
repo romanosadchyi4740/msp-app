@@ -15,4 +15,5 @@ public record PlaylistResponseDto(
         UUID forkedFromId,
         String forkedFromName,
         String forkedFromOwnerName
-) {}
+) {
+}

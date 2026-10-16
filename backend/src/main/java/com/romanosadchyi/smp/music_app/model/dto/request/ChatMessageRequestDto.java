@@ -12,4 +12,5 @@ public record ChatMessageRequestDto(
         UUID sharedTrackId,
         Integer sharedTrackTimestamp,
         String fileUrl
-) {}
+) {
+}

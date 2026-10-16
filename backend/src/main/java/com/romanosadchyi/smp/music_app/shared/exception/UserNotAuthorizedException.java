@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.exception;
+package com.romanosadchyi.smp.music_app.shared.exception;
 
 import lombok.experimental.StandardException;
 

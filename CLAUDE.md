@@ -42,7 +42,8 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
 
 ## 2. Tech stack (as in the repo)
 
-- **Backend** `backend/`: Java 25, Spring Boot 4.1.1, Maven wrapper. webmvc, websocket (STOMP + SockJS),
+- **Backend** `backend/`: Java 25, Spring Boot 4.1.1, Spring Modulith 2 (structure verification only),
+  Maven wrapper. webmvc, websocket (STOMP + SockJS),
   security (stateless JWT, BCrypt, Google sign-in), data-jpa (Hibernate), Flyway, actuator, Lombok,
   MinIO client (S3-compatible). Base package `com.romanosadchyi.smp.music_app`.
 - **DB**: PostgreSQL 15, Flyway migrations `V1..V16` exist; **new migrations start at `V17__`**.
@@ -62,6 +63,7 @@ docker compose --profile turn up -d          # infra + coturn only (WebRTC testi
 cd backend && ./mvnw spring-boot:run         # API on :8080 (Flyway runs on start)
 cd backend && ./mvnw test                    # all tests; integration tests run on Testcontainers: only a Docker daemon needed
 cd backend && ./mvnw test -DexcludedGroups=integration   # unit tests only, no Docker needed
+cd backend && ./mvnw -Dtest=ArchitectureTest test   # module boundaries (Spring Modulith), no DB needed
 cd backend && ./mvnw -Dtest=ChatServiceTest test
 cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
@@ -79,11 +81,13 @@ and `frontend/.env.example` lists them for builds.
 ## 3a. How the existing msp-app pieces fit together
 
 - **REST auth**: `JwtAuthenticationFilter` turns `Authorization: Bearer <jwt>` into an `Authentication` whose
-  principal is the `User` entity (JWT subject = user UUID). Public/role rules are in `SecurityConfig`
+  principal is `shared.security.AuthenticatedUser` (id = JWT subject, email, role), built from the claims
+  without loading the `User` entity. The role is a claim, so `POST /api/users/me/become-artist` returns a new
+  token in the `Authorization` response header. Public/role rules are in `SecurityConfig`
   (`/auth/**` is public; note it is not under `/api`). The frontend keeps the token in `localStorage`;
   `axiosClient` attaches it and redirects to `/login` on 401.
-- **STOMP auth** happens only on `CONNECT`, in the inline `ChannelInterceptor` in `WebSocketConfig`. It reads the
-  `Authorization` native header and sets the session user. There is **no** per-destination authorization yet
+- **STOMP auth** happens only on `CONNECT`, in `JwtStompChannelInterceptor` (registered in `WebSocketConfig`). It
+  reads the `Authorization` native header and sets an `AuthenticatedUser` as the session user. There is **no** per-destination authorization yet
   (the room `ChannelInterceptor` from section 6 has to be added). Endpoints are `/ws` (SockJS, used by the
   frontend) and `/ws-raw` (plain WebSocket, for Postman). The broker is the simple in-memory broker on
   `/topic` and `/queue`, with app prefix `/app` and user prefix `/user`.
@@ -98,34 +102,85 @@ and `frontend/.env.example` lists them for builds.
   must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
 - **Files**: uploaded to MinIO through `MinioService`; clients get presigned GET URLs (1 h expiry).
-- Seeders: `ReferenceDataSeeder` (genres) runs in every profile; `DemoDataSeeder` (`artist@example.com`) only in
+- Seeders: `ReferenceDataSeeder` (genres; moves to the `music` module in KAN-64) runs in every profile; `DemoDataSeeder` (`artist@example.com`) only in
   `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
 - `GET /actuator/health` is public and returns only the overall status (ALB health check); no other actuator
   endpoints are exposed.
 
-## 4. Repository layout and conventions
+## 4. Modular monolith (Spring Modulith 2) and repository layout
 
-Layered packages under `backend/src/main/java/com/romanosadchyi/smp/music_app/`:
-`config/` (Security, WebSocket, MinIO, JWT filter, data seeders), `rest/` (REST controllers and STOMP
-`@MessageMapping` handlers), `service/` (+ `service/mapping/*MappingService` for entity↔DTO),
-`repository/` (Spring Data JPA), `model/entity`, `model/dto/request`, `model/dto/response`,
-`model/enums`, `model/converter`, `exception/` (+ `GlobalExceptionHandler`), `util/`.
-Put SyncChord code in the **same layers** (e.g. `service/RoomService`, `rest/RoomController`), not in a new
-top-level module.
+The backend is a **modular monolith** verified by Spring Modulith 2. Modules call each other
+**synchronously** through narrow Java interfaces, like ordinary method calls. No application events,
+no outbox, no broker between modules; one shared PostgreSQL database. The goal is structure and
+enforced boundaries, not distribution. Restructuring the existing msp-app code into modules is epic
+KAN-64 and is done **before** any new feature work.
+
+Every top-level package under `com.romanosadchyi.smp.music_app` is a module:
+
+```
+music_app/
+  shared/                 open module: what every module needs
+    package-info.java     @ApplicationModule(type = ApplicationModule.Type.OPEN)
+    config/               SecurityConfig, WebSocketConfig, MinioConfig, JWT filter, HTTP clients
+    security/             JwtService, AuthenticatedUser (principal built from JWT claims)
+    exception/            GlobalExceptionHandler, base exception types
+    util/, constants/     EncryptionUtil, Constants, small helpers
+  users/                  User, profile, follow, auth (register/login/Google), account deletion
+    external/             package-info.java with @NamedInterface("external") + UserLookup interface (+ its DTOs)
+    internal/             entities, repositories, services, controllers, mappers, implementation of UserLookup
+  storage/                MinIO/S3 file storage           external: FileStorage
+  music/                  tracks, albums, genres, likes    external: TrackLookup
+  playlists/              playlists, forks, integration requests
+  chats/                  chats, memberships, messages, listening broadcast (MASTER/SYNC)
+  telemetry/              status broadcasts, polls
+  search/                 global search over other modules' external interfaces
+  tabs/ rooms/ sync/ rtc/ billing/ moderation/     new SyncChord modules, same shape
+```
+
+Module rules (enforced by `ArchitectureTest.verifyModularity()` → `ApplicationModules.of(MusicAppApplication.class).verify()`;
+it stays `@Disabled` until the legacy layered packages are extracted, and `sharedDependsOnNoFeatureCode` guards
+`shared` meanwhile):
+- A module has exactly two subpackages: `internal` (everything, exposes nothing) and `external`
+  (only the interface(s) the module offers to others, plus the records used in their signatures).
+  `external/package-info.java` carries `@NamedInterface("external")`.
+- The implementation of an external interface lives in `internal` (package-private where possible).
+- Other modules depend only on `<module>.external` and on `shared`. Never import another module's
+  `internal` types: entities, repositories, services, mappers.
+- **Cross-module references are UUIDs, not JPA associations.** An entity never has `@ManyToOne`/
+  `@ManyToMany` to another module's entity; it stores `UUID authorId` on the same column. Join tables
+  that link two modules (`user_liked_tracks`, `playlist_tracks`) are owned by one module and mapped as
+  an entity or `@ElementCollection` of UUIDs. Column names stay the same, so no data migration is needed.
+- **No cycles.** When a flow naturally points the other way, invert it with an interface:
+  `users.external.UserDataCleanup` is implemented by each module that stores user data, and `users`
+  calls all beans of that type on account deletion; `rooms` asks `billing.external.PremiumChecker`.
+- The current user comes from `shared.security.AuthenticatedUser` (id, email, role from the JWT), not
+  from the `User` entity, so `shared` never depends on `users`.
+- The hot sync path (host command → state broadcast) stays a direct call inside `sync`.
+- Seeders live in the module whose data they create. Demo data is split the same way: each module seeds
+  its own part behind `data-seeder.enabled`, and `shared` never depends on a feature module.
+- Inside a module, keep the familiar layering in `internal` (controller, service, repository,
+  entity, dto, mapper subpackages as the module grows).
+- Optional: `Documenter` can render module diagrams into `docs/syncchord/modules/`.
 
 Follow the existing style:
+- Java formatting: refer to types through imports, never fully qualified names in code or Javadoc, unless two
+  types with the same simple name clash in one file. A file ends with the last `}` followed by exactly one
+  newline, and there is no blank line before that last `}`.
 - Entities: `@Entity @Table`, Lombok `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
   @FieldDefaults(level = AccessLevel.PRIVATE)`, `@Builder.Default` for collections/defaults,
   `@Enumerated(EnumType.STRING)`, **UUID primary keys** (`GenerationType.UUID`), LAZY relations.
 - Services/controllers: `@RequiredArgsConstructor @FieldDefaults(level = PRIVATE, makeFinal = true)`,
   `@Slf4j`, `@Transactional` on writes. DTOs are Java `record`s (`@Builder` where useful).
 - Mapping is done in `*MappingService` beans, not in controllers.
-- Domain errors are dedicated `RuntimeException`s mapped in `GlobalExceptionHandler`
-  (404 not found, 403 `UserNotAuthorizedException`, 409 conflict, 400 `IllegalArgumentException`).
-- Current user in REST: `Authentication` → `(User) authentication.getPrincipal()`; `User.getUsername()`
-  returns the UUID string. Per-user STOMP delivery uses `convertAndSendToUser(userId.toString(), ...)`.
+- Domain errors are dedicated `RuntimeException`s mapped in `GlobalExceptionHandler`: extend
+  `shared.exception.NotFoundException` (404) or `ConflictException` (409); 403 is `UserNotAuthorizedException`,
+  400 `IllegalArgumentException`. Do not add per-exception handlers.
+- Current user in REST: `@AuthenticationPrincipal AuthenticatedUser user` (STOMP handlers: cast
+  `authentication.getPrincipal()` to it); never the `User` entity. Its `getName()` is the user UUID, so per-user
+  STOMP delivery uses `convertAndSendToUser(userId.toString(), ...)`.
 - Tests: JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, `@Mock`/`@InjectMocks`), one test
-  class per service/mapper under `backend/src/test/...`. Add tests for every new service.
+  class per service/mapper, mirroring the module packages. Add tests for every new service.
+  `ArchitectureTest` must stay green.
   Integration tests are annotated `@IntegrationTest` (full context, `test` profile, Postgres + S3Mock
   Testcontainers shared per run; never the local docker-compose services) and use no other test annotations,
   so they share one cached context.
@@ -209,7 +264,6 @@ and `RoomParticipant.rttMs`.
 
 ## 7. Known issues in the base project (fix before production; see Jira epic KAN-5)
 
-- `WebSocketConfig` logs the full `Authorization` header (JWT) at INFO. Remove it.
 - Secrets have committed working defaults (JWT secret, AES key, DB/MinIO passwords, Google client id).
   Treat them as public. Non-local profiles must fail to start without real secrets.
 - `EncryptionUtil`: AES-CBC with a fixed IV and silent decrypt fallback. Target AES-GCM, random 12-byte

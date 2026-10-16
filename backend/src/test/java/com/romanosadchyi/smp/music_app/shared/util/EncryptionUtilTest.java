@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.util;
+package com.romanosadchyi.smp.music_app.shared.util;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -7,4 +7,5 @@ import java.util.List;
 public record RecommendedResponseDto(
         String genreName,
         List<TrackResponseDto> tracks
-) {}
+) {
+}

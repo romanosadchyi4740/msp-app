@@ -2,7 +2,7 @@ package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.PlaylistNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -134,7 +135,7 @@ public class PlaylistService {
                 .ownerId(userId)
                 .isPublic(false)
                 .forkedFrom(original)
-                .tracks(new java.util.ArrayList<>(original.getTracks()))
+                .tracks(new ArrayList<>(original.getTracks()))
                 .build();
 
         return playlistMappingService.map(playlistRepository.save(forked));
@@ -293,5 +294,4 @@ public class PlaylistService {
 
         return integrationMappingService.map(integrationRequestRepository.save(request));
     }
-
 }

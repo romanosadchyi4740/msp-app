@@ -9,4 +9,5 @@ public record TrackCreateDto(
         String coverUrl,
         UUID albumId,
         Integer trackNumber,
-        Set<UUID> genreIds) {}
+        Set<UUID> genreIds) {
+}

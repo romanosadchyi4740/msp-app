@@ -11,6 +11,8 @@ import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
 import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
+import com.romanosadchyi.smp.music_app.shared.security.JwtService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -54,7 +56,7 @@ public class AuthService {
 
         user = userRepository.save(user);
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(toAuthenticatedUser(user));
 
         return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
     }
@@ -72,7 +74,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(toAuthenticatedUser(user));
 
         return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
     }
@@ -111,7 +113,7 @@ public class AuthService {
                     userRepository.save(user);
                 }
 
-                String token = jwtService.generateToken(user);
+                String token = jwtService.generateToken(toAuthenticatedUser(user));
                 return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
             } else {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid ID token.");
@@ -121,4 +123,7 @@ public class AuthService {
         }
     }
 
+    private static AuthenticatedUser toAuthenticatedUser(User user) {
+        return new AuthenticatedUser(user.getId(), user.getEmail(), user.getRole().name());
+    }
 }

@@ -67,5 +67,4 @@ public class Playlist {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
-
 }

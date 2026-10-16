@@ -14,12 +14,14 @@ import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +32,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -205,24 +208,24 @@ public class TrackService {
         Set<Track> likedTracks = user.getLikedTracks();
         
         if (likedTracks == null || likedTracks.isEmpty()) {
-            Pageable top10 = PageRequest.of(0, 10, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            Pageable top10 = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
             List<TrackResponseDto> newestTracks = trackRepository.findAll(top10).stream()
                     .map(trackMappingService::map)
                     .toList();
             return new RecommendedResponseDto("New Arrivals", newestTracks);
         }
 
-        java.util.Map<Genre, Long> genreCounts = likedTracks.stream()
+        Map<Genre, Long> genreCounts = likedTracks.stream()
                 .flatMap(track -> track.getGenres().stream())
                 .collect(Collectors.groupingBy(g -> g, Collectors.counting()));
                 
         Genre topGenre = genreCounts.entrySet().stream()
-                .max(java.util.Map.Entry.comparingByValue())
-                .map(java.util.Map.Entry::getKey)
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
                 .orElse(null);
                 
         if (topGenre == null) {
-            Pageable top10 = PageRequest.of(0, 10, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            Pageable top10 = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
             List<TrackResponseDto> newestTracks = trackRepository.findAll(top10).stream()
                     .map(trackMappingService::map)
                     .toList();
@@ -230,7 +233,7 @@ public class TrackService {
         }
 
         List<UUID> likedTrackIds = likedTracks.stream().map(Track::getId).toList();
-        Pageable top10 = PageRequest.of(0, 10, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        Pageable top10 = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         List<Track> recommendedTracksEntity = trackRepository.findByGenresIdAndIdNotIn(topGenre.getId(), likedTrackIds, top10);
         
@@ -244,5 +247,4 @@ public class TrackService {
 
         return new RecommendedResponseDto(topGenre.getName(), recommendedTracks);
     }
-
 }

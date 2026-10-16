@@ -1,8 +1,8 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.PlaylistService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,9 +26,9 @@ public class IntegrationController {
     public ResponseEntity<IntegrationRequestResponseDto> resolveIntegration(
             @PathVariable UUID id,
             @RequestParam("action") String action,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        log.info("User {} resolving integration request {} with action: {}", user.getId(), id, action);
-        return ResponseEntity.ok(playlistService.resolveIntegration(id, action, user.getId()));
+        log.info("User {} resolving integration request {} with action: {}", user.id(), id, action);
+        return ResponseEntity.ok(playlistService.resolveIntegration(id, action, user.id()));
     }
 }

@@ -10,4 +10,5 @@ public record BroadcastSyncMessage(
         BroadcastCommand command,
         UUID trackId,
         Double timestamp
-) {}
+) {
+}

@@ -2,8 +2,8 @@ package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.AlbumCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
 import com.romanosadchyi.smp.music_app.service.AlbumService;
+import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -29,11 +29,11 @@ public class AlbumController {
 
     @PostMapping
     public ResponseEntity<AlbumResponseDto> createAlbum(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedUser user,
             @RequestBody AlbumCreateDto dto
     ) {
-        log.info("Creating album for user: {}", user.getId());
-        return ResponseEntity.ok(albumService.createAlbum(user.getId(), dto));
+        log.info("Creating album for user: {}", user.id());
+        return ResponseEntity.ok(albumService.createAlbum(user.id(), dto));
     }
 
     @GetMapping
@@ -43,9 +43,9 @@ public class AlbumController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<AlbumResponseDto>> getMyAlbums(@AuthenticationPrincipal User user) {
-        log.info("Getting albums for user: {}", user.getId());
-        return ResponseEntity.ok(albumService.getAlbumsByAuthor(user.getId()));
+    public ResponseEntity<List<AlbumResponseDto>> getMyAlbums(@AuthenticationPrincipal AuthenticatedUser user) {
+        log.info("Getting albums for user: {}", user.id());
+        return ResponseEntity.ok(albumService.getAlbumsByAuthor(user.id()));
     }
 
     @GetMapping("/{id}")
@@ -65,10 +65,9 @@ public class AlbumController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAlbum(@AuthenticationPrincipal User user, @PathVariable UUID id) {
-        log.info("User {} requested purge of collection: {}", user.getId(), id);
-        albumService.deleteAlbum(id, user.getId());
+    public ResponseEntity<Void> deleteAlbum(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        log.info("User {} requested purge of collection: {}", user.id(), id);
+        albumService.deleteAlbum(id, user.id());
         return ResponseEntity.noContent().build();
     }
-
 }
