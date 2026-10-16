@@ -1,9 +1,10 @@
 package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
 import com.romanosadchyi.smp.music_app.users.external.UserSummary;
@@ -51,7 +52,7 @@ class PlaylistMappingServiceTest {
                 .build();
 
         TrackResponseDto trackDto = TrackResponseDto.builder().id(track.getId()).build();
-        when(trackMappingService.map(track)).thenReturn(trackDto);
+        when(trackMappingService.mapAll(List.of(track))).thenReturn(List.of(trackDto));
 
         PlaylistResponseDto result = playlistMappingService.map(playlist);
 

@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.model.entity;
 
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

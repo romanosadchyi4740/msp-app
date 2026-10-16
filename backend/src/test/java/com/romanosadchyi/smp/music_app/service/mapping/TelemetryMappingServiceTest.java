@@ -2,12 +2,13 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ConsensusPollResponse;
 import com.romanosadchyi.smp.music_app.model.dto.response.StatusBroadcastResponse;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.ConsensusPoll;
 import com.romanosadchyi.smp.music_app.model.entity.PollOption;
 import com.romanosadchyi.smp.music_app.model.entity.PollVote;
 import com.romanosadchyi.smp.music_app.model.entity.StatusBroadcast;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;

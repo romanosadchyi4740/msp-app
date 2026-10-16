@@ -1,5 +1,7 @@
 package com.romanosadchyi.smp.music_app.model.dto.response;
 
+import com.romanosadchyi.smp.music_app.music.external.AlbumResponseDto;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import lombok.Builder;
 import org.springframework.data.domain.Page;

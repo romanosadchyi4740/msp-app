@@ -1,8 +1,9 @@
 package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
+import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.music.internal.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import lombok.AccessLevel;
@@ -24,11 +25,7 @@ public class PlaylistMappingService {
 
     public PlaylistResponseDto map(Playlist playlist) {
         List<TrackResponseDto> tracksDto =
-                Optional.ofNullable(playlist.getTracks())
-                .orElseGet(List::of)
-                .stream()
-                .map(trackMappingService::map)
-                .toList();
+                trackMappingService.mapAll(Optional.ofNullable(playlist.getTracks()).orElseGet(List::of));
                 
         UUID forkedFromId = null;
         String forkedFromName = null;

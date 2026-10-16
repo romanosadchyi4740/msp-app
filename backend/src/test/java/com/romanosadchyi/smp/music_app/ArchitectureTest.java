@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.modulith.core.ApplicationModules;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -36,6 +37,32 @@ class ArchitectureTest {
     void moduleInternalIsUsedOnlyByItsModule(String module) {
         noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + "." + module + "..")
                 .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + "." + module + ".internal..")
+                .check(importMainClasses());
+    }
+
+    /**
+     * Like {@link #moduleInternalIsUsedOnlyByItsModule}, but the legacy packages may still use {@code music.internal}:
+     * playlists, chat messages and status broadcasts keep JPA links to {@code Track} until KAN-69 and KAN-70 turn
+     * them into track ids. Extracted modules may not.
+     */
+    @Test
+    void musicInternalIsNotUsedByOtherModules() {
+        noClasses().that().resideInAnyPackage(BASE_PACKAGE + ".shared..", BASE_PACKAGE + ".users..",
+                        BASE_PACKAGE + ".storage..")
+                .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + ".music.internal..")
+                .check(importMainClasses());
+    }
+
+    /**
+     * {@code music} depends on nothing that is not yet a module, so extracting playlists and chats cannot create a
+     * cycle back into it.
+     */
+    @Test
+    void musicDependsOnlyOnModules() {
+        classes().that().resideInAPackage(BASE_PACKAGE + ".music..")
+                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
+                        .or(resideInAnyPackage(BASE_PACKAGE + ".music..", BASE_PACKAGE + ".shared..",
+                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".storage.external..")))
                 .check(importMainClasses());
     }
 

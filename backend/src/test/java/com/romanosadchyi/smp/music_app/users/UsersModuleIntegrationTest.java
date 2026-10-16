@@ -2,10 +2,10 @@ package com.romanosadchyi.smp.music_app.users;
 
 import com.jayway.jsonpath.JsonPath;
 import com.romanosadchyi.smp.music_app.IntegrationTest;
-import com.romanosadchyi.smp.music_app.model.entity.Album;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
-import com.romanosadchyi.smp.music_app.repository.TrackRepository;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Album;
+import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
+import com.romanosadchyi.smp.music_app.music.internal.repository.AlbumRepository;
+import com.romanosadchyi.smp.music_app.music.internal.repository.TrackRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;

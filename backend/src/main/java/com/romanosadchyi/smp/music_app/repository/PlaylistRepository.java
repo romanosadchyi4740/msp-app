@@ -16,6 +16,9 @@ public interface PlaylistRepository extends JpaRepository<Playlist, UUID> {
     List<Playlist> findAllByOwnerId(UUID ownerId);
     List<Playlist> findAllByOwnerIdAndIsPublicTrue(UUID ownerId);
 
+    @Query("SELECT DISTINCT p FROM Playlist p JOIN p.tracks t WHERE t.id = :trackId")
+    List<Playlist> findAllContainingTrack(@Param("trackId") UUID trackId);
+
     @Modifying
     @Query("UPDATE Playlist p SET p.forkedFrom = null WHERE p.forkedFrom = :playlist")
     void detachParentPlaylist(@Param("playlist") Playlist playlist);

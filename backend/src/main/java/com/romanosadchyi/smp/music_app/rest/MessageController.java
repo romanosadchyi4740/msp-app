@@ -1,7 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
-import com.romanosadchyi.smp.music_app.service.ChatService;
+import com.romanosadchyi.smp.music_app.service.ChatMessageService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import lombok.AccessLevel;
@@ -25,14 +25,14 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MessageController {
 
-    ChatService chatService;
+    ChatMessageService chatMessageService;
     FileStorage fileStorage;
 
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessageRequestDto chatMessageRequestDto, Authentication authentication) {
         AuthenticatedUser sender = (AuthenticatedUser) authentication.getPrincipal();
         log.info("Processing WebSocket message from {}", Objects.requireNonNull(sender).id());
-        chatService.processMessage(chatMessageRequestDto, sender.id());
+        chatMessageService.processMessage(chatMessageRequestDto, sender.id());
     }
 
     @PostMapping("/upload")
