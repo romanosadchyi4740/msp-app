@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.shared.config;
+package com.romanosadchyi.smp.music_app.storage.internal;
 
 import io.minio.MinioClient;
 import lombok.AccessLevel;
@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Primary;
 
 @Configuration
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MinioConfig {
+class MinioConfig {
 
     @Value("${minio.url}")
     String minioUrl;

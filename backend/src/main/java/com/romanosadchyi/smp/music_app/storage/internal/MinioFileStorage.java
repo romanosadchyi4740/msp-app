@@ -1,9 +1,14 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.storage.internal;
 
-import com.romanosadchyi.smp.music_app.exception.MinioGetPresignedObjectUrlException;
-import com.romanosadchyi.smp.music_app.exception.MinioUploadException;
-import io.minio.*;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
+import com.romanosadchyi.smp.music_app.storage.external.StorageException;
+import io.minio.BucketExistsArgs;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.Http.Method;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.errors.MinioException;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
@@ -18,11 +23,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 
+/**
+ * {@link FileStorage} on MinIO, or any S3-compatible store the MinIO client can reach.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class MinioService {
+class MinioFileStorage implements FileStorage {
 
     MinioClient minioClient;
 
@@ -38,64 +46,64 @@ public class MinioService {
     int presignedUrlExpirySeconds;
 
     @PostConstruct
-    public void init() throws MinioException {
+    void init() throws MinioException {
         boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
         if (!found) {
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
         }
     }
 
-    public void uploadFile(MultipartFile file, String objectName) throws MinioUploadException {
+    @Override
+    public void upload(MultipartFile file, String key) {
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucketName)
-                            .object(objectName)
+                            .object(key)
                             .stream(inputStream, file.getSize(), -1L)
                             .contentType(file.getContentType())
                             .build()
             );
 
-            log.info("File uploaded successfully to MinIO: {}", objectName);
+            log.info("File uploaded successfully to MinIO: {}", key);
         } catch (Exception e) {
             log.error("Error occurred while uploading file to MinIO", e);
-            throw new MinioUploadException("Error occurred while uploading file to MinIO", e);
+            throw new StorageException("Error occurred while uploading file to MinIO", e);
         }
     }
 
-    public String generatePresignedUrl(String fileKey) throws MinioGetPresignedObjectUrlException {
+    @Override
+    public String presignedGetUrl(String key) {
         try {
             return minioPresignClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucketName)
-                            .object(fileKey)
+                            .object(key)
                             .expiry(presignedUrlExpirySeconds)
                             .build()
             );
-        } catch (MinioException e) {
-            log.error("Error occurred while generating presigned URL", e);
-            throw new MinioGetPresignedObjectUrlException(e);
         } catch (Exception e) {
-            log.error("Unexpected error occurred while generating presigned URL", e);
-            throw new RuntimeException(e);
+            log.error("Error occurred while generating presigned URL", e);
+            throw new StorageException("Error occurred while generating presigned URL", e);
         }
     }
 
-    public void deleteFile(String objectName) {
-        if (objectName == null || objectName.isBlank() || objectName.equals("PENDING")) {
+    @Override
+    public void delete(String key) {
+        if (key == null || key.isBlank() || key.equals("PENDING")) {
             return;
         }
         try {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucketName)
-                            .object(objectName)
+                            .object(key)
                             .build()
             );
-            log.info("File deleted successfully from MinIO: {}", objectName);
+            log.info("File deleted successfully from MinIO: {}", key);
         } catch (Exception e) {
-            log.error("Error occurred while deleting file from MinIO: {}", objectName, e);
+            log.error("Error occurred while deleting file from MinIO: {}", key, e);
         }
     }
 }

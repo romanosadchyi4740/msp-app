@@ -10,6 +10,7 @@ import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
 import com.romanosadchyi.smp.music_app.users.external.UserSummary;
@@ -49,7 +50,7 @@ class AlbumServiceTest {
     MessageRepository messageRepository;
 
     @Mock
-    MinioService minioService;
+    FileStorage fileStorage;
 
     @Mock
     AlbumMappingService albumMappingService;
@@ -103,7 +104,7 @@ class AlbumServiceTest {
 
         albumService.deleteAlbum(albumId, authorId);
 
-        verify(minioService).deleteFile("file.mp3");
+        verify(fileStorage).delete("file.mp3");
         verify(messageRepository).detachTrack(track);
         verify(trackRepository).deleteFromPlaylistTracks(track.getId());
         verify(trackRepository).deleteFromTrackGenres(track.getId());

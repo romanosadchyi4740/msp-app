@@ -12,6 +12,7 @@ import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
@@ -46,7 +47,7 @@ public class TrackService {
     UserLookup userLookup;
     AlbumRepository albumRepository;
     GenreRepository genreRepository;
-    MinioService minioService;
+    FileStorage fileStorage;
     TrackMappingService trackMappingService;
 
     @Transactional
@@ -100,7 +101,7 @@ public class TrackService {
         trackRepository.flush();
 
         String finalFileKey = "tracks/" + savedTrack.getId() + extWithDot;
-        minioService.uploadFile(file, finalFileKey);
+        fileStorage.upload(file, finalFileKey);
 
         savedTrack.setFileKey(finalFileKey);
 
@@ -132,7 +133,7 @@ public class TrackService {
         Track track = trackRepository.findById(trackId)
                 .orElseThrow(() -> new TrackNotFoundException("Track not found"));
 
-        return minioService.generatePresignedUrl(track.getFileKey());
+        return fileStorage.presignedGetUrl(track.getFileKey());
     }
 
     @Transactional(readOnly = true)

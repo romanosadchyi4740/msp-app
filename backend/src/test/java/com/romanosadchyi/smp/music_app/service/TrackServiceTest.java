@@ -13,6 +13,7 @@ import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
@@ -53,7 +54,7 @@ class TrackServiceTest {
     GenreRepository genreRepository;
 
     @Mock
-    MinioService minioService;
+    FileStorage fileStorage;
 
     @Mock
     TrackMappingService trackMappingService;
@@ -62,7 +63,7 @@ class TrackServiceTest {
     TrackService trackService;
 
     @Test
-    void createTrack_ValidData_UploadsToMinioAndSavesTrack() throws Exception {
+    void createTrack_ValidData_UploadsFileAndSavesTrack() throws Exception {
         UUID authorId = UUID.randomUUID();
         UUID albumId = UUID.randomUUID();
         UserSummary author = new UserSummary(authorId, null, null, UserRole.ROLE_ARTIST);
@@ -85,7 +86,7 @@ class TrackServiceTest {
 
         trackService.createTrack(authorId, dto, file);
 
-        verify(minioService).uploadFile(eq(file), anyString());
+        verify(fileStorage).upload(eq(file), anyString());
         verify(trackRepository, times(2)).save(any(Track.class));
     }
 
@@ -106,7 +107,7 @@ class TrackServiceTest {
         when(trackRepository.existsByFileHash(anyString())).thenReturn(true);
 
         assertThrows(MusicTrackFileAlreadyExistsException.class, () -> trackService.createTrack(authorId, dto, file));
-        verify(minioService, never()).uploadFile(any(), anyString());
+        verify(fileStorage, never()).upload(any(), anyString());
     }
 
     @Test
@@ -126,7 +127,7 @@ class TrackServiceTest {
         UUID trackId = UUID.randomUUID();
         Track track = Track.builder().id(trackId).fileKey("key").build();
         when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
-        when(minioService.generatePresignedUrl("key")).thenReturn("http://url");
+        when(fileStorage.presignedGetUrl("key")).thenReturn("http://url");
 
         String url = trackService.getTrackUrl(trackId);
 

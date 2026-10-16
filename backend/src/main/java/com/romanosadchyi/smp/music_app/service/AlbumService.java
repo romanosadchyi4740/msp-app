@@ -10,6 +10,7 @@ import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
 import com.romanosadchyi.smp.music_app.users.external.UserSummary;
@@ -37,7 +38,7 @@ public class AlbumService {
     UserLookup userLookup;
     TrackRepository trackRepository;
     MessageRepository messageRepository;
-    MinioService minioService;
+    FileStorage fileStorage;
     AlbumMappingService albumMappingService;
 
     @Transactional
@@ -103,7 +104,7 @@ public class AlbumService {
 
         album.getTracks().forEach(track -> {
             // 1. Physical Cleanup
-            minioService.deleteFile(track.getFileKey());
+            fileStorage.delete(track.getFileKey());
             
             // 2. Message Decoupling
             messageRepository.detachTrack(track);

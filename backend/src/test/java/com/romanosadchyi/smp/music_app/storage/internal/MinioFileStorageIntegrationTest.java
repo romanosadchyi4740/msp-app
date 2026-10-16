@@ -1,6 +1,7 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.storage.internal;
 
 import com.romanosadchyi.smp.music_app.IntegrationTest;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
@@ -13,17 +14,17 @@ import java.net.http.HttpResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
-class MinioServiceIntegrationTest {
+class MinioFileStorageIntegrationTest {
 
     @Autowired
-    MinioService minioService;
+    FileStorage fileStorage;
 
     @Test
     void uploadedFile_IsReadableThroughPresignedUrl() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "hello.txt", "text/plain", "hello storage".getBytes());
 
-        minioService.uploadFile(file, "it/hello.txt");
-        String url = minioService.generatePresignedUrl("it/hello.txt");
+        fileStorage.upload(file, "it/hello.txt");
+        String url = fileStorage.presignedGetUrl("it/hello.txt");
 
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create(url)).build(),
@@ -36,11 +37,11 @@ class MinioServiceIntegrationTest {
     @Test
     void deletedFile_IsNoLongerReadable() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "gone.txt", "text/plain", "bye".getBytes());
-        minioService.uploadFile(file, "it/gone.txt");
+        fileStorage.upload(file, "it/gone.txt");
 
-        minioService.deleteFile("it/gone.txt");
+        fileStorage.delete("it/gone.txt");
 
-        String url = minioService.generatePresignedUrl("it/gone.txt");
+        String url = fileStorage.presignedGetUrl("it/gone.txt");
         try (HttpClient client = HttpClient.newHttpClient()) {
             HttpResponse<Void> response = client.send(HttpRequest.newBuilder(URI.create(url)).build(),
                     HttpResponse.BodyHandlers.discarding());
