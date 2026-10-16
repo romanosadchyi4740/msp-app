@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.exception;
+package com.romanosadchyi.smp.music_app.users.external;
 
 import com.romanosadchyi.smp.music_app.shared.exception.NotFoundException;
 import org.springframework.http.HttpStatus;

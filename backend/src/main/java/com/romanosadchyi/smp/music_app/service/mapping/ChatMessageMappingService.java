@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,14 +13,14 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ChatMessageMappingService {
 
-    UserMappingService userMappingService;
+    UserLookup userLookup;
     TrackMappingService trackMappingService;
 
     public ChatMessageResponseDto map(Message message) {
         return ChatMessageResponseDto.builder()
                 .id(message.getId())
                 .chatId(message.getChat().getId())
-                .sender(userMappingService.map(message.getSender()))
+                .sender(userLookup.getProfile(message.getSenderId()))
                 .content(message.getContent())
                 .timestamp(message.getTimestamp())
                 .sharedTrack(message.getSharedTrack() != null ? trackMappingService.map(message.getSharedTrack()) : null)

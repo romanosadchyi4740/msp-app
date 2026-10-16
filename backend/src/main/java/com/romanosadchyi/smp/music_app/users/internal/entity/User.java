@@ -1,19 +1,16 @@
-package com.romanosadchyi.smp.music_app.model.entity;
+package com.romanosadchyi.smp.music_app.users.internal.entity;
 
-import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.jspecify.annotations.NonNull;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users", indexes = {
@@ -25,7 +22,7 @@ import java.util.*;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class User implements UserDetails {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -46,23 +43,6 @@ public class User implements UserDetails {
 
     @Column(columnDefinition = "TEXT")
     String biography;
-
-    @Builder.Default
-    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    Set<Album> albums = new HashSet<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    Set<Track> tracks = new HashSet<>();
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "user_liked_tracks",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "track_id")
-    )
-    @Builder.Default
-    Set<Track> likedTracks = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -95,34 +75,4 @@ public class User implements UserDetails {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
-
-    @Override
-    public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
-    }
-
-    @Override
-    public @NonNull String getUsername() {
-        return id.toString();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
 }

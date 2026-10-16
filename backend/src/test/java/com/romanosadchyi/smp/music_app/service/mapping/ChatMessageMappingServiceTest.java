@@ -2,11 +2,11 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Chat;
 import com.romanosadchyi.smp.music_app.model.entity.Message;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 class ChatMessageMappingServiceTest {
 
     @Mock
-    UserMappingService userMappingService;
+    UserLookup userLookup;
 
     @Mock
     TrackMappingService trackMappingService;
@@ -37,14 +37,14 @@ class ChatMessageMappingServiceTest {
         UUID messageId = UUID.randomUUID();
         UUID chatId = UUID.randomUUID();
         Chat chat = Chat.builder().id(chatId).build();
-        User sender = User.builder().id(UUID.randomUUID()).build();
+        UUID senderId = UUID.randomUUID();
         Track sharedTrack = Track.builder().id(UUID.randomUUID()).build();
         LocalDateTime now = LocalDateTime.now();
 
         Message message = Message.builder()
                 .id(messageId)
                 .chat(chat)
-                .sender(sender)
+                .senderId(senderId)
                 .content("Hello")
                 .timestamp(now)
                 .sharedTrack(sharedTrack)
@@ -52,10 +52,10 @@ class ChatMessageMappingServiceTest {
                 .fileUrl("url")
                 .build();
 
-        UserResponseDto senderDto = UserResponseDto.builder().id(sender.getId()).build();
+        UserResponseDto senderDto = UserResponseDto.builder().id(senderId).build();
         TrackResponseDto trackDto = TrackResponseDto.builder().id(sharedTrack.getId()).build();
 
-        when(userMappingService.map(sender)).thenReturn(senderDto);
+        when(userLookup.getProfile(senderId)).thenReturn(senderDto);
         when(trackMappingService.map(sharedTrack)).thenReturn(trackDto);
 
         ChatMessageResponseDto result = chatMessageMappingService.map(message);
@@ -76,15 +76,15 @@ class ChatMessageMappingServiceTest {
         UUID messageId = UUID.randomUUID();
         UUID chatId = UUID.randomUUID();
         Chat chat = Chat.builder().id(chatId).build();
-        User sender = User.builder().id(UUID.randomUUID()).build();
+        UUID senderId = UUID.randomUUID();
 
         Message message = Message.builder()
                 .id(messageId)
                 .chat(chat)
-                .sender(sender)
+                .senderId(senderId)
                 .build();
 
-        when(userMappingService.map(sender)).thenReturn(UserResponseDto.builder().id(sender.getId()).build());
+        when(userLookup.getProfile(senderId)).thenReturn(UserResponseDto.builder().id(senderId).build());
 
         ChatMessageResponseDto result = chatMessageMappingService.map(message);
 

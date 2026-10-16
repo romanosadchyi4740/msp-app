@@ -24,6 +24,13 @@ public interface TrackRepository extends JpaRepository<Track, UUID> {
 
     Boolean existsByFileHash(String fileHash);
 
+    @Query("SELECT t FROM Track t JOIN t.likedByUserIds u WHERE u = :userId")
+    List<Track> findAllLikedBy(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query(value = "DELETE FROM user_liked_tracks WHERE user_id = :userId", nativeQuery = true)
+    void deleteLikesByUser(@Param("userId") UUID userId);
+
     @Modifying
     @Query(value = "DELETE FROM playlist_tracks WHERE track_id = :trackId", nativeQuery = true)
     void deleteFromPlaylistTracks(@Param("trackId") UUID trackId);

@@ -2,19 +2,21 @@ package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.MusicTrackFileAlreadyExistsException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.TrackCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.RecommendedResponseDto;
+import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Genre;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.GenreRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,7 +44,7 @@ class TrackServiceTest {
     TrackRepository trackRepository;
 
     @Mock
-    UserRepository userRepository;
+    UserLookup userLookup;
 
     @Mock
     AlbumRepository albumRepository;
@@ -63,14 +65,14 @@ class TrackServiceTest {
     void createTrack_ValidData_UploadsToMinioAndSavesTrack() throws Exception {
         UUID authorId = UUID.randomUUID();
         UUID albumId = UUID.randomUUID();
-        User author = User.builder().id(authorId).role(UserRole.ROLE_ARTIST).build();
-        Album album = Album.builder().id(albumId).author(author).coverUrl("album-cover.jpg").build();
+        UserSummary author = new UserSummary(authorId, null, null, UserRole.ROLE_ARTIST);
+        Album album = Album.builder().id(albumId).authorId(authorId).coverUrl("album-cover.jpg").build();
         Genre genre = Genre.builder().id(UUID.randomUUID()).build();
         
         TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, Set.of(genre.getId()));
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
-        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(userLookup.getSummary(authorId)).thenReturn(author);
         when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
         when(genreRepository.findAllById(dto.genreIds())).thenReturn(List.of(genre));
         when(trackRepository.existsByFileHash(anyString())).thenReturn(false);
@@ -91,14 +93,14 @@ class TrackServiceTest {
     void createTrack_DuplicateFileHash_ThrowsConflictException() throws Exception {
         UUID authorId = UUID.randomUUID();
         UUID albumId = UUID.randomUUID();
-        User author = User.builder().id(authorId).role(UserRole.ROLE_ARTIST).build();
-        Album album = Album.builder().id(albumId).author(author).coverUrl("album-cover.jpg").build();
+        UserSummary author = new UserSummary(authorId, null, null, UserRole.ROLE_ARTIST);
+        Album album = Album.builder().id(albumId).authorId(authorId).coverUrl("album-cover.jpg").build();
         Genre genre = Genre.builder().id(UUID.randomUUID()).build();
         
         TrackCreateDto dto = new TrackCreateDto("Test Track", 120, null, albumId, null, Set.of(genre.getId()));
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
-        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(userLookup.getSummary(authorId)).thenReturn(author);
         when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
         when(genreRepository.findAllById(dto.genreIds())).thenReturn(List.of(genre));
         when(trackRepository.existsByFileHash(anyString())).thenReturn(true);
@@ -110,11 +112,11 @@ class TrackServiceTest {
     @Test
     void createTrack_UserNotArtist_ThrowsException() {
         UUID authorId = UUID.randomUUID();
-        User author = User.builder().id(authorId).role(UserRole.ROLE_USER).build(); // Not an artist
+        UserSummary author = new UserSummary(authorId, null, null, UserRole.ROLE_USER); // Not an artist
         TrackCreateDto dto = new TrackCreateDto("Test", 120, null, UUID.randomUUID(), null, Set.of());
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
-        when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
+        when(userLookup.getSummary(authorId)).thenReturn(author);
 
         assertThrows(UserNotAuthorizedException.class, () -> trackService.createTrack(authorId, dto, file));
     }
@@ -135,40 +137,66 @@ class TrackServiceTest {
     void likeTrack_Success() {
         UUID userId = UUID.randomUUID();
         UUID trackId = UUID.randomUUID();
-        User user = User.builder().id(userId).likedTracks(new HashSet<>()).build();
         Track track = Track.builder().id(trackId).build();
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userLookup.exists(userId)).thenReturn(true);
         when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
 
         trackService.likeTrack(userId, trackId);
 
-        assertTrue(user.getLikedTracks().contains(track));
-        verify(userRepository).save(user);
+        assertTrue(track.getLikedByUserIds().contains(userId));
+        verify(trackRepository).save(track);
     }
 
     @Test
     void unlikeTrack_Success() {
         UUID userId = UUID.randomUUID();
         UUID trackId = UUID.randomUUID();
-        Track track = Track.builder().id(trackId).build();
-        User user = User.builder().id(userId).likedTracks(new HashSet<>(List.of(track))).build();
+        Track track = Track.builder().id(trackId).likedByUserIds(new HashSet<>(List.of(userId))).build();
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userLookup.exists(userId)).thenReturn(true);
         when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
 
         trackService.unlikeTrack(userId, trackId);
 
-        assertFalse(user.getLikedTracks().contains(track));
-        verify(userRepository).save(user);
+        assertFalse(track.getLikedByUserIds().contains(userId));
+        verify(trackRepository).save(track);
+    }
+
+    @Test
+    void likeTrack_UnknownUser_ThrowsUserNotFound() {
+        UUID userId = UUID.randomUUID();
+        when(userLookup.exists(userId)).thenReturn(false);
+
+        assertThrows(UserNotFoundException.class, () -> trackService.likeTrack(userId, UUID.randomUUID()));
+        verifyNoInteractions(trackRepository);
+    }
+
+    @Test
+    void getLikedTracks_ReturnsTracksLikedByUser() {
+        UUID userId = UUID.randomUUID();
+        Track track = Track.builder().id(UUID.randomUUID()).build();
+        TrackResponseDto dto = TrackResponseDto.builder().id(track.getId()).build();
+        when(userLookup.exists(userId)).thenReturn(true);
+        when(trackRepository.findAllLikedBy(userId)).thenReturn(List.of(track));
+        when(trackMappingService.map(track)).thenReturn(dto);
+
+        assertEquals(List.of(dto), trackService.getLikedTracks(userId));
+    }
+
+    @Test
+    void getTracksByAuthor_UnknownUser_ThrowsUserNotFound() {
+        UUID authorId = UUID.randomUUID();
+        when(userLookup.exists(authorId)).thenReturn(false);
+
+        assertThrows(UserNotFoundException.class, () -> trackService.getTracksByAuthor(authorId));
     }
 
     @Test
     void getRecommendedTracks_NoLikedTracks_ReturnsNewArrivals() {
         UUID userId = UUID.randomUUID();
-        User user = User.builder().id(userId).likedTracks(new HashSet<>()).build();
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userLookup.exists(userId)).thenReturn(true);
+        when(trackRepository.findAllLikedBy(userId)).thenReturn(List.of());
         when(trackRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
 
         RecommendedResponseDto res = trackService.getRecommendedTracks(userId);

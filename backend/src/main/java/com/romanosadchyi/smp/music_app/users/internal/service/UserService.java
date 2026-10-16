@@ -1,15 +1,13 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.users.internal.service;
 
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
-import com.romanosadchyi.smp.music_app.model.dto.request.UserUpdateDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
-import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
-import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
-import com.romanosadchyi.smp.music_app.service.mapping.UserMappingService;
+import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.UserUpdateDto;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.mapping.UserMappingService;
+import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,9 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import com.romanosadchyi.smp.music_app.service.mapping.TrackMappingService;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 
 @Service
 @RequiredArgsConstructor
@@ -31,21 +26,8 @@ import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 public class UserService {
 
     UserRepository userRepository;
-    TrackRepository trackRepository;
-    AlbumRepository albumRepository;
-    PlaylistRepository playlistRepository;
     UserMappingService userMappingService;
-    TrackMappingService trackMappingService;
-
-    @Transactional(readOnly = true)
-    public List<TrackResponseDto> getUserTracks(UUID id) {
-        if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("User not found with id: " + id);
-        }
-        return trackRepository.findAllByAuthorId(id).stream()
-                .map(trackMappingService::map)
-                .collect(Collectors.toList());
-    }
+    List<UserDataCleanup> userDataCleanups;
 
     @Transactional(readOnly = true)
     public UserResponseDto getUserById(UUID id) {
@@ -127,13 +109,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
 
-        // 1. Purge Content
-        playlistRepository.deleteAll(playlistRepository.findAllByOwnerId(userId));
-        albumRepository.deleteAll(albumRepository.findAllByAuthorId(userId));
-        trackRepository.deleteAll(trackRepository.findAllByAuthorId(userId));
+        // 1. Purge content and every other module's data linked to the user
+        userDataCleanups.forEach(cleanup -> cleanup.deleteUserData(userId));
 
         // 2. Social Purge
-        user.getLikedTracks().clear();
         user.getFollowing().clear();
         user.getFollowers().clear();
 

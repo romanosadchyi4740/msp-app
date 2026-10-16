@@ -2,7 +2,6 @@ package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.ChatNotFoundException;
 import com.romanosadchyi.smp.music_app.exception.TrackNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.request.ClusterCreateRequestDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.ChatMembershipDto;
@@ -14,10 +13,12 @@ import com.romanosadchyi.smp.music_app.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMappingService;
 import com.romanosadchyi.smp.music_app.service.mapping.ChatMessageMappingService;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -42,7 +44,7 @@ public class ChatService {
     ChatRepository chatRepository;
     ChatMembershipRepository chatMembershipRepository;
     MessageRepository messageRepository;
-    UserRepository userRepository;
+    UserLookup userLookup;
     TrackRepository trackRepository;
     ChatMessageMappingService mappingService;
     ChatMappingService chatMappingService;
@@ -58,7 +60,7 @@ public class ChatService {
 
         chat.getMemberships().forEach(m ->
                 messagingTemplate.convertAndSendToUser(
-                        m.getUser().getId().toString(),
+                        m.getUserId().toString(),
                         "/queue/messages",
                         savedMessage
                 )
@@ -82,7 +84,7 @@ public class ChatService {
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
 
         ChatMembership membership = chat.getMemberships().stream()
-                .filter(m -> m.getUser().getId().equals(userId))
+                .filter(m -> m.getUserId().equals(userId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("User is not a participant of this chat"));
 
@@ -101,7 +103,7 @@ public class ChatService {
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
 
         ChatMembership membership = chat.getMemberships().stream()
-                .filter(m -> m.getUser().getId().equals(userId))
+                .filter(m -> m.getUserId().equals(userId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("User is not a participant of this chat"));
 
@@ -111,8 +113,9 @@ public class ChatService {
 
     @Transactional
     public ChatResponseDto createCluster(UUID creatorId, ClusterCreateRequestDto request) {
-        User creator = userRepository.findById(creatorId)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + creatorId));
+        if (!userLookup.exists(creatorId)) {
+            throw new UserNotFoundException("User not found: " + creatorId);
+        }
 
         Chat chat = Chat.builder()
                 .isGroup(true)
@@ -123,7 +126,7 @@ public class ChatService {
 
         ChatMembership creatorMembership = ChatMembership.builder()
                 .chat(chat)
-                .user(creator)
+                .userId(creatorId)
                 .status(ChatStatus.ACCEPTED)
                 .isAdmin(true)
                 .build();
@@ -131,11 +134,12 @@ public class ChatService {
 
         for (UUID participantId : request.participantIds()) {
             if (participantId.equals(creatorId)) continue;
-            User participant = userRepository.findById(participantId)
-                    .orElseThrow(() -> new UserNotFoundException("User not found: " + participantId));
+            if (!userLookup.exists(participantId)) {
+                throw new UserNotFoundException("User not found: " + participantId);
+            }
             ChatMembership participantMembership = ChatMembership.builder()
                     .chat(chat)
-                    .user(participant)
+                    .userId(participantId)
                     .status(ChatStatus.PENDING)
                     .isAdmin(false)
                     .build();
@@ -154,8 +158,9 @@ public class ChatService {
     }
 
     private ChatMessageResponseDto saveMessage(ChatMessageRequestDto request, UUID senderId) {
-        User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + senderId));
+        if (!userLookup.exists(senderId)) {
+            throw new UserNotFoundException("User not found: " + senderId);
+        }
 
         Chat chat;
         if (request.chatId() != null) {
@@ -168,7 +173,7 @@ public class ChatService {
         }
 
         ChatMembership senderMembership = chat.getMemberships().stream()
-                .filter(m -> m.getUser().getId().equals(senderId))
+                .filter(m -> m.getUserId().equals(senderId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("User not in chat"));
 
@@ -185,7 +190,7 @@ public class ChatService {
         }
         Message message = Message.builder()
                 .chat(chat)
-                .sender(sender)
+                .senderId(senderId)
                 .content(request.content())
                 .sharedTrack(sharedTrack)
                 .sharedTrackTimestamp(request.sharedTrackTimestamp())
@@ -199,8 +204,8 @@ public class ChatService {
     private Chat getOrCreateChat(UUID user1Id, UUID user2Id) {
         return chatRepository.findChatBetweenUsers(user1Id, user2Id)
                 .map(chat -> {
-                    ChatMembership m1 = chat.getMemberships().stream().filter(m -> m.getUser().getId().equals(user1Id)).findFirst().orElse(null);
-                    ChatMembership m2 = chat.getMemberships().stream().filter(m -> m.getUser().getId().equals(user2Id)).findFirst().orElse(null);
+                    ChatMembership m1 = chat.getMemberships().stream().filter(m -> m.getUserId().equals(user1Id)).findFirst().orElse(null);
+                    ChatMembership m2 = chat.getMemberships().stream().filter(m -> m.getUserId().equals(user2Id)).findFirst().orElse(null);
                     
                     if (m1 != null && m1.getStatus() == ChatStatus.REJECTED) {
                         m1.setStatus(ChatStatus.ACCEPTED);
@@ -215,10 +220,12 @@ public class ChatService {
                     return chat;
                 })
                 .orElseGet(() -> {
-                    User user1 = userRepository.findById(user1Id)
-                            .orElseThrow(() -> new UserNotFoundException("User not found: " + user1Id));
-                    User user2 = userRepository.findById(user2Id)
-                            .orElseThrow(() -> new UserNotFoundException("User not found: " + user2Id));
+                    if (!userLookup.exists(user1Id)) {
+                        throw new UserNotFoundException("User not found: " + user1Id);
+                    }
+                    if (!userLookup.exists(user2Id)) {
+                        throw new UserNotFoundException("User not found: " + user2Id);
+                    }
 
                     Chat chat = Chat.builder()
                             .isGroup(false)
@@ -227,13 +234,13 @@ public class ChatService {
 
                     ChatMembership membership1 = ChatMembership.builder()
                             .chat(chat)
-                            .user(user1)
+                            .userId(user1Id)
                             .status(ChatStatus.ACCEPTED)
                             .isAdmin(true)
                             .build();
                     ChatMembership membership2 = ChatMembership.builder()
                             .chat(chat)
-                            .user(user2)
+                            .userId(user2Id)
                             .status(ChatStatus.PENDING)
                             .isAdmin(false)
                             .build();
@@ -252,15 +259,17 @@ public class ChatService {
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
 
         chat.getMemberships().stream()
-                .filter(m -> m.getUser().getId().equals(requesterId))
+                .filter(m -> m.getUserId().equals(requesterId))
                 .findFirst()
                 .orElseThrow(() -> new UserNotAuthorizedException("Requester is not a member of this chat"));
 
+        Map<UUID, UserSummary> users = userLookup.findSummaries(
+                chat.getMemberships().stream().map(ChatMembership::getUserId).toList());
         return chat.getMemberships().stream()
                 .map(m -> ChatMembershipDto.builder()
-                        .userId(m.getUser().getId())
-                        .displayName(m.getUser().getDisplayName())
-                        .avatarUrl(m.getUser().getAvatarUrl())
+                        .userId(m.getUserId())
+                        .displayName(users.get(m.getUserId()).displayName())
+                        .avatarUrl(users.get(m.getUserId()).avatarUrl())
                         .status(m.getStatus())
                         .isAdmin(m.isAdmin())
                         .build())
@@ -277,7 +286,7 @@ public class ChatService {
         }
 
         ChatMembership requesterMembership = chat.getMemberships().stream()
-                .filter(m -> m.getUser().getId().equals(requesterId))
+                .filter(m -> m.getUserId().equals(requesterId))
                 .findFirst()
                 .orElseThrow(() -> new UserNotAuthorizedException("Requester is not a member of this chat"));
 
@@ -286,17 +295,18 @@ public class ChatService {
         }
 
         List<UUID> existingMemberIds = chat.getMemberships().stream()
-                .map(m -> m.getUser().getId())
+                .map(m -> m.getUserId())
                 .toList();
 
         List<ChatMembership> newMemberships = userIdsToInvite.stream()
                 .filter(id -> !existingMemberIds.contains(id))
                 .map(id -> {
-                    User user = userRepository.findById(id)
-                            .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+                    if (!userLookup.exists(id)) {
+                        throw new UserNotFoundException("User not found: " + id);
+                    }
                     return ChatMembership.builder()
                             .chat(chat)
-                            .user(user)
+                            .userId(id)
                             .status(ChatStatus.PENDING)
                             .isAdmin(false)
                             .build();

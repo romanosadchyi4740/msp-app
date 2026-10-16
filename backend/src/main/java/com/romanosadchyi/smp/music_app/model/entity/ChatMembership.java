@@ -32,9 +32,8 @@ public class ChatMembership {
     @JoinColumn(name = "chat_id", nullable = false)
     Chat chat;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    User user;
+    @Column(name = "user_id", nullable = false)
+    UUID userId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

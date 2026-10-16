@@ -30,9 +30,8 @@ public class IntegrationRequest {
     @JoinColumn(name = "target_playlist_id", nullable = false)
     Playlist targetPlaylist;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requester_id", nullable = false)
-    User requester;
+    @Column(name = "requester_id", nullable = false)
+    UUID requesterId;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

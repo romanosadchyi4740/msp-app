@@ -30,9 +30,8 @@ public class Message {
     @JoinColumn(name = "chat_id", nullable = false)
     Chat chat;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id", nullable = false)
-    User sender;
+    @Column(name = "sender_id", nullable = false)
+    UUID senderId;
 
     @Convert(converter = MessageEncryptionConverter.class)
     @Column(columnDefinition = "TEXT", nullable = false)

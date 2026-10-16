@@ -19,9 +19,8 @@ public class StatusBroadcast {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    private User author;
+    @Column(name = "author_id", nullable = false)
+    private UUID authorId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;

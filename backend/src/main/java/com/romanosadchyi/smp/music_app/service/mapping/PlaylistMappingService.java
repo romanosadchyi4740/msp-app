@@ -3,7 +3,8 @@ package com.romanosadchyi.smp.music_app.service.mapping;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Playlist;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,7 +20,7 @@ import java.util.UUID;
 public class PlaylistMappingService {
 
     TrackMappingService trackMappingService;
-    UserRepository userRepository;
+    UserLookup userLookup;
 
     public PlaylistResponseDto map(Playlist playlist) {
         List<TrackResponseDto> tracksDto =
@@ -36,8 +37,8 @@ public class PlaylistMappingService {
         if (playlist.getForkedFrom() != null) {
             forkedFromId = playlist.getForkedFrom().getId();
             forkedFromName = playlist.getForkedFrom().getTitle();
-            forkedFromOwnerName = userRepository.findById(playlist.getForkedFrom().getOwnerId())
-                    .map(u -> u.getDisplayName())
+            forkedFromOwnerName = userLookup.findSummary(playlist.getForkedFrom().getOwnerId())
+                    .map(UserSummary::displayName)
                     .orElse("Unknown Identity");
         }
 

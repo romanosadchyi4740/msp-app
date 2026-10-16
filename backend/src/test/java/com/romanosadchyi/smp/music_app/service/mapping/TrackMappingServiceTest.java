@@ -6,7 +6,9 @@ import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Genre;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,6 +31,9 @@ class TrackMappingServiceTest {
     @Mock
     GenreMappingService genreMappingService;
 
+    @Mock
+    UserLookup userLookup;
+
     @InjectMocks
     TrackMappingService trackMappingService;
 
@@ -48,14 +53,15 @@ class TrackMappingServiceTest {
     @Test
     void mapEntity_ReturnsDto() {
         UUID trackId = UUID.randomUUID();
-        User author = User.builder().id(UUID.randomUUID()).displayName("Author").build();
+        UserSummary author = new UserSummary(UUID.randomUUID(), "Author", null, UserRole.ROLE_USER);
+        when(userLookup.getSummary(author.id())).thenReturn(author);
         Album album = Album.builder().title("Album").coverUrl("albumCover").build();
         Genre genre = Genre.builder().id(UUID.randomUUID()).build();
         
         Track track = Track.builder()
                 .id(trackId)
                 .title("Track")
-                .author(author)
+                .authorId(author.id())
                 .album(album)
                 .duration(200)
                 .coverUrl("trackCover")
@@ -77,13 +83,14 @@ class TrackMappingServiceTest {
 
     @Test
     void mapEntity_NullCover_FallsBackToAlbumCover() {
-        User author = User.builder().id(UUID.randomUUID()).displayName("Author").build();
+        UserSummary author = new UserSummary(UUID.randomUUID(), "Author", null, UserRole.ROLE_USER);
+        when(userLookup.getSummary(author.id())).thenReturn(author);
         Album album = Album.builder().title("Album").coverUrl("albumCover").build();
         
         Track track = Track.builder()
                 .id(UUID.randomUUID())
                 .title("Track")
-                .author(author)
+                .authorId(author.id())
                 .album(album)
                 .coverUrl(null)
                 .build();
@@ -96,12 +103,13 @@ class TrackMappingServiceTest {
     @Test
     void mapEntityWithContext_ReturnsDto() {
         UUID trackId = UUID.randomUUID();
-        User author = User.builder().id(UUID.randomUUID()).displayName("Author").build();
+        UserSummary author = new UserSummary(UUID.randomUUID(), "Author", null, UserRole.ROLE_USER);
+        when(userLookup.getSummary(author.id())).thenReturn(author);
         
         Track track = Track.builder()
                 .id(trackId)
                 .title("Track")
-                .author(author)
+                .authorId(author.id())
                 .duration(200)
                 .coverUrl(null)
                 .build();

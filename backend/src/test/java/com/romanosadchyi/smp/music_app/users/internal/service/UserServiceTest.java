@@ -1,19 +1,17 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.users.internal.service;
 
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
-import com.romanosadchyi.smp.music_app.model.dto.request.UserUpdateDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
-import com.romanosadchyi.smp.music_app.repository.PlaylistRepository;
-import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
-import com.romanosadchyi.smp.music_app.service.mapping.UserMappingService;
+import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.UserUpdateDto;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.mapping.UserMappingService;
+import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,19 +31,20 @@ class UserServiceTest {
     UserRepository userRepository;
 
     @Mock
-    TrackRepository trackRepository;
-
-    @Mock
-    AlbumRepository albumRepository;
-
-    @Mock
-    PlaylistRepository playlistRepository;
-
-    @Mock
     UserMappingService userMappingService;
 
-    @InjectMocks
+    @Mock
+    UserDataCleanup firstCleanup;
+
+    @Mock
+    UserDataCleanup secondCleanup;
+
     UserService userService;
+
+    @BeforeEach
+    void setUp() {
+        userService = new UserService(userRepository, userMappingService, List.of(firstCleanup, secondCleanup));
+    }
 
     @Test
     void getUserById_UserExists_ReturnsDto() {
@@ -151,23 +150,19 @@ class UserServiceTest {
                 .avatarUrl("real-avatar.jpg")
                 .biography("Real biography")
                 .providerId("real-provider")
-                .likedTracks(new HashSet<>(List.of(Track.builder().build())))
                 .followers(new HashSet<>(List.of(User.builder().build())))
                 .following(new HashSet<>(List.of(User.builder().build())))
                 .build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(playlistRepository.findAllByOwnerId(userId)).thenReturn(List.of());
-        when(albumRepository.findAllByAuthorId(userId)).thenReturn(List.of());
-        when(trackRepository.findAllByAuthorId(userId)).thenReturn(List.of());
 
         userService.terminateIdentity(userId);
 
-        verify(playlistRepository).deleteAll(anyList());
-        verify(albumRepository).deleteAll(anyList());
-        verify(trackRepository).deleteAll(anyList());
+        InOrder order = inOrder(firstCleanup, secondCleanup, userRepository);
+        order.verify(firstCleanup).deleteUserData(userId);
+        order.verify(secondCleanup).deleteUserData(userId);
+        order.verify(userRepository).save(user);
 
-        assertTrue(user.getLikedTracks().isEmpty());
         assertTrue(user.getFollowing().isEmpty());
         assertTrue(user.getFollowers().isEmpty());
 
@@ -175,7 +170,14 @@ class UserServiceTest {
         assertNotEquals("real-password", user.getPassword());
         assertEquals("Disconnected Node", user.getDisplayName());
         assertNull(user.getAvatarUrl());
-        
-        verify(userRepository).save(user);
+    }
+
+    @Test
+    void terminateIdentity_UserNotFound_CallsNoCleanup() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> userService.terminateIdentity(userId));
+        verifyNoInteractions(firstCleanup, secondCleanup);
     }
 }

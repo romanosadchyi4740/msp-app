@@ -7,16 +7,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.UUID;
 
 public interface StatusBroadcastRepository extends JpaRepository<StatusBroadcast, UUID> {
 
-    @Query("SELECT b FROM StatusBroadcast b JOIN FETCH b.author " +
+    @Query("SELECT b FROM StatusBroadcast b " +
            "LEFT JOIN FETCH b.attachedTrack " +
            "LEFT JOIN FETCH b.poll p " +
            "LEFT JOIN FETCH p.options " +
-           "WHERE b.author IN (SELECT f FROM User u JOIN u.following f WHERE u.id = :userId) " +
-           "OR b.author.id = :userId " +
+           "WHERE b.authorId IN :authorIds " +
            "ORDER BY b.timestamp DESC")
-    Page<StatusBroadcast> findFeedForUser(@Param("userId") UUID userId, Pageable pageable);
+    Page<StatusBroadcast> findAllByAuthorIds(@Param("authorIds") Collection<UUID> authorIds, Pageable pageable);
 }

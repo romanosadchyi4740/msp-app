@@ -1,10 +1,10 @@
-package com.romanosadchyi.smp.music_app.rest;
+package com.romanosadchyi.smp.music_app.users.internal.controller;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.GoogleAuthRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
-import com.romanosadchyi.smp.music_app.service.AuthService;
+import com.romanosadchyi.smp.music_app.users.internal.dto.AuthResponseDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.GoogleAuthRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.LoginRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.RegisterRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.service.AuthService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

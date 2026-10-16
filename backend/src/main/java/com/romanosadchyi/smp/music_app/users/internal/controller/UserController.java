@@ -1,12 +1,11 @@
-package com.romanosadchyi.smp.music_app.rest;
+package com.romanosadchyi.smp.music_app.users.internal.controller;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.UserUpdateDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.service.UserService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.shared.security.JwtService;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.UserUpdateDto;
+import com.romanosadchyi.smp.music_app.users.internal.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -61,12 +60,6 @@ public class UserController {
     public ResponseEntity<UserResponseDto> getUserById(@PathVariable UUID id) {
         log.info("Getting user with ID: {}", id);
         return ResponseEntity.ok(userService.getUserById(id));
-    }
-
-    @GetMapping("/{id}/tracks")
-    public ResponseEntity<List<TrackResponseDto>> getUserTracks(@PathVariable UUID id) {
-        log.info("Getting tracks for user with ID: {}", id);
-        return ResponseEntity.ok(userService.getUserTracks(id));
     }
 
     @GetMapping("/search")

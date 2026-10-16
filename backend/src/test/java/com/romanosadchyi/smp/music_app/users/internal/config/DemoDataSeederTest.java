@@ -1,8 +1,8 @@
-package com.romanosadchyi.smp.music_app.config;
+package com.romanosadchyi.smp.music_app.users.internal.config;
 
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

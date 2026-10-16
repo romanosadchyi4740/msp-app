@@ -1,18 +1,18 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.users.internal.service;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.AuthProvider;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.shared.security.JwtService;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.AuthResponseDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.LoginRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.RegisterRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.entity.AuthProvider;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

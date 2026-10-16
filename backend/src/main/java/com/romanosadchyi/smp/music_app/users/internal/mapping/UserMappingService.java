@@ -1,7 +1,8 @@
-package com.romanosadchyi.smp.music_app.service.mapping;
+package com.romanosadchyi.smp.music_app.users.internal.mapping;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,5 +20,9 @@ public class UserMappingService {
                 .followersCount(user.getFollowers() != null ? user.getFollowers().size() : 0)
                 .followingCount(user.getFollowing() != null ? user.getFollowing().size() : 0)
                 .build();
+    }
+
+    public UserSummary toSummary(User user) {
+        return new UserSummary(user.getId(), user.getDisplayName(), user.getAvatarUrl(), user.getRole());
     }
 }

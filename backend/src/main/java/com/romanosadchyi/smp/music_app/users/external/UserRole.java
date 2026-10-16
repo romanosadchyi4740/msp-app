@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.model.enums;
+package com.romanosadchyi.smp.music_app.users.external;
 
 public enum UserRole {
     ROLE_USER,

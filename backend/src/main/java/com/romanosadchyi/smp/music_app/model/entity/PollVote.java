@@ -24,7 +24,6 @@ public class PollVote {
     @JoinColumn(name = "option_id", nullable = false)
     private PollOption option;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "voter_id", nullable = false)
-    private User voter;
+    @Column(name = "voter_id", nullable = false)
+    private UUID voterId;
 }

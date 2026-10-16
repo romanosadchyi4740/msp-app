@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.model.dto.response;
+package com.romanosadchyi.smp.music_app.users.external;
 
 import lombok.Builder;
 

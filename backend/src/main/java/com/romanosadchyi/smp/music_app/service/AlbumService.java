@@ -1,19 +1,18 @@
 package com.romanosadchyi.smp.music_app.service;
 
 import com.romanosadchyi.smp.music_app.exception.AlbumNotFoundException;
-import com.romanosadchyi.smp.music_app.exception.UserNotFoundException;
-import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.model.dto.request.AlbumCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.model.entity.Album;
 import com.romanosadchyi.smp.music_app.model.entity.Track;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
 import com.romanosadchyi.smp.music_app.repository.AlbumRepository;
 import com.romanosadchyi.smp.music_app.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.repository.TrackRepository;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.service.mapping.AlbumMappingService;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -35,7 +34,7 @@ import java.util.stream.Collectors;
 public class AlbumService {
 
     AlbumRepository albumRepository;
-    UserRepository userRepository;
+    UserLookup userLookup;
     TrackRepository trackRepository;
     MessageRepository messageRepository;
     MinioService minioService;
@@ -43,10 +42,9 @@ public class AlbumService {
 
     @Transactional
     public AlbumResponseDto createAlbum(UUID authorId, AlbumCreateDto dto) {
-        User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        UserSummary author = userLookup.getSummary(authorId);
 
-        if (author.getRole() != UserRole.ROLE_ARTIST) {
+        if (author.role() != UserRole.ROLE_ARTIST) {
             throw new UserNotAuthorizedException("Only artists can create albums");
         }
 
@@ -55,7 +53,7 @@ public class AlbumService {
                 .description(dto.description())
                 .coverUrl(dto.coverUrl())
                 .releaseDate(LocalDate.now())
-                .author(author)
+                .authorId(authorId)
                 .build();
 
         Album savedAlbum = albumRepository.save(album);
@@ -97,7 +95,7 @@ public class AlbumService {
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new AlbumNotFoundException("Album not found"));
 
-        if (!album.getAuthor().getId().equals(authorId)) {
+        if (!album.getAuthorId().equals(authorId)) {
             throw new UserNotAuthorizedException("Access Denied: You do not own this collection instance.");
         }
 

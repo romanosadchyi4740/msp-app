@@ -1,8 +1,8 @@
-package com.romanosadchyi.smp.music_app.service.mapping;
+package com.romanosadchyi.smp.music_app.users.internal.mapping;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.UserResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

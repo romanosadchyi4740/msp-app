@@ -1,13 +1,13 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.users.internal.service;
 
-import com.romanosadchyi.smp.music_app.model.dto.request.LoginRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.request.RegisterRequestDto;
-import com.romanosadchyi.smp.music_app.model.dto.response.AuthResponseDto;
-import com.romanosadchyi.smp.music_app.model.entity.User;
-import com.romanosadchyi.smp.music_app.model.enums.UserRole;
-import com.romanosadchyi.smp.music_app.repository.UserRepository;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.shared.security.JwtService;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.AuthResponseDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.LoginRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.dto.RegisterRequestDto;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

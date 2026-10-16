@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.model.dto.request;
+package com.romanosadchyi.smp.music_app.users.internal.dto;
 
 public record UserUpdateDto(
         String displayName,
