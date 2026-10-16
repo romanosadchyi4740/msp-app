@@ -23,3 +23,10 @@ app:
 
 data-seeder:
   enabled: false
+
+# Statement counts for the N+1 checks in the module integration tests
+spring:
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true
