@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
 import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
 import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -32,19 +33,25 @@ public class ChatMessageMappingService {
     TrackLookup trackLookup;
 
     public ChatMessageResponseDto map(Message message) {
-        return map(message, sharedTracksOf(List.of(message)));
+        return mapAll(List.of(message)).getFirst();
     }
 
     public List<ChatMessageResponseDto> mapAll(Collection<Message> messages) {
         Map<UUID, TrackResponseDto> tracks = sharedTracksOf(messages);
+        Map<UUID, UserResponseDto> senders = sendersOf(messages);
         return messages.stream()
-                .map(message -> map(message, tracks))
+                .map(message -> map(message, tracks, senders))
                 .toList();
     }
 
     public Page<ChatMessageResponseDto> mapPage(Page<Message> messages) {
         Map<UUID, TrackResponseDto> tracks = sharedTracksOf(messages.getContent());
-        return messages.map(message -> map(message, tracks));
+        Map<UUID, UserResponseDto> senders = sendersOf(messages.getContent());
+        return messages.map(message -> map(message, tracks, senders));
+    }
+
+    private Map<UUID, UserResponseDto> sendersOf(Collection<Message> messages) {
+        return userLookup.findProfiles(messages.stream().map(Message::getSenderId).distinct().toList());
     }
 
     private Map<UUID, TrackResponseDto> sharedTracksOf(Collection<Message> messages) {
@@ -60,11 +67,12 @@ public class ChatMessageMappingService {
                 .collect(Collectors.toMap(TrackResponseDto::id, Function.identity()));
     }
 
-    private ChatMessageResponseDto map(Message message, Map<UUID, TrackResponseDto> tracks) {
+    private ChatMessageResponseDto map(Message message, Map<UUID, TrackResponseDto> tracks,
+                                      Map<UUID, UserResponseDto> senders) {
         return ChatMessageResponseDto.builder()
                 .id(message.getId())
                 .chatId(message.getChat().getId())
-                .sender(userLookup.getProfile(message.getSenderId()))
+                .sender(senders.get(message.getSenderId()))
                 .content(message.getContent())
                 .timestamp(message.getTimestamp())
                 .sharedTrack(message.getSharedTrackId() != null ? tracks.get(message.getSharedTrackId()) : null)

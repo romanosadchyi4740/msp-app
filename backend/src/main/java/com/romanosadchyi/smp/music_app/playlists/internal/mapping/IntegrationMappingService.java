@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
 import com.romanosadchyi.smp.music_app.playlists.internal.dto.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.playlists.internal.entity.IntegrationRequest;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * Maps integration requests to responses with the requester's profile from {@link UserLookup} and the proposed
- * tracks from {@link TrackLookup}; {@link #mapAll} looks up the tracks once for all requests.
+ * tracks from {@link TrackLookup}; {@link #mapAll} looks up requesters and tracks once for all requests.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,8 +37,12 @@ public class IntegrationMappingService {
 
     public List<IntegrationRequestResponseDto> mapAll(Collection<IntegrationRequest> requests) {
         Map<UUID, TrackResponseDto> tracks = tracksOf(requests);
+        Map<UUID, UserResponseDto> requesters = userLookup.findProfiles(requests.stream()
+                .map(IntegrationRequest::getRequesterId)
+                .distinct()
+                .toList());
         return requests.stream()
-                .map(request -> map(request, tracks))
+                .map(request -> map(request, tracks, requesters))
                 .toList();
     }
 
@@ -53,11 +58,12 @@ public class IntegrationMappingService {
                 .collect(Collectors.toMap(TrackResponseDto::id, Function.identity()));
     }
 
-    private IntegrationRequestResponseDto map(IntegrationRequest request, Map<UUID, TrackResponseDto> tracks) {
+    private IntegrationRequestResponseDto map(IntegrationRequest request, Map<UUID, TrackResponseDto> tracks,
+                                              Map<UUID, UserResponseDto> requesters) {
         return new IntegrationRequestResponseDto(
                 request.getId(),
                 request.getTargetPlaylist().getId(),
-                userLookup.getProfile(request.getRequesterId()),
+                requesters.get(request.getRequesterId()),
                 request.getProposedTrackIds().stream().map(tracks::get).filter(Objects::nonNull).toList(),
                 request.getStatus().name(),
                 request.getCreatedAt()

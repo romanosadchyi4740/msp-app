@@ -17,13 +17,16 @@ import org.springframework.data.domain.PageImpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -63,7 +66,7 @@ class ChatMessageMappingServiceTest {
         UserResponseDto senderDto = UserResponseDto.builder().id(senderId).build();
         TrackResponseDto trackDto = TrackResponseDto.builder().id(sharedTrackId).build();
 
-        when(userLookup.getProfile(senderId)).thenReturn(senderDto);
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(senderId, senderDto));
         when(trackLookup.findTracks(List.of(sharedTrackId))).thenReturn(List.of(trackDto));
 
         ChatMessageResponseDto result = chatMessageMappingService.map(message);
@@ -92,7 +95,7 @@ class ChatMessageMappingServiceTest {
                 .senderId(senderId)
                 .build();
 
-        when(userLookup.getProfile(senderId)).thenReturn(UserResponseDto.builder().id(senderId).build());
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(senderId, UserResponseDto.builder().id(senderId).build()));
 
         ChatMessageResponseDto result = chatMessageMappingService.map(message);
 
@@ -108,7 +111,7 @@ class ChatMessageMappingServiceTest {
         UUID trackId = UUID.randomUUID();
         Message message = Message.builder().id(UUID.randomUUID()).chat(Chat.builder().id(UUID.randomUUID()).build())
                 .senderId(senderId).sharedTrackId(trackId).build();
-        when(userLookup.getProfile(senderId)).thenReturn(UserResponseDto.builder().id(senderId).build());
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(senderId, UserResponseDto.builder().id(senderId).build()));
         when(trackLookup.findTracks(List.of(trackId))).thenReturn(List.of());
 
         assertNull(chatMessageMappingService.map(message).sharedTrack());
@@ -127,13 +130,16 @@ class ChatMessageMappingServiceTest {
                 Message.builder().id(UUID.randomUUID()).chat(chat).senderId(senderId).sharedTrackId(shared).build());
         TrackResponseDto sharedDto = TrackResponseDto.builder().id(shared).build();
         TrackResponseDto otherDto = TrackResponseDto.builder().id(other).build();
-        when(userLookup.getProfile(senderId)).thenReturn(UserResponseDto.builder().id(senderId).build());
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(senderId, UserResponseDto.builder().id(senderId).build()));
         when(trackLookup.findTracks(List.of(shared, other))).thenReturn(List.of(sharedDto, otherDto));
 
         Page<ChatMessageResponseDto> result = chatMessageMappingService.mapPage(new PageImpl<>(messages));
 
         assertThat(result.getContent()).extracting(ChatMessageResponseDto::sharedTrack)
                 .containsExactly(sharedDto, null, otherDto, sharedDto);
+        assertThat(result.getContent()).extracting(message -> message.sender().id()).containsOnly(senderId);
         verify(trackLookup).findTracks(anyCollection());
+        verify(userLookup).findProfiles(anyCollection());
+        verify(userLookup, never()).getProfile(any());
     }
 }

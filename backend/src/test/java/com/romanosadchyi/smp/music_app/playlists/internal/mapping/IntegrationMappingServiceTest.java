@@ -17,11 +17,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +61,7 @@ class IntegrationMappingServiceTest {
         UserResponseDto requesterDto = UserResponseDto.builder().id(requesterId).build();
         TrackResponseDto trackDto = TrackResponseDto.builder().id(trackId).build();
 
-        when(userLookup.getProfile(requesterId)).thenReturn(requesterDto);
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(requesterId, requesterDto));
         when(trackLookup.findTracks(List.of(trackId))).thenReturn(List.of(trackDto));
 
         IntegrationRequestResponseDto result = integrationMappingService.map(request);
@@ -88,6 +91,8 @@ class IntegrationMappingServiceTest {
         assertEquals(List.of(sharedDto), result.get(0).proposedTracks());
         assertEquals(List.of(otherDto, sharedDto), result.get(1).proposedTracks());
         verify(trackLookup).findTracks(anyCollection());
+        verify(userLookup).findProfiles(anyCollection());
+        verify(userLookup, never()).getProfile(any());
     }
 
     private static IntegrationRequest request(Playlist target, UUID... trackIds) {

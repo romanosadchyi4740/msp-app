@@ -165,8 +165,9 @@ packages are left; all code lives in a module:
   chat messages stay, shown under the anonymized account; the user leaves group chats but keeps direct-chat
   memberships, and a direct chat the other member never accepted, or a chat whose remaining members all have
   deleted accounts, is deleted with its messages (`ChatsUserDataCleanup`).
-- Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, used by the
-  `mapAll`/`mapPage` methods of the mappers), never one lookup per row.
+- Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, or
+  `UserLookup.findProfiles` where a row embeds the full profile, used by the `mapAll`/`mapPage` methods of the
+  mappers), never one lookup per row.
 - Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)
   next to their own data, `UserResponseDto` where a response embeds the full public profile.
 - The current user comes from `shared.security.AuthenticatedUser` (id, email, role from the JWT), not

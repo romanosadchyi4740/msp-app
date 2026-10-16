@@ -117,6 +117,28 @@ class UserLookupServiceTest {
     }
 
     @Test
+    void findProfiles_MapsUsersWithTheirCountsById() {
+        UUID missing = UUID.randomUUID();
+        List<UUID> ids = List.of(user.getId(), missing);
+        List<Object[]> rows = List.<Object[]>of(new Object[]{user, 3, 5});
+        when(userRepository.findAllWithFollowCounts(ids)).thenReturn(rows);
+
+        Map<UUID, UserResponseDto> profiles = userLookup.findProfiles(ids);
+
+        assertThat(profiles).containsOnlyKeys(user.getId());
+        UserResponseDto profile = profiles.get(user.getId());
+        assertThat(profile.displayName()).isEqualTo("Artist");
+        assertThat(profile.followersCount()).isEqualTo(3);
+        assertThat(profile.followingCount()).isEqualTo(5);
+    }
+
+    @Test
+    void findProfiles_NoIds_DoesNotQuery() {
+        assertThat(userLookup.findProfiles(List.of())).isEmpty();
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
     void findDeletedIds_DelegatesToRepository() {
         UUID deleted = UUID.randomUUID();
         List<UUID> ids = List.of(user.getId(), deleted);

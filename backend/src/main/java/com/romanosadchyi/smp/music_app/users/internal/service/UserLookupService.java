@@ -65,6 +65,18 @@ class UserLookupService implements UserLookup {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<UUID, UserResponseDto> findProfiles(Collection<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllWithFollowCounts(userIds).stream()
+                .map(row -> userMappingService.map((User) row[0], ((Number) row[1]).intValue(),
+                        ((Number) row[2]).intValue()))
+                .collect(Collectors.toMap(UserResponseDto::id, Function.identity()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<UserResponseDto> searchProfiles(String displayNameQuery, Pageable pageable) {
         return userRepository.findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull(displayNameQuery, pageable)
                 .map(userMappingService::map);

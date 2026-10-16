@@ -6,6 +6,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -38,9 +39,18 @@ public class ChatMappingService {
 
     public List<ChatResponseDto> mapAll(Collection<Chat> chats, UUID currentUserId) {
         Map<Chat, ChatMessageResponseDto> lastMessages = lastMessagesOf(chats);
+        Map<UUID, UserResponseDto> participants = participantsOf(chats);
         return chats.stream()
-                .map(chat -> map(chat, currentUserId, lastMessages.get(chat)))
+                .map(chat -> map(chat, currentUserId, lastMessages.get(chat), participants))
                 .toList();
+    }
+
+    private Map<UUID, UserResponseDto> participantsOf(Collection<Chat> chats) {
+        return userLookup.findProfiles(chats.stream()
+                .flatMap(chat -> chat.getMemberships().stream())
+                .map(ChatMembership::getUserId)
+                .distinct()
+                .toList());
     }
 
     /**
@@ -65,7 +75,8 @@ public class ChatMappingService {
         return byChat;
     }
 
-    private ChatResponseDto map(Chat chat, UUID currentUserId, ChatMessageResponseDto lastMessage) {
+    private ChatResponseDto map(Chat chat, UUID currentUserId, ChatMessageResponseDto lastMessage,
+                                Map<UUID, UserResponseDto> participants) {
         ChatMembership currentUserMembership = chat.getMemberships().stream()
                 .filter(m -> m.getUserId().equals(currentUserId))
                 .findFirst()
@@ -82,7 +93,7 @@ public class ChatMappingService {
                 .isGroup(chat.getIsGroup() != null && chat.getIsGroup())
                 .name(chat.getName())
                 .participants(chat.getMemberships().stream()
-                        .map(m -> userLookup.getProfile(m.getUserId()))
+                        .map(m -> participants.get(m.getUserId()))
                         .collect(Collectors.toList()))
                 .lastMessage(lastMessage)
                 .initiatorId(initiatorId)
