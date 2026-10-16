@@ -156,8 +156,7 @@ it stays `@Disabled` until the legacy layered packages are extracted, and `share
   calls all beans of that type on account deletion; `rooms` asks `billing.external.PremiumChecker`.
   The same goes for references to another module's rows: deleting a track calls every
   `music.external.TrackDeletionCleanup` (playlists and chat messages drop the track), so `music` never touches their
-  tables. Until playlists and chats are modules, `service.LegacyUserDataCleanup` and
-  `service.LegacyTrackDeletionCleanup` do their part.
+  tables. Until chats is a module, `service.LegacyTrackDeletionCleanup` does its part.
 - Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, used by the
   `mapAll`/`mapPage` methods of the mappers), never one lookup per row.
 - Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)

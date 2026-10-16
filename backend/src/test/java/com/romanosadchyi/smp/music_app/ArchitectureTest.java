@@ -33,7 +33,7 @@ class ArchitectureTest {
      * {@code external} package.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"users", "storage"})
+    @ValueSource(strings = {"users", "storage", "playlists"})
     void moduleInternalIsUsedOnlyByItsModule(String module) {
         noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + "." + module + "..")
                 .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + "." + module + ".internal..")
@@ -42,13 +42,13 @@ class ArchitectureTest {
 
     /**
      * Like {@link #moduleInternalIsUsedOnlyByItsModule}, but the legacy packages may still use {@code music.internal}:
-     * playlists, chat messages and status broadcasts keep JPA links to {@code Track} until KAN-69 and KAN-70 turn
-     * them into track ids. Extracted modules may not.
+     * chat messages and status broadcasts keep JPA links to {@code Track} until KAN-70 turns them into track ids.
+     * Extracted modules may not.
      */
     @Test
     void musicInternalIsNotUsedByOtherModules() {
         noClasses().that().resideInAnyPackage(BASE_PACKAGE + ".shared..", BASE_PACKAGE + ".users..",
-                        BASE_PACKAGE + ".storage..")
+                        BASE_PACKAGE + ".storage..", BASE_PACKAGE + ".playlists..")
                 .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + ".music.internal..")
                 .check(importMainClasses());
     }
@@ -63,6 +63,18 @@ class ArchitectureTest {
                 .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
                         .or(resideInAnyPackage(BASE_PACKAGE + ".music..", BASE_PACKAGE + ".shared..",
                                 BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".storage.external..")))
+                .check(importMainClasses());
+    }
+
+    /**
+     * Like {@link #musicDependsOnlyOnModules}: {@code playlists} reads tracks and users only through their lookups.
+     */
+    @Test
+    void playlistsDependsOnlyOnModules() {
+        classes().that().resideInAPackage(BASE_PACKAGE + ".playlists..")
+                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
+                        .or(resideInAnyPackage(BASE_PACKAGE + ".playlists..", BASE_PACKAGE + ".shared..",
+                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..")))
                 .check(importMainClasses());
     }
 
