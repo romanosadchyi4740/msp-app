@@ -1,21 +1,22 @@
 ---
 name: modulith-extract
-description: Extract a Spring Modulith module (users, storage, music, playlists, chats, telemetry, search, or a new SyncChord module) from the legacy layered packages of the msp-app backend into <module>.internal and <module>.external, with UUID references, cleanup hooks, batched lookups and ArchitectureTest rules. Use for the KAN-64 epic tickets (KAN-69, KAN-70, KAN-71) or when asked to create, extract or restructure a backend module.
+description: Create or restructure a Spring Modulith module of the msp-app / SyncChord backend (a new SyncChord module such as tabs, rooms, sync, rtc, billing or moderation, or moving code between modules) as <module>.internal and <module>.external, with UUID references, cleanup hooks, batched lookups and ArchitectureTest rules. Use when asked to create, extract or restructure a backend module.
 ---
 
 # Extracting a Spring Modulith module
 
-Read CLAUDE.md section 4 first; it is the rulebook. This skill is the procedure that worked for `users` (KAN-66),
-`storage` (KAN-67) and `music` (KAN-68). Combine it with the `kan-ticket` skill for branch, PR and Jira.
+Read CLAUDE.md section 4 first; it is the rulebook. This skill is the procedure that extracted every msp-app module
+from the old layered packages (epic KAN-64: `users` KAN-66, `storage` KAN-67, `music` KAN-68, `playlists` KAN-69,
+`chats` and `telemetry` KAN-70, `search` KAN-71); no legacy packages are left, so it now applies to new SyncChord
+modules and to moving code between modules. Combine it with the `kan-ticket` skill for branch, PR and Jira.
 
-Base package: `com.romanosadchyi.smp.music_app`. Legacy packages: `config`, `exception`, `model.*`, `repository`,
-`rest`, `service`, `service.mapping`.
+Base package: `com.romanosadchyi.smp.music_app`.
 
 ## 1. Inventory (no edits yet)
 1. List the classes that belong to the module: entities, enums, repositories, services, mappers, controllers, DTOs,
    exceptions, seeders, and their tests.
-2. Dependencies **out of** the module: for each class, grep its imports for legacy packages. Each one is either
-   moved together, replaced by another module's `external` interface, or inverted (step 4).
+2. Dependencies **out of** the module: for each class, grep its imports for other modules' `internal` packages.
+   Each one is either moved together, replaced by another module's `external` interface, or inverted (step 4).
 3. Dependencies **into** the module: grep the rest of the code for the module's types. Decide what goes into
    `external`: only what other code actually needs.
 4. JPA associations crossing the boundary (`@ManyToOne`, `@ManyToMany`, `@OneToMany` to another module's entity).
@@ -59,20 +60,17 @@ Tests move to mirror the main packages. Put the JSON in the scratchpad, not the 
   the modules that hold the data, and called as `List<...>` of beans:
   - `users.external.UserDataCleanup`: account deletion; every module with user data implements it.
   - `music.external.TrackDeletionCleanup`: deleting a track; modules referencing tracks drop their references.
-  - Until a module is extracted, a `service.Legacy...` class implements the hook for it, with Javadoc naming the
-    ticket that moves it.
 - An endpoint whose URL belongs to one module but whose data belongs to another moves to the data's module with the
   same URL (e.g. `GET /api/users/{id}/tracks` in `music.internal.controller.UserTracksController`).
 - Entities stay data only: shared logic goes into a service or a helper class next to the services.
 
 ## 5. Guard the boundary in ArchitectureTest
-`verifyModularity()` stays `@Disabled` until KAN-71. Until then, add explicit ArchUnit rules:
-- strict modules: add the module to `moduleInternalIsUsedOnlyByItsModule` (`@ValueSource`);
-- if legacy packages must keep using `internal` for now, write a separate rule that forbids it only for the extracted
-  modules, and say in its Javadoc which ticket removes the exemption (see `musicInternalIsNotUsedByOtherModules`);
-- the module itself depends only on `shared` and other modules' `external`
-  (see `musicDependsOnlyOnModules`), so later extractions cannot create a cycle.
-- specific bans when useful, e.g. `onlyStorageUsesTheMinioClient`.
+`verifyModularity()` (Spring Modulith) already rejects use of another module's `internal` and dependency cycles.
+For a new module:
+- add it to `modulesAreTheKnownOnes` and to the `@ValueSource` of `moduleHasOnlyInternalAndExternalPackages`;
+- add it with the modules it may use to `allowedDependencies` (`moduleUsesOnlyItsAllowedModules`); adding a module
+  to an existing list is a design decision for the PR body;
+- add specific bans when useful, e.g. `onlyStorageUsesTheMinioClient`.
 
 ## 6. Tests
 - Fix the moved tests: mocks of other modules' repositories become mocks of their lookups; stubs of `map(x)` in

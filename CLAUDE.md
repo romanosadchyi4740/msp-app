@@ -138,11 +138,13 @@ music_app/
   tabs/ rooms/ sync/ rtc/ billing/ moderation/     new SyncChord modules, same shape
 ```
 
-Module rules (enforced by `ArchitectureTest.verifyModularity()` → `ApplicationModules.of(MusicAppApplication.class).verify()`;
-it stays `@Disabled` until the legacy layered packages are extracted, and `sharedDependsOnNoFeatureCode` guards
-`shared` meanwhile):
-- A module has exactly two subpackages: `internal` (everything, exposes nothing) and `external`
-  (only the interface(s) the module offers to others, plus the records used in their signatures).
+Module rules (enforced by `ArchitectureTest`: `verifyModularity()` → `ApplicationModules.of(MusicAppApplication.class).verify()`
+for named interfaces and cycles, `modulesAreTheKnownOnes` for the module list (a new module is added there),
+`moduleHasOnlyInternalAndExternalPackages`, `moduleUsesOnlyItsAllowedModules` for which way dependencies point,
+and `sharedDependsOnNoFeatureCode`). Since KAN-71 no legacy layered
+packages are left; all code lives in a module:
+- A module has at most two subpackages: `internal` (everything, exposes nothing) and, if it offers anything,
+  `external` (only the interface(s) the module offers to others, plus the records used in their signatures).
   `external/package-info.java` carries `@NamedInterface("external")`.
 - The implementation of an external interface lives in `internal` (package-private where possible).
 - Other modules depend only on `<module>.external` and on `shared`. Never import another module's

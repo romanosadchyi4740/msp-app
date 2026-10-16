@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.model.dto.response;
+package com.romanosadchyi.smp.music_app.search.internal.dto;
 
 import com.romanosadchyi.smp.music_app.music.external.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;

@@ -1,10 +1,10 @@
-package com.romanosadchyi.smp.music_app.service;
+package com.romanosadchyi.smp.music_app.search.internal.service;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.GlobalSearchResponseDto;
 import com.romanosadchyi.smp.music_app.music.external.AlbumLookup;
 import com.romanosadchyi.smp.music_app.music.external.AlbumResponseDto;
 import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
 import com.romanosadchyi.smp.music_app.music.external.TrackResponseDto;
+import com.romanosadchyi.smp.music_app.search.internal.dto.GlobalSearchResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import org.junit.jupiter.api.Test;
