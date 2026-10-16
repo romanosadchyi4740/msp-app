@@ -2,8 +2,8 @@ package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.request.ChatMessageRequestDto;
 import com.romanosadchyi.smp.music_app.service.ChatService;
-import com.romanosadchyi.smp.music_app.service.MinioService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
+import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,7 +26,7 @@ import java.util.UUID;
 public class MessageController {
 
     ChatService chatService;
-    MinioService minioService;
+    FileStorage fileStorage;
 
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessageRequestDto chatMessageRequestDto, Authentication authentication) {
@@ -39,7 +39,7 @@ public class MessageController {
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         String objectName = "chat-attachments/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
         try {
-            minioService.uploadFile(file, objectName);
+            fileStorage.upload(file, objectName);
             return ResponseEntity.ok(objectName);
         } catch (Exception e) {
             log.error("Failed to upload file", e);
@@ -50,7 +50,7 @@ public class MessageController {
     @GetMapping("/url")
     public ResponseEntity<String> getFileUrl(@RequestParam("path") String path) {
         try {
-            return ResponseEntity.ok(minioService.generatePresignedUrl(path));
+            return ResponseEntity.ok(fileStorage.presignedGetUrl(path));
         } catch (Exception e) {
             log.error("Failed to generate presigned URL", e);
             return ResponseEntity.internalServerError().build();

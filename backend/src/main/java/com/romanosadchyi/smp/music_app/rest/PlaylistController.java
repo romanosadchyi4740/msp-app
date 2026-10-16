@@ -4,7 +4,10 @@ import com.romanosadchyi.smp.music_app.model.dto.request.PlaylistCreateDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.IntegrationRequestResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistResponseDto;
 import com.romanosadchyi.smp.music_app.model.dto.response.PlaylistSyncResponseDto;
+import com.romanosadchyi.smp.music_app.service.IntegrationRequestService;
+import com.romanosadchyi.smp.music_app.service.PlaylistForkService;
 import com.romanosadchyi.smp.music_app.service.PlaylistService;
+import com.romanosadchyi.smp.music_app.service.PlaylistTrackService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,9 @@ import java.util.UUID;
 public class PlaylistController {
 
     PlaylistService playlistService;
+    PlaylistTrackService playlistTrackService;
+    PlaylistForkService playlistForkService;
+    IntegrationRequestService integrationRequestService;
 
     @PostMapping
     public ResponseEntity<PlaylistResponseDto> createPlaylist(
@@ -63,7 +69,7 @@ public class PlaylistController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         log.info("Forking playlist {} for user: {}", id, user.id());
-        return ResponseEntity.ok(playlistService.forkPlaylist(id, user.id()));
+        return ResponseEntity.ok(playlistForkService.forkPlaylist(id, user.id()));
     }
     
     @PostMapping("/{id}/sync-origin")
@@ -72,7 +78,7 @@ public class PlaylistController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         log.info("Syncing playlist {} with origin for user: {}", id, user.id());
-        return ResponseEntity.ok(playlistService.syncOrigin(id, user.id()));
+        return ResponseEntity.ok(playlistForkService.syncOrigin(id, user.id()));
     }
 
     @PutMapping("/{id}/visibility")
@@ -91,7 +97,7 @@ public class PlaylistController {
             @PathVariable UUID trackId
     ) {
         log.info("Adding track {} to playlist: {}", trackId, playlistId);
-        return ResponseEntity.ok(playlistService.addTrackToPlaylist(user.id(), playlistId, trackId));
+        return ResponseEntity.ok(playlistTrackService.addTrackToPlaylist(user.id(), playlistId, trackId));
     }
     
     @DeleteMapping("/{playlistId}/tracks/{trackId}")
@@ -101,7 +107,7 @@ public class PlaylistController {
             @PathVariable UUID trackId
     ) {
         log.info("Removing track {} from playlist: {}", trackId, playlistId);
-        return ResponseEntity.ok(playlistService.removeTrackFromPlaylist(user.id(), playlistId, trackId));
+        return ResponseEntity.ok(playlistTrackService.removeTrackFromPlaylist(user.id(), playlistId, trackId));
     }
 
     @DeleteMapping("/{id}")
@@ -117,7 +123,7 @@ public class PlaylistController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         log.info("User {} proposing integration for fork: {}", user.id(), id);
-        return ResponseEntity.ok(playlistService.proposeIntegration(id, user.id()));
+        return ResponseEntity.ok(integrationRequestService.proposeIntegration(id, user.id()));
     }
 
     @GetMapping("/{id}/integrations")
@@ -126,6 +132,6 @@ public class PlaylistController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         log.info("User {} fetching pending integrations for origin: {}", user.id(), id);
-        return ResponseEntity.ok(playlistService.getPendingIntegrations(id, user.id()));
+        return ResponseEntity.ok(integrationRequestService.getPendingIntegrations(id, user.id()));
     }
 }

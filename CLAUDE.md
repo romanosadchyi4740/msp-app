@@ -101,7 +101,8 @@ and `frontend/.env.example` lists them for builds.
   play/pause/seek/track events, and SYNC clients send `REQUEST_SYNC` that the MASTER answers. SyncChord rooms
   must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
-- **Files**: uploaded to MinIO through `MinioService`; clients get presigned GET URLs (1 h expiry).
+- **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
+  the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `ReferenceDataSeeder` (genres; moves to the `music` module in KAN-64) runs in every profile; `users.internal.config.DemoDataSeeder`
   (`artist@example.com`) only in `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
 - `GET /actuator/health` is public and returns only the overall status (ALB health check); no other actuator
@@ -121,7 +122,7 @@ Every top-level package under `com.romanosadchyi.smp.music_app` is a module:
 music_app/
   shared/                 open module: what every module needs
     package-info.java     @ApplicationModule(type = ApplicationModule.Type.OPEN)
-    config/               SecurityConfig, WebSocketConfig, MinioConfig, JWT filter, HTTP clients
+    config/               SecurityConfig, WebSocketConfig, JWT filter and STOMP interceptor, HTTP clients
     security/             JwtService, AuthenticatedUser (principal built from JWT claims)
     exception/            GlobalExceptionHandler, base exception types
     util/, constants/     EncryptionUtil, Constants, small helpers

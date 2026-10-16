@@ -1,7 +1,7 @@
 package com.romanosadchyi.smp.music_app.rest;
 
 import com.romanosadchyi.smp.music_app.model.dto.response.TrackResponseDto;
-import com.romanosadchyi.smp.music_app.service.TrackService;
+import com.romanosadchyi.smp.music_app.service.TrackCatalogService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,11 +26,11 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserTracksController {
 
-    TrackService trackService;
+    TrackCatalogService trackCatalogService;
 
     @GetMapping("/{id}/tracks")
     public ResponseEntity<List<TrackResponseDto>> getUserTracks(@PathVariable UUID id) {
         log.info("Getting tracks for user with ID: {}", id);
-        return ResponseEntity.ok(trackService.getTracksByAuthor(id));
+        return ResponseEntity.ok(trackCatalogService.getTracksByAuthor(id));
     }
 }

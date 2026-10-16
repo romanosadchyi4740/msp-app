@@ -5,6 +5,8 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.modulith.core.ApplicationModules;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
@@ -26,12 +28,21 @@ class ArchitectureTest {
     }
 
     /**
-     * Guards {@code users} while {@link #verifyModularity()} is disabled: other code uses only {@code users.external}.
+     * Guards the extracted modules while {@link #verifyModularity()} is disabled: other code uses only their
+     * {@code external} package.
      */
+    @ParameterizedTest
+    @ValueSource(strings = {"users", "storage"})
+    void moduleInternalIsUsedOnlyByItsModule(String module) {
+        noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + "." + module + "..")
+                .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + "." + module + ".internal..")
+                .check(importMainClasses());
+    }
+
     @Test
-    void usersInternalIsUsedOnlyByUsers() {
-        noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + ".users..")
-                .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + ".users.internal..")
+    void onlyStorageUsesTheMinioClient() {
+        noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + ".storage..")
+                .should().dependOnClassesThat().resideInAPackage("io.minio..")
                 .check(importMainClasses());
     }
 
