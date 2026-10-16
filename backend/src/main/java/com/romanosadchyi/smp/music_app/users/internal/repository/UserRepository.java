@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -23,6 +24,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT f.id FROM User u JOIN u.following f WHERE u.id = :userId")
     Set<UUID> findFollowingIds(@Param("userId") UUID userId);
+
+    /**
+     * Each user with their follower and following counts, as {@code [User, Integer, Integer]}, in one query.
+     */
+    @Query("SELECT u, SIZE(u.followers), SIZE(u.following) FROM User u WHERE u.id IN :userIds")
+    List<Object[]> findAllWithFollowCounts(@Param("userIds") Collection<UUID> userIds);
 
     @Query("SELECT u.id FROM User u WHERE u.id IN :userIds AND u.deletedAt IS NOT NULL")
     Set<UUID> findDeletedIds(@Param("userIds") Collection<UUID> userIds);

@@ -21,11 +21,14 @@ import org.springframework.data.domain.PageImpl;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -59,7 +62,7 @@ class TelemetryMappingServiceTest {
                 .build();
         UserResponseDto author = UserResponseDto.builder().id(authorId).build();
         TrackResponseDto trackDto = TrackResponseDto.builder().id(trackId).build();
-        when(userLookup.getProfile(authorId)).thenReturn(author);
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(authorId, author));
         when(trackLookup.findTracks(List.of(trackId))).thenReturn(List.of(trackDto));
 
         StatusBroadcastResponse response = telemetryMappingService.map(broadcast, viewerId);
@@ -75,7 +78,7 @@ class TelemetryMappingServiceTest {
     @Test
     void mapBroadcast_WithoutTrackAndPoll_LeavesThemNull() {
         StatusBroadcast broadcast = StatusBroadcast.builder().id(UUID.randomUUID()).authorId(authorId).build();
-        when(userLookup.getProfile(authorId)).thenReturn(UserResponseDto.builder().id(authorId).build());
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(authorId, UserResponseDto.builder().id(authorId).build()));
 
         StatusBroadcastResponse response = telemetryMappingService.map(broadcast, viewerId);
 
@@ -95,14 +98,17 @@ class TelemetryMappingServiceTest {
                 StatusBroadcast.builder().id(UUID.randomUUID()).authorId(authorId).attachedTrackId(shared).build());
         TrackResponseDto sharedDto = TrackResponseDto.builder().id(shared).build();
         TrackResponseDto otherDto = TrackResponseDto.builder().id(other).build();
-        when(userLookup.getProfile(authorId)).thenReturn(UserResponseDto.builder().id(authorId).build());
+        when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(authorId, UserResponseDto.builder().id(authorId).build()));
         when(trackLookup.findTracks(List.of(shared, other))).thenReturn(List.of(sharedDto, otherDto));
 
         Page<StatusBroadcastResponse> result = telemetryMappingService.mapPage(new PageImpl<>(broadcasts), viewerId);
 
         assertThat(result.getContent()).extracting(StatusBroadcastResponse::attachedTrack)
                 .containsExactly(sharedDto, null, otherDto, sharedDto);
+        assertThat(result.getContent()).extracting(broadcast -> broadcast.author().id()).containsOnly(authorId);
         verify(trackLookup).findTracks(anyCollection());
+        verify(userLookup).findProfiles(anyCollection());
+        verify(userLookup, never()).getProfile(any());
     }
 
     @Test

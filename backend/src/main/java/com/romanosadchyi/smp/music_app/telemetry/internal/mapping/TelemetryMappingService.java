@@ -9,6 +9,7 @@ import com.romanosadchyi.smp.music_app.telemetry.internal.entity.ConsensusPoll;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.PollOption;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.StatusBroadcast;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,12 +37,18 @@ public class TelemetryMappingService {
     TrackLookup trackLookup;
 
     public StatusBroadcastResponse map(StatusBroadcast broadcast, UUID viewerId) {
-        return map(broadcast, viewerId, attachedTracksOf(List.of(broadcast)));
+        List<StatusBroadcast> broadcasts = List.of(broadcast);
+        return map(broadcast, viewerId, attachedTracksOf(broadcasts), authorsOf(broadcasts));
     }
 
     public Page<StatusBroadcastResponse> mapPage(Page<StatusBroadcast> broadcasts, UUID viewerId) {
         Map<UUID, TrackResponseDto> tracks = attachedTracksOf(broadcasts.getContent());
-        return broadcasts.map(broadcast -> map(broadcast, viewerId, tracks));
+        Map<UUID, UserResponseDto> authors = authorsOf(broadcasts.getContent());
+        return broadcasts.map(broadcast -> map(broadcast, viewerId, tracks, authors));
+    }
+
+    private Map<UUID, UserResponseDto> authorsOf(Collection<StatusBroadcast> broadcasts) {
+        return userLookup.findProfiles(broadcasts.stream().map(StatusBroadcast::getAuthorId).distinct().toList());
     }
 
     private Map<UUID, TrackResponseDto> attachedTracksOf(Collection<StatusBroadcast> broadcasts) {
@@ -57,10 +64,11 @@ public class TelemetryMappingService {
                 .collect(Collectors.toMap(TrackResponseDto::id, Function.identity()));
     }
 
-    private StatusBroadcastResponse map(StatusBroadcast broadcast, UUID viewerId, Map<UUID, TrackResponseDto> tracks) {
+    private StatusBroadcastResponse map(StatusBroadcast broadcast, UUID viewerId, Map<UUID, TrackResponseDto> tracks,
+                                        Map<UUID, UserResponseDto> authors) {
         return new StatusBroadcastResponse(
                 broadcast.getId(),
-                userLookup.getProfile(broadcast.getAuthorId()),
+                authors.get(broadcast.getAuthorId()),
                 broadcast.getContent(),
                 broadcast.getAttachedTrackId() != null ? tracks.get(broadcast.getAttachedTrackId()) : null,
                 broadcast.getTimestamp(),

@@ -9,6 +9,15 @@ import org.springframework.stereotype.Component;
 public class UserMappingService {
 
     public UserResponseDto map(User user) {
+        return map(user,
+                user.getFollowers() != null ? user.getFollowers().size() : 0,
+                user.getFollowing() != null ? user.getFollowing().size() : 0);
+    }
+
+    /**
+     * With the counts already known, so the lazy follower collections are not loaded.
+     */
+    public UserResponseDto map(User user, int followersCount, int followingCount) {
         return UserResponseDto.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -17,8 +26,8 @@ public class UserMappingService {
                 .biography(user.getBiography())
                 .role(user.getRole().name())
                 .createdAt(user.getCreatedAt())
-                .followersCount(user.getFollowers() != null ? user.getFollowers().size() : 0)
-                .followingCount(user.getFollowing() != null ? user.getFollowing().size() : 0)
+                .followersCount(followersCount)
+                .followingCount(followingCount)
                 .build();
     }
 

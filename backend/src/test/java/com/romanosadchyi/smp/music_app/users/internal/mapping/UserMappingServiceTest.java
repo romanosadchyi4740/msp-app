@@ -64,4 +64,19 @@ class UserMappingServiceTest {
         assertEquals(0, result.followersCount());
         assertEquals(0, result.followingCount());
     }
+
+    @Test
+    void map_WithCounts_UsesTheGivenCountsNotTheCollections() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .role(UserRole.ROLE_USER)
+                .followers(null)
+                .following(null)
+                .build();
+
+        UserResponseDto result = userMappingService.map(user, 3, 5);
+
+        assertEquals(3, result.followersCount());
+        assertEquals(5, result.followingCount());
+    }
 }

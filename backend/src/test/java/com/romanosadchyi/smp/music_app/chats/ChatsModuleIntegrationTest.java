@@ -61,6 +61,8 @@ class ChatsModuleIntegrationTest {
         Registered bob = register("Bob");
         Track track = saveTrack(alice.id(), saveAlbum(alice.id()));
         UUID chatId = openChat(alice, bob);
+        mockMvc.perform(post("/api/users/" + alice.id() + "/follow").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk());
 
         send(alice, chatId, "first", null);
         send(alice, chatId, "listen", track.getId());
@@ -70,6 +72,8 @@ class ChatsModuleIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].content").value("listen"))
                 .andExpect(jsonPath("$.content[0].sender.id").value(alice.id().toString()))
+                .andExpect(jsonPath("$.content[0].sender.followersCount").value(1))
+                .andExpect(jsonPath("$.content[0].sender.followingCount").value(0))
                 .andExpect(jsonPath("$.content[0].sharedTrack.id").value(track.getId().toString()))
                 .andExpect(jsonPath("$.content[0].sharedTrack.authorName").value("Alice"))
                 .andExpect(jsonPath("$.content[0].sharedTrackTimestamp").value(42))
@@ -78,7 +82,8 @@ class ChatsModuleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(chatId.toString()))
                 .andExpect(jsonPath("$[0].lastMessage.content").value("listen"))
-                .andExpect(jsonPath("$[0].lastMessage.sharedTrack.id").value(track.getId().toString()));
+                .andExpect(jsonPath("$[0].lastMessage.sharedTrack.id").value(track.getId().toString()))
+                .andExpect(jsonPath("$[0].participants[?(@.id == '%s')].followingCount".formatted(bob.id())).value(1));
         assertThat(jdbcTemplate.queryForObject("SELECT content FROM messages WHERE chat_id = ? AND shared_track_id = ?",
                 String.class, chatId, track.getId())).isNotEqualTo("listen");
     }

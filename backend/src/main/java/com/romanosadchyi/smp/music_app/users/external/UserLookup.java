@@ -39,6 +39,12 @@ public interface UserLookup {
      */
     UserResponseDto getProfile(UUID userId);
 
+    /**
+     * The public profiles of the given users, by id, in one query; ids without a user are missing from the result.
+     * Lists that embed a profile per row use this instead of {@link #getProfile}.
+     */
+    Map<UUID, UserResponseDto> findProfiles(Collection<UUID> userIds);
+
     Page<UserResponseDto> searchProfiles(String displayNameQuery, Pageable pageable);
 
     /**
