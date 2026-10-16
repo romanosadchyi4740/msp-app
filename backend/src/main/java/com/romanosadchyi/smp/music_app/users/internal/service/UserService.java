@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,15 +32,13 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserResponseDto getUserById(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
-        return userMappingService.map(user);
+        return userMappingService.map(getActiveUser(id, "User not found with id: " + id));
     }
 
     @Transactional(readOnly = true)
     public Page<UserResponseDto> searchUsers(String query, int pageNo, int pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        return userRepository.findAllByDisplayNameContainingIgnoreCase(query, pageable)
+        return userRepository.findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull(query, pageable)
                 .map(userMappingService::map);
     }
 
@@ -75,10 +74,8 @@ public class UserService {
         if (followerId.equals(followingId)) {
             throw new IllegalArgumentException("User cannot follow themselves");
         }
-        User follower = userRepository.findById(followerId)
-                .orElseThrow(() -> new UserNotFoundException("Follower not found"));
-        User following = userRepository.findById(followingId)
-                .orElseThrow(() -> new UserNotFoundException("User to follow not found"));
+        User follower = getActiveUser(followerId, "Follower not found");
+        User following = getActiveUser(followingId, "User to follow not found");
 
         follower.getFollowing().add(following);
         userRepository.save(follower);
@@ -124,7 +121,16 @@ public class UserService {
         user.setBiography(null);
         user.setProviderId(null);
         user.setProvider(null);
+        user.setDeletedAt(Instant.now());
 
         userRepository.save(user);
+    }
+
+    /**
+     * A deleted account is not found: its anonymized row stays only for other modules' references.
+     */
+    private User getActiveUser(UUID id, String notFoundMessage) {
+        return userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new UserNotFoundException(notFoundMessage));
     }
 }

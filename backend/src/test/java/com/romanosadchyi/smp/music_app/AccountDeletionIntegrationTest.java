@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +62,8 @@ class AccountDeletionIntegrationTest {
                         .build()))
                 .build());
         UUID chatId = openChat(alice, bob);
+        mockMvc.perform(put("/api/chats/" + chatId + "/accept").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().is2xxSuccessful());
         send(alice, chatId, "my track", track.getId());
         send(bob, chatId, "nice, sharing it", track.getId());
         broadcast(alice, "out now", track.getId());
@@ -71,9 +74,12 @@ class AccountDeletionIntegrationTest {
 
         mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].content").value("nice, sharing it"))
-                .andExpect(jsonPath("$.content[0].sharedTrack").value(nullValue()));
+                .andExpect(jsonPath("$.content[0].sharedTrack").value(nullValue()))
+                .andExpect(jsonPath("$.content[1].content").value("my track"))
+                .andExpect(jsonPath("$.content[1].sender.displayName").value("Disconnected Node"))
+                .andExpect(jsonPath("$.content[1].sharedTrack").value(nullValue()));
         mockMvc.perform(get("/api/telemetry/feed").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))

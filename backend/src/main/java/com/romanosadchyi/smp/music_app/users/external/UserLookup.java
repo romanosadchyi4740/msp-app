@@ -14,6 +14,10 @@ import java.util.UUID;
  */
 public interface UserLookup {
 
+    /**
+     * Whether {@code userId} is an account that can act or be addressed: false for unknown ids and for deleted
+     * accounts, whose anonymized rows the other lookups still return for display.
+     */
     boolean exists(UUID userId);
 
     Optional<UserSummary> findSummary(UUID userId);
@@ -41,4 +45,10 @@ public interface UserLookup {
      * Ids of the users that {@code userId} follows.
      */
     Set<UUID> findFollowingIds(UUID userId);
+
+    /**
+     * The given users whose accounts are deleted. A deleted account's row stays, anonymized, so the other lookups
+     * still find it.
+     */
+    Set<UUID> findDeletedIds(Collection<UUID> userIds);
 }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -15,9 +16,14 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
-    Page<User> findAllByDisplayNameContainingIgnoreCase(String displayName, Pageable pageable);
+    Optional<User> findByIdAndDeletedAtIsNull(UUID id);
+    Page<User> findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull(String displayName, Pageable pageable);
     boolean existsByEmail(String email);
+    boolean existsByIdAndDeletedAtIsNull(UUID id);
 
     @Query("SELECT f.id FROM User u JOIN u.following f WHERE u.id = :userId")
     Set<UUID> findFollowingIds(@Param("userId") UUID userId);
+
+    @Query("SELECT u.id FROM User u WHERE u.id IN :userIds AND u.deletedAt IS NOT NULL")
+    Set<UUID> findDeletedIds(@Param("userIds") Collection<UUID> userIds);
 }

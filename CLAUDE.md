@@ -35,7 +35,7 @@ Only rules that change how code is written are listed here; the full requirement
 | Free plan lesson limit **40 min**; Premium unlimited | Server-side timer ends the lesson; the client only displays it | — |
 | Late joiner / reconnect gets a full state snapshot | Every join path sends a snapshot; clients never assume they saw every update | FR-10 |
 | Uploads only for material the user owns or public domain | `rightsConfirmed` must be true to create a tab | R14 |
-| Account deletion removes all personal data | Every module that stores user-linked data implements `users.external.UserDataCleanup` (with a test) | FR-2, NFR-6 |
+| Account deletion removes all personal data | Every module that stores user-linked data implements `users.external.UserDataCleanup` (with a test); chat messages are the one exception, kept under the anonymized account (section 4) | FR-2, NFR-6 |
 
 Out of scope for the MVP (Won't): UI localization (the UI is English only; do not add i18n), mobile app, lesson recording, third-party tab catalogue, rooms > 5
 (future SFU such as LiveKit/mediasoup), AI features.
@@ -158,8 +158,13 @@ packages are left; all code lives in a module:
   calls all beans of that type on account deletion; `rooms` asks `billing.external.PremiumChecker`.
   The same goes for references to another module's rows: deleting a track calls every
   `music.external.TrackDeletionCleanup` (playlists and chat messages drop the track), so `music` never touches their
-  tables. Account deletion anonymizes the `users` row instead of deleting it, so `ON DELETE CASCADE` to `users`
-  never fires: each `UserDataCleanup` deletes its rows itself.
+  tables. Account deletion anonymizes the `users` row instead of deleting it and sets `users.deleted_at`, so
+  `ON DELETE CASCADE` to `users` never fires: each `UserDataCleanup` deletes its rows itself. Other modules ask
+  `UserLookup.findDeletedIds` which users are deleted, and `UserLookup.exists` is false for them, so a deleted
+  account can neither act nor be addressed; its profile and follow endpoints answer 404. Exception by owner decision:
+  chat messages stay, shown under the anonymized account; the user leaves group chats but keeps direct-chat
+  memberships, and a direct chat the other member never accepted, or a chat whose remaining members all have
+  deleted accounts, is deleted with its messages (`ChatsUserDataCleanup`).
 - Responses that list many rows resolve users in one batched call (`UserLookup.findSummaries`, used by the
   `mapAll`/`mapPage` methods of the mappers), never one lookup per row.
 - Other modules read users through `users.external.UserLookup`: `UserSummary` (id, display name, avatar, role)

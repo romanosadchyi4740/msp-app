@@ -14,10 +14,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -101,10 +101,13 @@ class UsersModuleIntegrationTest {
         assertThat(albumRepository.findAllByAuthorId(user.id())).isEmpty();
         assertThat(countRows("SELECT COUNT(*) FROM user_liked_tracks WHERE user_id = ?", user.id())).isZero();
         assertThat(countRows("SELECT COUNT(*) FROM user_followers WHERE follower_id = ?", user.id())).isZero();
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT display_name, email, deleted_at FROM users WHERE id = ?", user.id());
+        assertThat(row.get("display_name")).isEqualTo("Disconnected Node");
+        assertThat((String) row.get("email")).startsWith("deleted_");
+        assertThat(row.get("deleted_at")).isNotNull();
         mockMvc.perform(get("/api/users/" + user.id()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.displayName").value("Disconnected Node"))
-                .andExpect(jsonPath("$.email").value(startsWith("deleted_")));
+                .andExpect(status().isNotFound());
     }
 
     private Track saveTrack(UUID authorId) {
