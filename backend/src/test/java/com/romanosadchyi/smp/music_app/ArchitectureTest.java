@@ -1,19 +1,27 @@
 package com.romanosadchyi.smp.music_app;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Module boundaries (CLAUDE.md section 4). Needs no Spring context and no database.
@@ -22,73 +30,70 @@ class ArchitectureTest {
 
     static final String BASE_PACKAGE = "com.romanosadchyi.smp.music_app";
 
+    static final ApplicationModules MODULES = ApplicationModules.of(MusicAppApplication.class);
+
+    /**
+     * Other modules use only a module's {@code external} named interface, and modules have no cycles.
+     */
     @Test
-    @Disabled("KAN-64: enabled once every legacy package is extracted into a module")
     void verifyModularity() {
-        ApplicationModules.of(MusicAppApplication.class).verify();
+        MODULES.verify();
     }
 
     /**
-     * Guards the extracted modules while {@link #verifyModularity()} is disabled: other code uses only their
-     * {@code external} package.
+     * Every top-level package becomes a module, so a stray package (such as the old {@code service} or
+     * {@code model}) that uses only {@code external} types would pass {@link #verifyModularity()}; adding a module
+     * means adding it here.
+     */
+    @Test
+    void modulesAreTheKnownOnes() {
+        assertThat(MODULES.stream().map(ApplicationModule::getIdentifier).map(Object::toString))
+                .containsExactlyInAnyOrder("shared", "users", "storage", "music", "playlists", "chats", "telemetry",
+                        "search");
+    }
+
+    /**
+     * A feature module has only {@code internal} and {@code external} subpackages, so nothing sits in its base
+     * package, which Spring Modulith would expose to every other module.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"users", "storage", "music", "playlists", "chats", "telemetry"})
-    void moduleInternalIsUsedOnlyByItsModule(String module) {
-        noClasses().that().resideOutsideOfPackage(BASE_PACKAGE + "." + module + "..")
-                .should().dependOnClassesThat().resideInAPackage(BASE_PACKAGE + "." + module + ".internal..")
+    @ValueSource(strings = {"users", "storage", "music", "playlists", "chats", "telemetry", "search"})
+    void moduleHasOnlyInternalAndExternalPackages(String module) {
+        String modulePackage = BASE_PACKAGE + "." + module;
+        classes().that().resideInAPackage(modulePackage + "..")
+                .should().resideInAnyPackage(modulePackage + ".internal..", modulePackage + ".external..")
+                .allowEmptyShould(true)
                 .check(importMainClasses());
     }
 
     /**
-     * {@code music} depends on nothing that is not yet a module, so later extractions cannot create a cycle back
-     * into it.
+     * Which way dependencies point: {@link #verifyModularity()} allows any module's {@code external} as long as there
+     * is no cycle, so each module lists the modules it may use (besides {@code shared}). Changing a list is a design
+     * decision.
      */
-    @Test
-    void musicDependsOnlyOnModules() {
-        classes().that().resideInAPackage(BASE_PACKAGE + ".music..")
-                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
-                        .or(resideInAnyPackage(BASE_PACKAGE + ".music..", BASE_PACKAGE + ".shared..",
-                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".storage.external..")))
+    @ParameterizedTest
+    @MethodSource("allowedDependencies")
+    void moduleUsesOnlyItsAllowedModules(String module, List<String> allowed) {
+        String[] packages = Stream.concat(Stream.of(module, "shared"), allowed.stream())
+                .map(name -> BASE_PACKAGE + "." + name + "..")
+                .toArray(String[]::new);
+        DescribedPredicate<JavaClass> allowedClasses = resideOutsideOfPackage(BASE_PACKAGE + "..")
+                .or(resideInAnyPackage(packages));
+        classes().that().resideInAPackage(BASE_PACKAGE + "." + module + "..")
+                .should().onlyDependOnClassesThat(allowedClasses)
+                .allowEmptyShould(true)
                 .check(importMainClasses());
     }
 
-    /**
-     * Like {@link #musicDependsOnlyOnModules}: {@code playlists} reads tracks and users only through their lookups.
-     */
-    @Test
-    void playlistsDependsOnlyOnModules() {
-        classes().that().resideInAPackage(BASE_PACKAGE + ".playlists..")
-                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
-                        .or(resideInAnyPackage(BASE_PACKAGE + ".playlists..", BASE_PACKAGE + ".shared..",
-                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..")))
-                .check(importMainClasses());
-    }
-
-    /**
-     * Like {@link #musicDependsOnlyOnModules}: {@code chats} reads users, tracks and files only through their
-     * {@code external} interfaces.
-     */
-    @Test
-    void chatsDependsOnlyOnModules() {
-        classes().that().resideInAPackage(BASE_PACKAGE + ".chats..")
-                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
-                        .or(resideInAnyPackage(BASE_PACKAGE + ".chats..", BASE_PACKAGE + ".shared..",
-                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..",
-                                BASE_PACKAGE + ".storage.external..")))
-                .check(importMainClasses());
-    }
-
-    /**
-     * Like {@link #musicDependsOnlyOnModules}: {@code telemetry} reads users and tracks only through their lookups.
-     */
-    @Test
-    void telemetryDependsOnlyOnModules() {
-        classes().that().resideInAPackage(BASE_PACKAGE + ".telemetry..")
-                .should().onlyDependOnClassesThat(resideOutsideOfPackage(BASE_PACKAGE + "..")
-                        .or(resideInAnyPackage(BASE_PACKAGE + ".telemetry..", BASE_PACKAGE + ".shared..",
-                                BASE_PACKAGE + ".users.external..", BASE_PACKAGE + ".music.external..")))
-                .check(importMainClasses());
+    static Stream<Arguments> allowedDependencies() {
+        return Stream.of(
+                Arguments.of("users", List.of()),
+                Arguments.of("storage", List.of()),
+                Arguments.of("music", List.of("users", "storage")),
+                Arguments.of("playlists", List.of("users", "music")),
+                Arguments.of("chats", List.of("users", "music", "storage")),
+                Arguments.of("telemetry", List.of("users", "music")),
+                Arguments.of("search", List.of("users", "music")));
     }
 
     @Test
@@ -99,7 +104,7 @@ class ArchitectureTest {
     }
 
     /**
-     * Guards {@code shared} while the legacy packages still exist and {@link #verifyModularity()} is disabled.
+     * {@code shared} is an open module that every module uses, so it must not use any of them.
      */
     @Test
     void sharedDependsOnNoFeatureCode() {

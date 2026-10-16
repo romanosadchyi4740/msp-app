@@ -1,4 +1,4 @@
-package com.romanosadchyi.smp.music_app.rest;
+package com.romanosadchyi.smp.music_app.shared.config;
 
 import com.jayway.jsonpath.JsonPath;
 import com.romanosadchyi.smp.music_app.IntegrationTest;

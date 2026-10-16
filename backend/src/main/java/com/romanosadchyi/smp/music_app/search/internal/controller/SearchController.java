@@ -1,7 +1,7 @@
-package com.romanosadchyi.smp.music_app.rest;
+package com.romanosadchyi.smp.music_app.search.internal.controller;
 
-import com.romanosadchyi.smp.music_app.model.dto.response.GlobalSearchResponseDto;
-import com.romanosadchyi.smp.music_app.service.SearchService;
+import com.romanosadchyi.smp.music_app.search.internal.dto.GlobalSearchResponseDto;
+import com.romanosadchyi.smp.music_app.search.internal.service.SearchService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
