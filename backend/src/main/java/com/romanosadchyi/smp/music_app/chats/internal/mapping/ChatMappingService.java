@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatResponseDto;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
+import com.romanosadchyi.smp.music_app.chats.internal.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import lombok.AccessLevel;
@@ -12,18 +13,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Maps chats to responses for one user. {@link #mapAll} maps the last messages of all chats together, so their
- * shared tracks are looked up once.
+ * Maps chats to responses for one user. {@link #mapAll} loads only the last message of each chat, in one query, and
+ * maps them together, so their senders and shared tracks are looked up once. It reads the messages through the
+ * repository rather than {@code Chat.messages}, which would load and decrypt every message of every chat.
  */
 @Component
 @RequiredArgsConstructor
@@ -32,16 +34,17 @@ public class ChatMappingService {
 
     UserLookup userLookup;
     ChatMessageMappingService messageMappingService;
+    MessageRepository messageRepository;
 
     public ChatResponseDto map(Chat chat, UUID currentUserId) {
         return mapAll(List.of(chat), currentUserId).getFirst();
     }
 
     public List<ChatResponseDto> mapAll(Collection<Chat> chats, UUID currentUserId) {
-        Map<Chat, ChatMessageResponseDto> lastMessages = lastMessagesOf(chats);
+        Map<UUID, ChatMessageResponseDto> lastMessages = lastMessagesOf(chats);
         Map<UUID, UserResponseDto> participants = participantsOf(chats);
         return chats.stream()
-                .map(chat -> map(chat, currentUserId, lastMessages.get(chat), participants))
+                .map(chat -> map(chat, currentUserId, lastMessages.get(chat.getId()), participants))
                 .toList();
     }
 
@@ -54,21 +57,22 @@ public class ChatMappingService {
     }
 
     /**
-     * The last message of each chat that has messages.
+     * The last message of each chat that has messages, by chat id.
      */
-    private Map<Chat, ChatMessageResponseDto> lastMessagesOf(Collection<Chat> chats) {
-        List<Chat> chatsWithMessages = new ArrayList<>();
-        List<Message> lastMessages = new ArrayList<>();
-        for (Chat chat : chats) {
-            chat.getMessages().stream()
-                    .max(Comparator.comparing(Message::getTimestamp))
-                    .ifPresent(message -> {
-                        chatsWithMessages.add(chat);
-                        lastMessages.add(message);
-                    });
+    private Map<UUID, ChatMessageResponseDto> lastMessagesOf(Collection<Chat> chats) {
+        List<UUID> chatIds = chats.stream().map(Chat::getId).filter(Objects::nonNull).toList();
+        if (chatIds.isEmpty()) {
+            return Map.of();
         }
-        List<ChatMessageResponseDto> mapped = messageMappingService.mapAll(lastMessages);
-        Map<Chat, ChatMessageResponseDto> byChat = new IdentityHashMap<>();
+        Map<UUID, Message> latest = new LinkedHashMap<>();
+        messageRepository.findLatestByChatIds(chatIds)
+                .forEach(message -> latest.putIfAbsent(message.getChat().getId(), message));
+        if (latest.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> chatsWithMessages = List.copyOf(latest.keySet());
+        List<ChatMessageResponseDto> mapped = messageMappingService.mapAll(List.copyOf(latest.values()));
+        Map<UUID, ChatMessageResponseDto> byChat = new HashMap<>();
         for (int i = 0; i < chatsWithMessages.size(); i++) {
             byChat.put(chatsWithMessages.get(i), mapped.get(i));
         }
