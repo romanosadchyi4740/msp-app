@@ -1,9 +1,9 @@
 package com.romanosadchyi.smp.music_app.chats.internal.controller;
 
 import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMessageRequestDto;
+import com.romanosadchyi.smp.music_app.chats.internal.service.ChatAttachmentService;
 import com.romanosadchyi.smp.music_app.chats.internal.service.ChatMessageService;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
-import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,11 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -26,7 +26,7 @@ import java.util.UUID;
 public class MessageController {
 
     ChatMessageService chatMessageService;
-    FileStorage fileStorage;
+    ChatAttachmentService chatAttachmentService;
 
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessageRequestDto chatMessageRequestDto, Authentication authentication) {
@@ -36,24 +36,17 @@ public class MessageController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
-        String objectName = "chat-attachments/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
-        try {
-            fileStorage.upload(file, objectName);
-            return ResponseEntity.ok(objectName);
-        } catch (Exception e) {
-            log.error("Failed to upload file", e);
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<String> uploadFile(@AuthenticationPrincipal AuthenticatedUser user,
+                                             @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(chatAttachmentService.upload(file, user.id()));
     }
 
+    /**
+     * A download URL for a chat attachment, only for users who may read a chat with a message carrying it.
+     */
     @GetMapping("/url")
-    public ResponseEntity<String> getFileUrl(@RequestParam("path") String path) {
-        try {
-            return ResponseEntity.ok(fileStorage.presignedGetUrl(path));
-        } catch (Exception e) {
-            log.error("Failed to generate presigned URL", e);
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<String> getFileUrl(@AuthenticationPrincipal AuthenticatedUser user,
+                                             @RequestParam("path") String path) {
+        return ResponseEntity.ok(chatAttachmentService.presignedUrl(path, user.id()));
     }
 }

@@ -181,6 +181,49 @@ class ChatMessageServiceTest {
     }
 
     @Test
+    void processMessage_WithAChatAttachment_StoresItsKey() {
+        UUID senderId = UUID.randomUUID();
+        Chat chat = chatWithMember(senderId);
+        String key = "chat-attachments/" + UUID.randomUUID() + "-voice.webm";
+        when(userLookup.exists(senderId)).thenReturn(true);
+        when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
+        when(messageRepository.save(any(Message.class))).thenAnswer(i -> i.getArgument(0));
+        when(mappingService.map(any(Message.class))).thenReturn(
+            new ChatMessageResponseDto(UUID.randomUUID(), chat.getId(), null, null, null, null, null, key)
+        );
+
+        chatService.processMessage(new ChatMessageRequestDto(chat.getId(), null, null, null, null, key), senderId);
+
+        verify(messageRepository).save(argThat(m -> key.equals(m.getFileUrl())));
+    }
+
+    @Test
+    void processMessage_AttachmentAlreadyOnAMessage_IsRejected() {
+        UUID senderId = UUID.randomUUID();
+        Chat chat = chatWithMember(senderId);
+        String key = "chat-attachments/" + UUID.randomUUID() + "-voice.webm";
+        when(userLookup.exists(senderId)).thenReturn(true);
+        when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
+        when(messageRepository.existsByFileUrl(key)).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> chatService.processMessage(
+                new ChatMessageRequestDto(chat.getId(), null, "", null, null, key), senderId));
+        verify(messageRepository, never()).save(any(Message.class));
+    }
+
+    @Test
+    void processMessage_FileOutsideTheChatAttachments_IsRejected() {
+        UUID senderId = UUID.randomUUID();
+        Chat chat = chatWithMember(senderId);
+        when(userLookup.exists(senderId)).thenReturn(true);
+        when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
+
+        assertThrows(IllegalArgumentException.class, () -> chatService.processMessage(
+                new ChatMessageRequestDto(chat.getId(), null, null, null, null, "tracks/song.mp3"), senderId));
+        verify(messageRepository, never()).save(any(Message.class));
+    }
+
+    @Test
     void processMessage_WithSharedTrack_StoresItsId() {
         UUID senderId = UUID.randomUUID();
         UUID trackId = UUID.randomUUID();

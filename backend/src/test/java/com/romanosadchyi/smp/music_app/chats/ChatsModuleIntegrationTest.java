@@ -110,6 +110,35 @@ class ChatsModuleIntegrationTest {
     }
 
     @Test
+    void attachmentUrl_OnlyForUsersWhoMayReadTheChat() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        Registered mallory = register("Mallory");
+        UUID chatId = openChat(alice, bob);
+        String key = "chat-attachments/" + UUID.randomUUID() + "-voice.webm";
+        chatMessageService.processMessage(new ChatMessageRequestDto(chatId, null, "", null, null, key), alice.id());
+
+        mockMvc.perform(get("/api/messages/url").param("path", key).header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/messages/url").param("path", key).header(HttpHeaders.AUTHORIZATION, mallory.bearer()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/messages/url").param("path", "tracks/" + UUID.randomUUID() + ".mp3")
+                        .header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isForbidden());
+        assertThatThrownBy(() -> chatMessageService.processMessage(
+                new ChatMessageRequestDto(chatId, null, "", null, null, "tracks/song.mp3"), alice.id()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        // Mallory learned the key; re-posting it in her own chat neither works nor gets her a URL
+        UUID malloryChat = openChat(mallory, bob);
+        assertThatThrownBy(() -> chatMessageService.processMessage(
+                new ChatMessageRequestDto(malloryChat, null, "", null, null, key), mallory.id()))
+                .isInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(get("/api/messages/url").param("path", key).header(HttpHeaders.AUTHORIZATION, mallory.bearer()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void chatList_ShowsTheLatestMessageOfEachChat() throws Exception {
         Registered alice = register("Alice");
         Registered bob = register("Bob");
