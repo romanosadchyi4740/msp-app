@@ -41,13 +41,17 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         // Load balancer health check; only the overall status is exposed (see management.*)
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                        // The current user's endpoints under otherwise public paths: anonymous gets 401, not a 500
+                        .requestMatchers("/api/users/me", "/api/users/following").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/tracks/liked", "/api/tracks/recommended",
+                                "/api/playlists/me", "/api/playlists/*/integrations").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/playlists/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tracks/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/albums/my").hasAuthority("ROLE_ARTIST")
                         .requestMatchers(HttpMethod.GET, "/api/albums/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/albums/**").hasAuthority("ROLE_ARTIST")
                         .requestMatchers(HttpMethod.POST, "/api/tracks/**").hasAuthority("ROLE_ARTIST")
-                        .requestMatchers("/api/users/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                         .requestMatchers("/ws/**", "/ws-raw/**").permitAll()
                         .anyRequest().authenticated()
                 )

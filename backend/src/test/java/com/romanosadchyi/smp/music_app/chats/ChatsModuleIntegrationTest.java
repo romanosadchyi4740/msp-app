@@ -219,8 +219,9 @@ class ChatsModuleIntegrationTest {
                 .andExpect(status().isNoContent());
 
         Registered carol = register("Carol");
+        // The deleted account's token is rejected by the JWT filter (KAN-87)
         mockMvc.perform(post("/api/chats/with/" + carol.id()).header(HttpHeaders.AUTHORIZATION, alice.bearer()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/chats/cluster").header(HttpHeaders.AUTHORIZATION, carol.bearer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"groupName\": \"Band\", \"participantIds\": [\"%s\"]}".formatted(alice.id())))
@@ -228,7 +229,7 @@ class ChatsModuleIntegrationTest {
         assertThatThrownBy(() -> send(alice, chatId, "still here?", null))
                 .isInstanceOf(UserNotFoundException.class);
         mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/users/search").param("q", "Disconnected")
                         .header(HttpHeaders.AUTHORIZATION, bob.bearer()))
                 .andExpect(status().isOk())
