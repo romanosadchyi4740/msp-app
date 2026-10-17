@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.telemetry.internal.dto.ConsensusPollRespo
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.ConsensusPoll;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.PollOption;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.PollVote;
+import com.romanosadchyi.smp.music_app.telemetry.internal.exception.PollOptionNotFoundException;
 import com.romanosadchyi.smp.music_app.telemetry.internal.mapping.TelemetryMappingService;
 import com.romanosadchyi.smp.music_app.telemetry.internal.repository.PollOptionRepository;
 import com.romanosadchyi.smp.music_app.telemetry.internal.repository.PollVoteRepository;
@@ -39,7 +40,7 @@ public class PollVoteService {
         }
 
         PollOption selectedOption = pollOptionRepository.findById(optionId)
-                .orElseThrow(() -> new RuntimeException("Poll option not found"));
+                .orElseThrow(() -> new PollOptionNotFoundException("Poll option not found"));
 
         ConsensusPoll poll = selectedOption.getPoll();
 

@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.telemetry.internal.dto.ConsensusPollRespo
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.ConsensusPoll;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.PollOption;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.PollVote;
+import com.romanosadchyi.smp.music_app.telemetry.internal.exception.PollOptionNotFoundException;
 import com.romanosadchyi.smp.music_app.telemetry.internal.mapping.TelemetryMappingService;
 import com.romanosadchyi.smp.music_app.telemetry.internal.repository.PollOptionRepository;
 import com.romanosadchyi.smp.music_app.telemetry.internal.repository.PollVoteRepository;
@@ -108,12 +109,13 @@ class PollVoteServiceTest {
     }
 
     @Test
-    void unknownOption_Throws() {
+    void unknownOption_IsNotFound() {
         UUID optionId = UUID.randomUUID();
         when(userLookup.exists(voterId)).thenReturn(true);
         when(pollOptionRepository.findById(optionId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pollVoteService.voteOnOption(optionId, voterId)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> pollVoteService.voteOnOption(optionId, voterId))
+                .isInstanceOf(PollOptionNotFoundException.class);
         verifyNoInteractions(pollVoteRepository);
     }
 

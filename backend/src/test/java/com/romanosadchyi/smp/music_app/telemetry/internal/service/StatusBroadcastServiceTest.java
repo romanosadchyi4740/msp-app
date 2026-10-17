@@ -2,10 +2,12 @@ package com.romanosadchyi.smp.music_app.telemetry.internal.service;
 
 import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
 import com.romanosadchyi.smp.music_app.music.external.TrackNotFoundException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.telemetry.internal.dto.ConsensusPollRequest;
 import com.romanosadchyi.smp.music_app.telemetry.internal.dto.StatusBroadcastResponse;
 import com.romanosadchyi.smp.music_app.telemetry.internal.dto.TelemetryBroadcastRequest;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.StatusBroadcast;
+import com.romanosadchyi.smp.music_app.telemetry.internal.exception.StatusBroadcastNotFoundException;
 import com.romanosadchyi.smp.music_app.telemetry.internal.mapping.TelemetryMappingService;
 import com.romanosadchyi.smp.music_app.telemetry.internal.repository.StatusBroadcastRepository;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
@@ -145,12 +147,22 @@ class StatusBroadcastServiceTest {
     }
 
     @Test
-    void deleteBroadcast_ByAnotherUser_ThrowsAndKeepsIt() {
+    void deleteBroadcast_ByAnotherUser_IsForbiddenAndKeepsIt() {
         StatusBroadcast broadcast = StatusBroadcast.builder().id(UUID.randomUUID()).authorId(authorId).build();
         when(broadcastRepository.findById(broadcast.getId())).thenReturn(Optional.of(broadcast));
 
         assertThatThrownBy(() -> statusBroadcastService.deleteBroadcast(broadcast.getId(), UUID.randomUUID()))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(UserNotAuthorizedException.class);
+        verify(broadcastRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteBroadcast_Missing_IsNotFound() {
+        UUID broadcastId = UUID.randomUUID();
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> statusBroadcastService.deleteBroadcast(broadcastId, authorId))
+                .isInstanceOf(StatusBroadcastNotFoundException.class);
         verify(broadcastRepository, never()).delete(any());
     }
 }

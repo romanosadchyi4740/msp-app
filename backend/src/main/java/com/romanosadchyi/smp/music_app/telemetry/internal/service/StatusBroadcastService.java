@@ -2,12 +2,14 @@ package com.romanosadchyi.smp.music_app.telemetry.internal.service;
 
 import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
 import com.romanosadchyi.smp.music_app.music.external.TrackNotFoundException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.telemetry.internal.dto.ConsensusPollRequest;
 import com.romanosadchyi.smp.music_app.telemetry.internal.dto.StatusBroadcastResponse;
 import com.romanosadchyi.smp.music_app.telemetry.internal.dto.TelemetryBroadcastRequest;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.ConsensusPoll;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.PollOption;
 import com.romanosadchyi.smp.music_app.telemetry.internal.entity.StatusBroadcast;
+import com.romanosadchyi.smp.music_app.telemetry.internal.exception.StatusBroadcastNotFoundException;
 import com.romanosadchyi.smp.music_app.telemetry.internal.mapping.TelemetryMappingService;
 import com.romanosadchyi.smp.music_app.telemetry.internal.repository.StatusBroadcastRepository;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
@@ -74,10 +76,10 @@ public class StatusBroadcastService {
     @Transactional
     public void deleteBroadcast(UUID broadcastId, UUID currentUserId) {
         StatusBroadcast broadcast = broadcastRepository.findById(broadcastId)
-                .orElseThrow(() -> new RuntimeException("Broadcast not found"));
+                .orElseThrow(() -> new StatusBroadcastNotFoundException("Broadcast not found"));
 
         if (!broadcast.getAuthorId().equals(currentUserId)) {
-            throw new RuntimeException("User is not authorized to delete this broadcast");
+            throw new UserNotAuthorizedException("You can only delete your own broadcasts");
         }
 
         broadcastRepository.delete(broadcast);
