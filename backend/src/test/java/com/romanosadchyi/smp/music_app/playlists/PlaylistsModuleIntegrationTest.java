@@ -142,6 +142,27 @@ class PlaylistsModuleIntegrationTest {
     }
 
     @Test
+    void deleteAccount_OfAForkerWhoProposedTheirOwnTrack_DeletesTheRequest() throws Exception {
+        Registered owner = register("Owner");
+        Registered forker = register("Forker");
+        Track ownTrack = saveTrack(forker.id(), saveAlbum(forker.id()));
+        UUID originId = createPlaylist(owner);
+        UUID forkId = fork(forker, originId);
+        addTrack(forker, forkId, ownTrack);
+        propose(forker, forkId);
+
+        // Music deletes the forker's track and playlists deletes their request, in one transaction and either order
+        mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, forker.bearer()))
+                .andExpect(status().isNoContent());
+
+        assertThat(countRows("integration_requests WHERE requester_id = ?", forker.id())).isZero();
+        assertThat(countRows("integration_request_tracks WHERE track_id = ?", ownTrack.getId())).isZero();
+        mockMvc.perform(get("/api/playlists/" + originId + "/integrations").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
     void deleteAccount_OfTheOriginOwner_KeepsOtherUsersForks() throws Exception {
         Registered owner = register("Owner");
         Registered forker = register("Forker");
@@ -186,6 +207,27 @@ class PlaylistsModuleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tracks.length()").value(1))
                 .andExpect(jsonPath("$.tracks[0].id").value(kept.getId().toString()));
+    }
+
+    @Test
+    void deleteAlbum_OnlyTrackProposedInARequest_RejectsTheRequest() throws Exception {
+        Registered owner = register("Owner");
+        Registered forker = register("Forker");
+        Album deletedAlbum = saveAlbum(forker.id());
+        Track deleted = saveTrack(forker.id(), deletedAlbum);
+        UUID originId = createPlaylist(owner);
+        UUID forkId = fork(forker, originId);
+        addTrack(forker, forkId, deleted);
+        propose(forker, forkId);
+
+        mockMvc.perform(delete("/api/albums/" + deletedAlbum.getId()).header(HttpHeaders.AUTHORIZATION, forker.bearer()))
+                .andExpect(status().is2xxSuccessful());
+
+        mockMvc.perform(get("/api/playlists/" + originId + "/integrations").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        assertThat(jdbcTemplate.queryForList("SELECT status FROM integration_requests WHERE requester_id = ?",
+                String.class, forker.id())).containsExactly("REJECTED");
     }
 
     @Test

@@ -2,10 +2,13 @@ package com.romanosadchyi.smp.music_app.playlists.internal.service;
 
 import com.romanosadchyi.smp.music_app.playlists.internal.entity.IntegrationRequest;
 import com.romanosadchyi.smp.music_app.playlists.internal.entity.Playlist;
+import com.romanosadchyi.smp.music_app.playlists.internal.entity.RequestStatus;
 import com.romanosadchyi.smp.music_app.playlists.internal.repository.IntegrationRequestRepository;
 import com.romanosadchyi.smp.music_app.playlists.internal.repository.PlaylistRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,5 +57,36 @@ class PlaylistsTrackDeletionCleanupTest {
         cleanup.deleteTrackReferences(deleted);
 
         assertThat(request.getProposedTrackIds()).containsExactly(kept);
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.PENDING);
+    }
+
+    @Test
+    void deleteTrackReferences_PendingRequestLosesItsLastTrack_IsRejected() {
+        UUID deleted = UUID.randomUUID();
+        IntegrationRequest request = IntegrationRequest.builder()
+                .proposedTrackIds(new LinkedHashSet<>(List.of(deleted)))
+                .status(RequestStatus.PENDING)
+                .build();
+        when(integrationRequestRepository.findAllProposingTrack(deleted)).thenReturn(List.of(request));
+
+        cleanup.deleteTrackReferences(deleted);
+
+        assertThat(request.getProposedTrackIds()).isEmpty();
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.REJECTED);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RequestStatus.class, names = {"ACCEPTED", "REJECTED"})
+    void deleteTrackReferences_ResolvedRequestLosesItsLastTrack_KeepsItsStatus(RequestStatus status) {
+        UUID deleted = UUID.randomUUID();
+        IntegrationRequest request = IntegrationRequest.builder()
+                .proposedTrackIds(new LinkedHashSet<>(List.of(deleted)))
+                .status(status)
+                .build();
+        when(integrationRequestRepository.findAllProposingTrack(deleted)).thenReturn(List.of(request));
+
+        cleanup.deleteTrackReferences(deleted);
+
+        assertThat(request.getStatus()).isEqualTo(status);
     }
 }
