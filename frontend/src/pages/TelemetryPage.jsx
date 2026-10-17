@@ -37,8 +37,8 @@ const TelemetryPage = () => {
       setHasMore(!response.data.last);
       setPage(pageNumber);
     } catch (error) {
+      // axiosClient's interceptor shows the error toast (or redirects to login on 401)
       console.error('Failed to fetch telemetry feed:', error);
-      toast.error('CONNECTION_FAILED: Unable to reach network nodes.');
     } finally {
       setLoading(false);
     }
@@ -105,8 +105,8 @@ const TelemetryPage = () => {
       setSelectedTrackId('');
       fetchFeed(0); // Refresh feed
     } catch (error) {
+      // axiosClient's interceptor shows the error toast (or redirects to login on 401)
       console.error('Failed to send broadcast:', error);
-      toast.error('TRANSMISSION_ERROR: Signal failed to reach network.');
     } finally {
       setSending(false);
     }

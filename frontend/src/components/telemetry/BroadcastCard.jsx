@@ -19,8 +19,8 @@ const BroadcastCard = ({ broadcast, onVoteSuccess, onDeleteSuccess }) => {
       toast.success('RECORD_PURGED: Signal removed from network.');
       if (onDeleteSuccess) onDeleteSuccess(broadcast.id);
     } catch (error) {
+      // axiosClient's interceptor shows the error toast (or redirects to login on 401)
       console.error('Failed to purge record:', error);
-      toast.error('PURGE_FAILED: Network error.');
       setIsDeleting(false);
     }
   };
