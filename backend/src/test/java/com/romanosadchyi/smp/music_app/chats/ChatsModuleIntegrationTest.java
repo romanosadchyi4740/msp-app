@@ -90,6 +90,26 @@ class ChatsModuleIntegrationTest {
     }
 
     @Test
+    void messageHistory_OfAChatTheUserIsNotIn_IsForbidden() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        Registered mallory = register("Mallory");
+        UUID chatId = openChat(alice, bob);
+        send(alice, chatId, "private", null);
+
+        mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, mallory.bearer()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You are not a member of this chat"));
+        mockMvc.perform(get("/api/chats/" + UUID.randomUUID() + "/messages").header(HttpHeaders.AUTHORIZATION, mallory.bearer()))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/chats/" + chatId + "/accept").header(HttpHeaders.AUTHORIZATION, mallory.bearer()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].content").value("private"));
+    }
+
+    @Test
     void chatList_ShowsTheLatestMessageOfEachChat() throws Exception {
         Registered alice = register("Alice");
         Registered bob = register("Bob");
@@ -178,6 +198,8 @@ class ChatsModuleIntegrationTest {
                 .andExpect(status().isNotFound());
         assertThatThrownBy(() -> send(alice, chatId, "still here?", null))
                 .isInstanceOf(UserNotFoundException.class);
+        mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/users/search").param("q", "Disconnected")
                         .header(HttpHeaders.AUTHORIZATION, bob.bearer()))
                 .andExpect(status().isOk())

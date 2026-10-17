@@ -83,6 +83,6 @@ public class ChatMembershipService {
 
     private static ChatMembership participantMembership(Chat chat, UUID userId) {
         return ChatMemberships.find(chat, userId)
-                .orElseThrow(() -> new IllegalArgumentException("User is not a participant of this chat"));
+                .orElseThrow(() -> new UserNotAuthorizedException("You are not a member of this chat"));
     }
 }
