@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.shared.config;
 
+import com.romanosadchyi.smp.music_app.shared.security.AccountStatus;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.shared.security.JwtService;
 import jakarta.servlet.FilterChain;
@@ -30,6 +31,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     JwtService jwtService;
+    AccountStatus accountStatus;
 
     @Override
     protected void doFilterInternal(
@@ -47,10 +49,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 AuthenticatedUser user = jwtService.parseToken(authHeader.substring(7));
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(user, null, user.authorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (accountStatus.isActive(user.id())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(user, null, user.authorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    // A deleted account's token is still signed and unexpired; the request stays anonymous (401)
+                    log.debug("Rejected the token of inactive account {}", user.id());
+                }
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());

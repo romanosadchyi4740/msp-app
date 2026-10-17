@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.shared.config;
 
+import com.romanosadchyi.smp.music_app.shared.security.AccountStatus;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.shared.security.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -27,6 +28,9 @@ class JwtAuthenticationFilterTest {
     @Mock
     JwtService jwtService;
 
+    @Mock
+    AccountStatus accountStatus;
+
     @InjectMocks
     JwtAuthenticationFilter filter;
 
@@ -39,6 +43,7 @@ class JwtAuthenticationFilterTest {
     void validToken_SetsAuthenticatedUserPrincipal() throws Exception {
         AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "a@b.c", "ROLE_ARTIST");
         when(jwtService.parseToken("good")).thenReturn(user);
+        when(accountStatus.isActive(user.id())).thenReturn(true);
         MockFilterChain chain = new MockFilterChain();
 
         filter.doFilter(request("Bearer good"), new MockHttpServletResponse(), chain);
@@ -47,6 +52,19 @@ class JwtAuthenticationFilterTest {
         assertThat(authentication.getPrincipal()).isEqualTo(user);
         assertThat(authentication.getName()).isEqualTo(user.id().toString());
         assertThat(authentication.getAuthorities()).extracting("authority").containsExactly("ROLE_ARTIST");
+        assertThat(chain.getRequest()).isNotNull();
+    }
+
+    @Test
+    void tokenOfADeletedAccount_LeavesRequestUnauthenticated() throws Exception {
+        AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "deleted@system.local", "ROLE_USER");
+        when(jwtService.parseToken("old")).thenReturn(user);
+        when(accountStatus.isActive(user.id())).thenReturn(false);
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request("Bearer old"), new MockHttpServletResponse(), chain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         assertThat(chain.getRequest()).isNotNull();
     }
 

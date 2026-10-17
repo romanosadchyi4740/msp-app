@@ -1,6 +1,7 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_URL } from '../config';
+import axiosClient from './axiosClient';
 
 class SocketClient {
   constructor() {
@@ -39,6 +40,9 @@ class SocketClient {
     this.client.onStompError = (frame) => {
       console.error('Broker reported error: ' + frame.headers['message']);
       console.error('Additional details: ' + frame.body);
+      // The server refuses the session of a deleted account; if this token no longer works, the 401 from this
+      // request makes axiosClient log out and redirect, which stops the reconnect loop
+      axiosClient.get('/api/users/me').catch(() => {});
     };
 
     this.client.activate();

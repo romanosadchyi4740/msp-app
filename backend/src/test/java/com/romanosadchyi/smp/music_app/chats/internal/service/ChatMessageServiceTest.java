@@ -67,7 +67,7 @@ class ChatMessageServiceTest {
         MessageChatResolver messageChatResolver =
                 new MessageChatResolver(chatRepository, chatMembershipRepository, directChatResolver, userLookup);
         chatService = new ChatMessageService(messageChatResolver, trackLookup, messageRepository, mappingService,
-                new ChatMessageNotifier(messagingTemplate), chatRepository, userLookup);
+                new ChatMessageNotifier(messagingTemplate, userLookup), chatRepository, userLookup);
     }
 
     @Test
