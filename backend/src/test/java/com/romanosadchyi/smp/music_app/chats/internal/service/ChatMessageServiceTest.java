@@ -6,13 +6,16 @@ import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
+import com.romanosadchyi.smp.music_app.chats.internal.exception.ChatNotFoundException;
 import com.romanosadchyi.smp.music_app.chats.internal.mapping.ChatMessageMappingService;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
 import com.romanosadchyi.smp.music_app.music.external.TrackNotFoundException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,7 +67,7 @@ class ChatMessageServiceTest {
         MessageChatResolver messageChatResolver =
                 new MessageChatResolver(chatRepository, chatMembershipRepository, directChatResolver, userLookup);
         chatService = new ChatMessageService(messageChatResolver, trackLookup, messageRepository, mappingService,
-                new ChatMessageNotifier(messagingTemplate));
+                new ChatMessageNotifier(messagingTemplate), chatRepository, userLookup);
     }
 
     @Test
@@ -92,8 +95,13 @@ class ChatMessageServiceTest {
     }
 
     @Test
-    void getMessageHistory_ReturnsPage() {
+    void getMessageHistory_Member_ReturnsPage() {
         UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Chat chat = Chat.builder().id(chatId).build();
+        ChatMemberships.add(chat, userId, ChatStatus.PENDING, false);
+        when(userLookup.exists(userId)).thenReturn(true);
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
         Pageable pageable = PageRequest.of(0, 10);
         Page<Message> page = new PageImpl<>(List.of(new Message()));
 
@@ -102,9 +110,74 @@ class ChatMessageServiceTest {
             new ChatMessageResponseDto(UUID.randomUUID(), chatId, null, "Hello", null, null, null, null)
         )));
 
-        Page<ChatMessageResponseDto> result = chatService.getMessageHistory(chatId, pageable);
+        Page<ChatMessageResponseDto> result = chatService.getMessageHistory(chatId, userId, pageable);
         assertEquals(1, result.getTotalElements());
         verify(mappingService, never()).map(any(Message.class));
+    }
+
+    @Test
+    void getMessageHistory_NotAMember_IsForbidden() {
+        UUID chatId = UUID.randomUUID();
+        UUID stranger = UUID.randomUUID();
+        Chat chat = Chat.builder().id(chatId).build();
+        ChatMemberships.add(chat, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        when(userLookup.exists(stranger)).thenReturn(true);
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+
+        assertThrows(UserNotAuthorizedException.class,
+                () -> chatService.getMessageHistory(chatId, stranger, PageRequest.of(0, 10)));
+        verifyNoInteractions(messageRepository);
+    }
+
+    @Test
+    void getMessageHistory_DeclinedGroupInvite_IsForbidden() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Chat chat = Chat.builder().id(chatId).isGroup(true).build();
+        ChatMemberships.add(chat, userId, ChatStatus.REJECTED, false);
+        when(userLookup.exists(userId)).thenReturn(true);
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+
+        assertThrows(UserNotAuthorizedException.class,
+                () -> chatService.getMessageHistory(chatId, userId, PageRequest.of(0, 10)));
+        verifyNoInteractions(messageRepository);
+    }
+
+    @Test
+    void getMessageHistory_RejectedDirectChat_ReturnsPage() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Chat chat = Chat.builder().id(chatId).isGroup(false).build();
+        ChatMemberships.add(chat, userId, ChatStatus.REJECTED, false);
+        when(userLookup.exists(userId)).thenReturn(true);
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        Page<Message> page = new PageImpl<>(List.of());
+        when(messageRepository.findByChatIdOrderByTimestampDesc(eq(chatId), any(Pageable.class))).thenReturn(page);
+        when(mappingService.mapPage(page)).thenReturn(new PageImpl<>(List.of()));
+
+        assertEquals(0, chatService.getMessageHistory(chatId, userId, PageRequest.of(0, 10)).getTotalElements());
+    }
+
+    @Test
+    void getMessageHistory_DeletedAccount_IsNotFound() {
+        UUID userId = UUID.randomUUID();
+        when(userLookup.exists(userId)).thenReturn(false);
+
+        assertThrows(UserNotFoundException.class,
+                () -> chatService.getMessageHistory(UUID.randomUUID(), userId, PageRequest.of(0, 10)));
+        verifyNoInteractions(chatRepository, messageRepository);
+    }
+
+    @Test
+    void getMessageHistory_UnknownChat_IsNotFound() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        when(userLookup.exists(userId)).thenReturn(true);
+        when(chatRepository.findById(chatId)).thenReturn(Optional.empty());
+
+        assertThrows(ChatNotFoundException.class,
+                () -> chatService.getMessageHistory(chatId, userId, PageRequest.of(0, 10)));
+        verifyNoInteractions(messageRepository);
     }
 
     @Test

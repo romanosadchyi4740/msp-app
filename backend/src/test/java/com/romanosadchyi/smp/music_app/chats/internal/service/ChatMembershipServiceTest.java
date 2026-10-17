@@ -93,6 +93,18 @@ class ChatMembershipServiceTest {
     }
 
     @Test
+    void acceptAndRejectChat_NotAMember_IsForbidden() {
+        UUID chatId = UUID.randomUUID();
+        Chat chat = Chat.builder().id(chatId).build();
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        UUID stranger = UUID.randomUUID();
+
+        assertThrows(UserNotAuthorizedException.class, () -> chatService.acceptChat(chatId, stranger));
+        assertThrows(UserNotAuthorizedException.class, () -> chatService.rejectChat(chatId, stranger));
+        verify(chatMembershipRepository, never()).save(any(ChatMembership.class));
+    }
+
+    @Test
     void rejectChat_UserIsParticipant_UpdatesStatusToRejected() {
         UUID chatId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();

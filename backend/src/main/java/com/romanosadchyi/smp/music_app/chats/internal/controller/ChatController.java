@@ -8,6 +8,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.service.ChatMembershipServ
 import com.romanosadchyi.smp.music_app.chats.internal.service.ChatMessageService;
 import com.romanosadchyi.smp.music_app.chats.internal.service.ChatService;
 import com.romanosadchyi.smp.music_app.chats.internal.service.GroupChatService;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -54,10 +55,11 @@ public class ChatController {
 
     @GetMapping("/{chatId}/messages")
     public Page<ChatMessageResponseDto> getMessageHistory(
+            @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID chatId,
             @PageableDefault(size = 20) Pageable pageable) {
-        log.info("Getting message history for chat with ID: {}", chatId);
-        return chatMessageService.getMessageHistory(chatId, pageable);
+        log.info("User {} getting message history for chat {}", user.id(), chatId);
+        return chatMessageService.getMessageHistory(chatId, user.id(), pageable);
     }
 
     @PutMapping("/{chatId}/accept")
@@ -75,7 +77,7 @@ public class ChatController {
     @PostMapping("/{chatId}/membership/{userId}/decline")
     public void declineMembership(@AuthenticationPrincipal AuthenticatedUser authUser, @PathVariable UUID chatId, @PathVariable UUID userId) {
         if (!authUser.id().equals(userId)) {
-            throw new IllegalArgumentException("Cannot decline membership for another user");
+            throw new UserNotAuthorizedException("You can only decline your own membership");
         }
         log.info("User {} declining membership for chat {}", userId, chatId);
         chatMembershipService.rejectChat(chatId, userId);

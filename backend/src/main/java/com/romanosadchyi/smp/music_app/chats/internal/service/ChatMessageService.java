@@ -3,11 +3,17 @@ package com.romanosadchyi.smp.music_app.chats.internal.service;
 import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMessageRequestDto;
 import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
+import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
+import com.romanosadchyi.smp.music_app.chats.internal.exception.ChatNotFoundException;
 import com.romanosadchyi.smp.music_app.chats.internal.mapping.ChatMessageMappingService;
+import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.music.external.TrackLookup;
 import com.romanosadchyi.smp.music_app.music.external.TrackNotFoundException;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,6 +40,8 @@ public class ChatMessageService {
     MessageRepository messageRepository;
     ChatMessageMappingService mappingService;
     ChatMessageNotifier chatMessageNotifier;
+    ChatRepository chatRepository;
+    UserLookup userLookup;
 
     @Transactional
     public void processMessage(ChatMessageRequestDto request, UUID senderId) {
@@ -54,8 +62,28 @@ public class ChatMessageService {
         chatMessageNotifier.deliver(chat, saved);
     }
 
+    /**
+     * The history for a member of the chat. A pending invitee may read the chat they are invited to; a member who
+     * rejected a direct chat may too, since writing reopens it, but one who declined a group may not.
+     *
+     * @throws UserNotFoundException      if the user's account does not exist or was deleted
+     * @throws ChatNotFoundException      if there is no such chat
+     * @throws UserNotAuthorizedException if the user may not read the chat
+     */
     @Transactional(readOnly = true)
-    public Page<ChatMessageResponseDto> getMessageHistory(UUID chatId, Pageable pageable) {
+    public Page<ChatMessageResponseDto> getMessageHistory(UUID chatId, UUID userId, Pageable pageable) {
+        if (!userLookup.exists(userId)) {
+            throw new UserNotFoundException("User not found: " + userId);
+        }
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
+        boolean mayRead = ChatMemberships.find(chat, userId)
+                .filter(membership -> !(Boolean.TRUE.equals(chat.getIsGroup())
+                        && membership.getStatus() == ChatStatus.REJECTED))
+                .isPresent();
+        if (!mayRead) {
+            throw new UserNotAuthorizedException("You are not a member of this chat");
+        }
         return mappingService.mapPage(messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable));
     }
 
