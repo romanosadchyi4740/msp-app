@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.users.internal.service;
 
+import com.romanosadchyi.smp.music_app.shared.security.SessionTerminator;
 import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.HashSet;
 import java.util.List;
@@ -39,11 +42,15 @@ class UserServiceTest {
     @Mock
     UserDataCleanup secondCleanup;
 
+    @Mock
+    SessionTerminator sessionTerminator;
+
     UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, userMappingService, List.of(firstCleanup, secondCleanup));
+        userService = new UserService(userRepository, userMappingService, List.of(firstCleanup, secondCleanup),
+                sessionTerminator);
     }
 
     @Test
@@ -187,11 +194,38 @@ class UserServiceTest {
     }
 
     @Test
+    void terminateIdentity_WithoutTransaction_ClosesTheUsersSessions() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().id(userId).build()));
+
+        userService.terminateIdentity(userId);
+
+        verify(sessionTerminator).closeSessionsOf(userId);
+    }
+
+    @Test
+    void terminateIdentity_InTransaction_ClosesTheUsersSessionsAfterCommit() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().id(userId).build()));
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            userService.terminateIdentity(userId);
+            verify(sessionTerminator, never()).closeSessionsOf(any());
+
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+
+            verify(sessionTerminator).closeSessionsOf(userId);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
     void terminateIdentity_UserNotFound_CallsNoCleanup() {
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class, () -> userService.terminateIdentity(userId));
-        verifyNoInteractions(firstCleanup, secondCleanup);
+        verifyNoInteractions(firstCleanup, secondCleanup, sessionTerminator);
     }
 }

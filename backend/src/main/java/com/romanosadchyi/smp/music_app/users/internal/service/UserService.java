@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.users.internal.service;
 
+import com.romanosadchyi.smp.music_app.shared.security.SessionTerminator;
 import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +32,7 @@ public class UserService {
     UserRepository userRepository;
     UserMappingService userMappingService;
     List<UserDataCleanup> userDataCleanups;
+    SessionTerminator sessionTerminator;
 
     @Transactional(readOnly = true)
     public UserResponseDto getUserById(UUID id) {
@@ -124,6 +128,24 @@ public class UserService {
         user.setDeletedAt(Instant.now());
 
         userRepository.save(user);
+        closeSessionsAfterCommit(userId);
+    }
+
+    /**
+     * Closes the user's WebSocket sessions once the deletion is committed, so their reconnect is refused; a
+     * rolled-back deletion leaves them connected.
+     */
+    private void closeSessionsAfterCommit(UUID userId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            sessionTerminator.closeSessionsOf(userId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sessionTerminator.closeSessionsOf(userId);
+            }
+        });
     }
 
     /**

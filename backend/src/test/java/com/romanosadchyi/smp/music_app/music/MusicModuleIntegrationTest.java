@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -75,6 +77,24 @@ class MusicModuleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tracks.length()").value(1))
                 .andExpect(jsonPath("$.tracks[0].id").value(kept.getId().toString()));
+    }
+
+    @Test
+    void likes_AreForEveryUser_UploadingIsForbiddenForListeners() throws Exception {
+        Registered owner = register();
+        Registered listener = register();
+        Track track = saveTrack(owner.id(), saveAlbum(owner.id()));
+
+        mockMvc.perform(post("/api/tracks/" + track.getId() + "/like").header(HttpHeaders.AUTHORIZATION, listener.bearer()))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/tracks/liked").header(HttpHeaders.AUTHORIZATION, listener.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(track.getId().toString()));
+        mockMvc.perform(delete("/api/tracks/" + track.getId() + "/like").header(HttpHeaders.AUTHORIZATION, listener.bearer()))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/tracks").file(new MockMultipartFile("file", "song.mp3", "audio/mpeg", new byte[]{1}))
+                        .header(HttpHeaders.AUTHORIZATION, listener.bearer()))
+                .andExpect(status().isForbidden());
     }
 
     @Test

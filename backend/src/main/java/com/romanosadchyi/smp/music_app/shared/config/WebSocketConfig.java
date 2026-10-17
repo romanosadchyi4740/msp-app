@@ -9,6 +9,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -17,6 +18,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     JwtStompChannelInterceptor jwtStompChannelInterceptor;
+    WebSocketSessionRegistry webSocketSessionRegistry;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -34,6 +36,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Non-SockJS endpoint for direct WebSocket testing in Postman
         registry.addEndpoint("/ws-raw")
                 .setAllowedOriginPatterns("*");
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        registration.addDecoratorFactory(webSocketSessionRegistry);
     }
 
     @Override
