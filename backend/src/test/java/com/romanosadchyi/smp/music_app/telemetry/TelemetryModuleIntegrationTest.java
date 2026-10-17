@@ -104,6 +104,25 @@ class TelemetryModuleIntegrationTest {
                 .andExpect(jsonPath("$.content[0].poll.options[0].voteCount").value(0));
     }
 
+    @Test
+    void deleteAndVote_MissingOrNotOwn_AnswerNotFoundOrForbidden() throws Exception {
+        Registered author = register("Author");
+        Registered other = register("Other");
+        UUID broadcastId = broadcast(author, "mine", null);
+
+        mockMvc.perform(delete("/api/telemetry/broadcast/" + broadcastId).header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You can only delete your own broadcasts"));
+        mockMvc.perform(delete("/api/telemetry/broadcast/" + UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, author.bearer()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Broadcast not found"));
+        mockMvc.perform(post("/api/telemetry/polls/options/" + UUID.randomUUID() + "/vote")
+                        .header(HttpHeaders.AUTHORIZATION, author.bearer()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Poll option not found"));
+        assertThat(count("status_broadcasts WHERE id = ?", broadcastId)).isOne();
+    }
+
     private UUID broadcast(Registered author, String content, UUID trackId) throws Exception {
         String track = trackId != null ? "\"" + trackId + "\"" : "null";
         String response = mockMvc.perform(post("/api/telemetry/broadcast").header(HttpHeaders.AUTHORIZATION, author.bearer())
