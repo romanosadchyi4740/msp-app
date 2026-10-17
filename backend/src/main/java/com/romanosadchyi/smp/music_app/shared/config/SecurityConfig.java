@@ -50,7 +50,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/albums/my").hasAuthority("ROLE_ARTIST")
                         .requestMatchers(HttpMethod.GET, "/api/albums/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/albums/**").hasAuthority("ROLE_ARTIST")
-                        .requestMatchers(HttpMethod.POST, "/api/tracks/**").hasAuthority("ROLE_ARTIST")
+                        // Uploading only; liking (POST /api/tracks/{id}/like) is for every user
+                        .requestMatchers(HttpMethod.POST, "/api/tracks").hasAuthority("ROLE_ARTIST")
                         .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                         .requestMatchers("/ws/**", "/ws-raw/**").permitAll()
                         .anyRequest().authenticated()
