@@ -6,6 +6,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
+import com.romanosadchyi.smp.music_app.chats.internal.repository.MessageRepository;
 import com.romanosadchyi.smp.music_app.chats.internal.service.ChatMemberships;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
@@ -42,6 +43,9 @@ class ChatMappingServiceTest {
     @Mock
     ChatMessageMappingService messageMappingService;
 
+    @Mock
+    MessageRepository messageRepository;
+
     @Captor
     ArgumentCaptor<Collection<UUID>> idsCaptor;
 
@@ -57,16 +61,14 @@ class ChatMappingServiceTest {
         ChatMembership currentMembership = ChatMembership.builder().userId(currentUserId).status(ChatStatus.ACCEPTED).isAdmin(false).build();
         ChatMembership adminMembership = ChatMembership.builder().userId(adminUserId).status(ChatStatus.PENDING).isAdmin(true).build();
 
-        Message msg1 = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now().minusDays(1)).build();
-        Message msg2 = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now()).build();
-
         Chat chat = Chat.builder()
                 .id(chatId)
                 .isGroup(true)
                 .name("Group Chat")
                 .memberships(new HashSet<>(Set.of(currentMembership, adminMembership)))
-                .messages(new HashSet<>(Set.of(msg1, msg2)))
                 .build();
+        Message msg2 = Message.builder().id(UUID.randomUUID()).chat(chat).timestamp(LocalDateTime.now()).build();
+        when(messageRepository.findLatestByChatIds(List.of(chatId))).thenReturn(List.of(msg2));
 
         when(userLookup.findProfiles(anyCollection())).thenReturn(Map.of(
                 currentUserId, UserResponseDto.builder().id(currentUserId).build(),
@@ -103,23 +105,52 @@ class ChatMappingServiceTest {
     @Test
     void mapAll_MapsTheLastMessagesOfAllChatsTogether() {
         UUID currentUserId = UUID.randomUUID();
-        Message older = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now().minusDays(1)).build();
-        Message last1 = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now()).build();
-        Message last2 = Message.builder().id(UUID.randomUUID()).timestamp(LocalDateTime.now()).build();
-        Chat chat1 = Chat.builder().id(UUID.randomUUID()).messages(new HashSet<>(Set.of(older, last1))).build();
+        Chat chat1 = Chat.builder().id(UUID.randomUUID()).build();
         Chat empty = Chat.builder().id(UUID.randomUUID()).build();
-        Chat chat2 = Chat.builder().id(UUID.randomUUID()).messages(new HashSet<>(Set.of(last2))).build();
+        Chat chat2 = Chat.builder().id(UUID.randomUUID()).build();
+        Message last1 = Message.builder().id(UUID.randomUUID()).chat(chat1).timestamp(LocalDateTime.now()).build();
+        Message last2 = Message.builder().id(UUID.randomUUID()).chat(chat2).timestamp(LocalDateTime.now()).build();
+        when(messageRepository.findLatestByChatIds(List.of(chat1.getId(), empty.getId(), chat2.getId())))
+                .thenReturn(List.of(last2, last1));
         ChatMessageResponseDto dto1 = ChatMessageResponseDto.builder().id(last1.getId()).build();
         ChatMessageResponseDto dto2 = ChatMessageResponseDto.builder().id(last2.getId()).build();
-        when(messageMappingService.mapAll(List.of(last1, last2))).thenReturn(List.of(dto1, dto2));
+        when(messageMappingService.mapAll(List.of(last2, last1))).thenReturn(List.of(dto2, dto1));
 
         List<ChatResponseDto> result = chatMappingService.mapAll(List.of(chat1, empty, chat2), currentUserId);
 
         assertEquals(dto1, result.get(0).lastMessage());
         assertNull(result.get(1).lastMessage());
         assertEquals(dto2, result.get(2).lastMessage());
+        verify(messageRepository).findLatestByChatIds(anyCollection());
         verify(messageMappingService).mapAll(any());
         verify(messageMappingService, never()).map(any());
+    }
+
+    @Test
+    void mapAll_NoChatHasMessages_MapsNoMessages() {
+        Chat chat = Chat.builder().id(UUID.randomUUID()).build();
+        when(messageRepository.findLatestByChatIds(List.of(chat.getId()))).thenReturn(List.of());
+
+        List<ChatResponseDto> result = chatMappingService.mapAll(List.of(chat), UUID.randomUUID());
+
+        assertNull(result.getFirst().lastMessage());
+        verify(messageMappingService, never()).mapAll(any());
+    }
+
+    @Test
+    void mapAll_TwoMessagesWithTheSameLatestTimestamp_KeepsOne() {
+        UUID currentUserId = UUID.randomUUID();
+        Chat chat = Chat.builder().id(UUID.randomUUID()).build();
+        LocalDateTime now = LocalDateTime.now();
+        Message first = Message.builder().id(UUID.randomUUID()).chat(chat).timestamp(now).build();
+        Message second = Message.builder().id(UUID.randomUUID()).chat(chat).timestamp(now).build();
+        when(messageRepository.findLatestByChatIds(List.of(chat.getId()))).thenReturn(List.of(first, second));
+        ChatMessageResponseDto dto = ChatMessageResponseDto.builder().id(first.getId()).build();
+        when(messageMappingService.mapAll(List.of(first))).thenReturn(List.of(dto));
+
+        List<ChatResponseDto> result = chatMappingService.mapAll(List.of(chat), currentUserId);
+
+        assertEquals(dto, result.getFirst().lastMessage());
     }
 
     @Test

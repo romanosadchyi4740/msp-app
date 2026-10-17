@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -86,6 +87,30 @@ class ChatsModuleIntegrationTest {
                 .andExpect(jsonPath("$[0].participants[?(@.id == '%s')].followingCount".formatted(bob.id())).value(1));
         assertThat(jdbcTemplate.queryForObject("SELECT content FROM messages WHERE chat_id = ? AND shared_track_id = ?",
                 String.class, chatId, track.getId())).isNotEqualTo("listen");
+    }
+
+    @Test
+    void chatList_ShowsTheLatestMessageOfEachChat() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        Registered carol = register("Carol");
+        UUID withBob = openChat(alice, bob);
+        UUID withCarol = openChat(alice, carol);
+        UUID silent = openChat(alice, register("Dave"));
+        send(alice, withBob, "bob 1", null);
+        send(bob, withBob, "bob 2", null);
+        send(alice, withCarol, "carol 1", null);
+        send(alice, withBob, "bob 3", null);
+        send(carol, withCarol, "carol 2", null);
+
+        mockMvc.perform(get("/api/chats").header(HttpHeaders.AUTHORIZATION, alice.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[?(@.id == '%s')].lastMessage.content".formatted(withBob)).value("bob 3"))
+                .andExpect(jsonPath("$[?(@.id == '%s')].lastMessage.content".formatted(withCarol)).value("carol 2"))
+                .andExpect(jsonPath("$[?(@.id == '%s')].lastMessage.sender.id".formatted(withCarol))
+                        .value(carol.id().toString()))
+                .andExpect(jsonPath("$[?(@.id == '%s')].lastMessage".formatted(silent)).value(contains(nullValue())));
     }
 
     @Test
