@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.chats.internal.repository;
 
+import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,11 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
                    "ORDER BY l.timestamp DESC, l.id DESC LIMIT 1) m WHERE c.id IN (:chatIds)",
            nativeQuery = true)
     List<Message> findLatestByChatIds(@Param("chatIds") Collection<UUID> chatIds);
+
+    boolean existsByFileUrl(String fileUrl);
+
+    @Query("SELECT DISTINCT m.chat FROM Message m WHERE m.fileUrl = :fileUrl")
+    List<Chat> findChatsWithAttachment(@Param("fileUrl") String fileUrl);
 
     @Modifying
     @Query("UPDATE Message m SET m.sharedTrackId = null WHERE m.sharedTrackId = :trackId")

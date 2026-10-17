@@ -3,7 +3,6 @@ package com.romanosadchyi.smp.music_app.chats.internal.service;
 import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMessageRequestDto;
 import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMessageResponseDto;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
-import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.Message;
 import com.romanosadchyi.smp.music_app.chats.internal.exception.ChatNotFoundException;
 import com.romanosadchyi.smp.music_app.chats.internal.mapping.ChatMessageMappingService;
@@ -53,7 +52,7 @@ public class ChatMessageService {
                 .content(request.content())
                 .sharedTrackId(requireSharedTrack(request))
                 .sharedTrackTimestamp(request.sharedTrackTimestamp())
-                .fileUrl(request.fileUrl())
+                .fileUrl(requireNewAttachment(request))
                 .timestamp(LocalDateTime.now())
                 .build();
         ChatMessageResponseDto saved = mappingService.map(messageRepository.save(message));
@@ -63,8 +62,7 @@ public class ChatMessageService {
     }
 
     /**
-     * The history for a member of the chat. A pending invitee may read the chat they are invited to; a member who
-     * rejected a direct chat may too, since writing reopens it, but one who declined a group may not.
+     * The history for a user who may read the chat ({@link ChatMemberships#mayRead}).
      *
      * @throws UserNotFoundException      if the user's account does not exist or was deleted
      * @throws ChatNotFoundException      if there is no such chat
@@ -77,14 +75,29 @@ public class ChatMessageService {
         }
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
-        boolean mayRead = ChatMemberships.find(chat, userId)
-                .filter(membership -> !(Boolean.TRUE.equals(chat.getIsGroup())
-                        && membership.getStatus() == ChatStatus.REJECTED))
-                .isPresent();
-        if (!mayRead) {
+        if (!ChatMemberships.mayRead(chat, userId)) {
             throw new UserNotAuthorizedException("You are not a member of this chat");
         }
         return mappingService.mapPage(messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable));
+    }
+
+    /**
+     * The attached file's key, or null when none is attached. Only a chat attachment key that no message carries yet
+     * is accepted: a message cannot point at another stored file, such as a track, nor re-post an attachment a user
+     * once saw, and so get a download URL for it that outlives their access to the original chat.
+     */
+    private String requireNewAttachment(ChatMessageRequestDto request) {
+        String fileUrl = request.fileUrl();
+        if (fileUrl == null) {
+            return null;
+        }
+        if (!ChatAttachmentService.isAttachmentKey(fileUrl)) {
+            throw new IllegalArgumentException("Only chat attachments can be attached to a message");
+        }
+        if (messageRepository.existsByFileUrl(fileUrl)) {
+            throw new IllegalArgumentException("This attachment is already attached to a message");
+        }
+        return fileUrl;
     }
 
     /**

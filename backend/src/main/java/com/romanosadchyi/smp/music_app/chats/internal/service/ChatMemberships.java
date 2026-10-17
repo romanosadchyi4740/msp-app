@@ -21,6 +21,18 @@ public class ChatMemberships {
     }
 
     /**
+     * Whether the user may read the chat's messages and attachments: any member, except one who declined a group.
+     * A pending invitee may read the chat they are invited to, and a member who rejected a direct chat may too,
+     * since writing reopens it.
+     */
+    public boolean mayRead(Chat chat, UUID userId) {
+        return find(chat, userId)
+                .filter(membership -> !(Boolean.TRUE.equals(chat.getIsGroup())
+                        && membership.getStatus() == ChatStatus.REJECTED))
+                .isPresent();
+    }
+
+    /**
      * Adds a membership for {@code userId} to the chat and returns it; the caller saves it.
      */
     public ChatMembership add(Chat chat, UUID userId, ChatStatus status, boolean admin) {
