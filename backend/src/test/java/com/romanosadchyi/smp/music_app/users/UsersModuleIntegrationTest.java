@@ -72,8 +72,7 @@ class UsersModuleIntegrationTest {
     @Test
     void likedTracks_AreStoredByUserId() throws Exception {
         Registered artist = register();
-        // POST /api/tracks/** (including like) is limited to ROLE_ARTIST by SecurityConfig
-        Registered fan = becomeArtist(register());
+        Registered fan = register();
         Track track = saveTrack(artist.id());
 
         mockMvc.perform(post("/api/tracks/" + track.getId() + "/like").header(HttpHeaders.AUTHORIZATION, fan.bearer()))
@@ -98,6 +97,8 @@ class UsersModuleIntegrationTest {
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/users/" + other.id() + "/follow").header(HttpHeaders.AUTHORIZATION, user.bearer()))
                 .andExpect(status().isOk());
+        mockMvc.perform(post("/api/users/" + user.id() + "/follow").header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isOk());
 
         mockMvc.perform(delete("/api/users/me").header(HttpHeaders.AUTHORIZATION, user.bearer()))
                 .andExpect(status().isNoContent());
@@ -105,7 +106,15 @@ class UsersModuleIntegrationTest {
         assertThat(trackRepository.findById(ownTrack.getId())).isEmpty();
         assertThat(albumRepository.findAllByAuthorId(user.id())).isEmpty();
         assertThat(countRows("SELECT COUNT(*) FROM user_liked_tracks WHERE user_id = ?", user.id())).isZero();
-        assertThat(countRows("SELECT COUNT(*) FROM user_followers WHERE follower_id = ?", user.id())).isZero();
+        assertThat(countRows("SELECT COUNT(*) FROM user_followers WHERE follower_id = ? OR following_id = ?",
+                user.id(), user.id())).isZero();
+        mockMvc.perform(get("/api/users/me").header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.followingCount").value(0))
+                .andExpect(jsonPath("$.followersCount").value(0));
+        mockMvc.perform(get("/api/users/following").header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
         Map<String, Object> row = jdbcTemplate.queryForMap(
                 "SELECT display_name, email, deleted_at FROM users WHERE id = ?", user.id());
         assertThat(row.get("display_name")).isEqualTo("Disconnected Node");
@@ -160,8 +169,8 @@ class UsersModuleIntegrationTest {
                 .build());
     }
 
-    private long countRows(String sql, UUID userId) {
-        return jdbcTemplate.queryForObject(sql, Long.class, userId);
+    private long countRows(String sql, Object... args) {
+        return jdbcTemplate.queryForObject(sql, Long.class, args);
     }
 
     private Registered register() throws Exception {

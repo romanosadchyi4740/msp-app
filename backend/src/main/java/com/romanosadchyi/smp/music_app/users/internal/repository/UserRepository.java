@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u.id FROM User u WHERE u.id IN :userIds AND u.deletedAt IS NOT NULL")
     Set<UUID> findDeletedIds(@Param("userIds") Collection<UUID> userIds);
+
+    /**
+     * Removes every follow of the user by others. {@code followers} is the inverse side of {@code user_followers},
+     * so clearing it would not touch the table.
+     */
+    @Modifying
+    @Query(value = "DELETE FROM user_followers WHERE following_id = :userId", nativeQuery = true)
+    void deleteFollowsOf(@Param("userId") UUID userId);
 }

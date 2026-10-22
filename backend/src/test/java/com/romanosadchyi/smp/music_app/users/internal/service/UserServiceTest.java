@@ -206,9 +206,9 @@ class UserServiceTest {
         order.verify(firstCleanup).deleteUserData(userId);
         order.verify(secondCleanup).deleteUserData(userId);
         order.verify(userRepository).save(user);
+        verify(userRepository).deleteFollowsOf(userId);
 
         assertTrue(user.getFollowing().isEmpty());
-        assertTrue(user.getFollowers().isEmpty());
 
         assertTrue(user.getEmail().startsWith("deleted_"));
         assertNotEquals("real-password", user.getPassword());
