@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.CurrentUserResponseDto;
 import com.romanosadchyi.smp.music_app.users.internal.dto.UserUpdateDto;
 import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import com.romanosadchyi.smp.music_app.users.internal.mapping.UserMappingService;
@@ -74,6 +75,26 @@ class UserServiceTest {
     }
 
     @Test
+    void getCurrentUser_UserExists_ReturnsOwnProfile() {
+        UUID id = UUID.randomUUID();
+        User user = User.builder().id(id).email("me@test.com").build();
+        when(userRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.of(user));
+        when(userMappingService.mapCurrentUser(user))
+                .thenReturn(CurrentUserResponseDto.builder().id(id).email("me@test.com").build());
+
+        CurrentUserResponseDto res = userService.getCurrentUser(id);
+
+        assertEquals("me@test.com", res.email());
+    }
+
+    @Test
+    void getCurrentUser_UserNotFound_ThrowsException() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findByIdAndDeletedAtIsNull(id)).thenReturn(Optional.empty());
+        assertThrows(UserNotFoundException.class, () -> userService.getCurrentUser(id));
+    }
+
+    @Test
     void updateProfile_ValidData_UpdatesAndReturnsDto() {
         UUID id = UUID.randomUUID();
         User user = User.builder().id(id).displayName("Old").build();
@@ -81,9 +102,9 @@ class UserServiceTest {
 
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
-        when(userMappingService.map(any(User.class))).thenReturn(UserResponseDto.builder().id(id).displayName("New").biography("Bio").avatarUrl("Url").build());
+        when(userMappingService.mapCurrentUser(any(User.class))).thenReturn(CurrentUserResponseDto.builder().id(id).displayName("New").biography("Bio").avatarUrl("Url").build());
 
-        UserResponseDto res = userService.updateProfile(id, dto);
+        CurrentUserResponseDto res = userService.updateProfile(id, dto);
 
         assertNotNull(res);
         assertEquals("New", res.displayName());
@@ -99,10 +120,13 @@ class UserServiceTest {
 
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(userMappingService.mapCurrentUser(user))
+                .thenReturn(CurrentUserResponseDto.builder().id(id).role("ROLE_ARTIST").build());
 
-        userService.becomeArtist(id);
+        CurrentUserResponseDto res = userService.becomeArtist(id);
 
         assertEquals(UserRole.ROLE_ARTIST, user.getRole());
+        assertEquals("ROLE_ARTIST", res.role());
         verify(userRepository).save(user);
     }
 

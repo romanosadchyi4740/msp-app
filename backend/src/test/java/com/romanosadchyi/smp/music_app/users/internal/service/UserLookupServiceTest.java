@@ -90,7 +90,6 @@ class UserLookupServiceTest {
         UserResponseDto profile = userLookup.getProfile(user.getId());
 
         assertThat(profile.id()).isEqualTo(user.getId());
-        assertThat(profile.email()).isEqualTo("artist@example.com");
         assertThat(profile.role()).isEqualTo("ROLE_ARTIST");
         assertThat(profile.followersCount()).isZero();
     }

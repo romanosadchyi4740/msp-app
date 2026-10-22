@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.shared.security.AuthenticatedUser;
 import com.romanosadchyi.smp.music_app.shared.security.JwtService;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.CurrentUserResponseDto;
 import com.romanosadchyi.smp.music_app.users.internal.dto.UserUpdateDto;
 import com.romanosadchyi.smp.music_app.users.internal.service.UserService;
 import lombok.AccessLevel;
@@ -30,13 +31,13 @@ public class UserController {
     JwtService jwtService;
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal AuthenticatedUser user) {
+    public ResponseEntity<CurrentUserResponseDto> getCurrentUser(@AuthenticationPrincipal AuthenticatedUser user) {
         log.info("Getting current user: {}", user.id());
-        return ResponseEntity.ok(userService.getUserById(user.id()));
+        return ResponseEntity.ok(userService.getCurrentUser(user.id()));
     }
 
     @PutMapping("/me")
-    public ResponseEntity<UserResponseDto> updateProfile(
+    public ResponseEntity<CurrentUserResponseDto> updateProfile(
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestBody UserUpdateDto dto
     ) {
@@ -45,9 +46,9 @@ public class UserController {
     }
 
     @PostMapping("/me/become-artist")
-    public ResponseEntity<UserResponseDto> becomeArtist(@AuthenticationPrincipal AuthenticatedUser user) {
+    public ResponseEntity<CurrentUserResponseDto> becomeArtist(@AuthenticationPrincipal AuthenticatedUser user) {
         log.info("Becoming an artist for user: {}", user.id());
-        UserResponseDto artist = userService.becomeArtist(user.id());
+        CurrentUserResponseDto artist = userService.becomeArtist(user.id());
         // The role is a token claim, so the caller needs a new token to use artist endpoints before the next login
         String token = jwtService.generateToken(
                 new AuthenticatedUser(user.id(), user.email(), UserRole.ROLE_ARTIST.name()));
