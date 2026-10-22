@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.CurrentUserResponseDto;
 import com.romanosadchyi.smp.music_app.users.internal.dto.UserUpdateDto;
 import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import com.romanosadchyi.smp.music_app.users.internal.mapping.UserMappingService;
@@ -40,6 +41,11 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public CurrentUserResponseDto getCurrentUser(UUID id) {
+        return userMappingService.mapCurrentUser(getActiveUser(id, "User not found with id: " + id));
+    }
+
+    @Transactional(readOnly = true)
     public Page<UserResponseDto> searchUsers(String query, int pageNo, int pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
         return userRepository.findAllByDisplayNameContainingIgnoreCaseAndDeletedAtIsNull(query, pageable)
@@ -47,7 +53,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDto updateProfile(UUID id, UserUpdateDto dto) {
+    public CurrentUserResponseDto updateProfile(UUID id, UserUpdateDto dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
 
@@ -61,16 +67,16 @@ public class UserService {
             user.setAvatarUrl(dto.avatarUrl());
         }
 
-        return userMappingService.map(userRepository.save(user));
+        return userMappingService.mapCurrentUser(userRepository.save(user));
     }
 
     @Transactional
-    public UserResponseDto becomeArtist(UUID id) {
+    public CurrentUserResponseDto becomeArtist(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
 
         user.setRole(UserRole.ROLE_ARTIST);
-        return userMappingService.map(userRepository.save(user));
+        return userMappingService.mapCurrentUser(userRepository.save(user));
     }
 
     @Transactional

@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.users.internal.mapping;
 
 import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
 import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.CurrentUserResponseDto;
 import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,6 @@ class UserMappingServiceTest {
 
         assertNotNull(result);
         assertEquals(id, result.id());
-        assertEquals("test@test.com", result.email());
         assertEquals("Name", result.displayName());
         assertEquals("avatar", result.avatarUrl());
         assertEquals("bio", result.biography());
@@ -78,5 +78,27 @@ class UserMappingServiceTest {
 
         assertEquals(3, result.followersCount());
         assertEquals(5, result.followingCount());
+    }
+
+    @Test
+    void mapCurrentUser_IncludesTheEmail() {
+        UUID id = UUID.randomUUID();
+        User user = User.builder()
+                .id(id)
+                .email("me@test.com")
+                .displayName("Me")
+                .role(UserRole.ROLE_USER)
+                .followers(new HashSet<>(List.of(User.builder().id(UUID.randomUUID()).build())))
+                .following(null)
+                .build();
+
+        CurrentUserResponseDto result = userMappingService.mapCurrentUser(user);
+
+        assertEquals(id, result.id());
+        assertEquals("me@test.com", result.email());
+        assertEquals("Me", result.displayName());
+        assertEquals("ROLE_USER", result.role());
+        assertEquals(1, result.followersCount());
+        assertEquals(0, result.followingCount());
     }
 }

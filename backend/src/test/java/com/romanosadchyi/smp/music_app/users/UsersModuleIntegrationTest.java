@@ -2,6 +2,8 @@ package com.romanosadchyi.smp.music_app.users;
 
 import com.jayway.jsonpath.JsonPath;
 import com.romanosadchyi.smp.music_app.IntegrationTest;
+import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMessageRequestDto;
+import com.romanosadchyi.smp.music_app.chats.internal.service.ChatMessageService;
 import com.romanosadchyi.smp.music_app.music.internal.entity.Album;
 import com.romanosadchyi.smp.music_app.music.internal.entity.Track;
 import com.romanosadchyi.smp.music_app.music.internal.repository.AlbumRepository;
@@ -25,8 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The users module against a real database: follows feed the telemetry feed, likes are stored by user id, and
- * account deletion runs every module's cleanup.
+ * The users module against a real database: follows feed the telemetry feed, likes are stored by user id,
+ * account deletion runs every module's cleanup, and only the user's own profile carries their email.
  */
 @IntegrationTest
 class UsersModuleIntegrationTest {
@@ -42,6 +44,9 @@ class UsersModuleIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    ChatMessageService chatMessageService;
 
     @Test
     void feed_ContainsBroadcastsOfFollowedUsers() throws Exception {
@@ -110,6 +115,36 @@ class UsersModuleIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void otherUsersProfiles_HaveNoEmail_OnlyTheOwnProfileHasIt() throws Exception {
+        Registered reader = register();
+        Registered author = register();
+        mockMvc.perform(post("/api/users/" + author.id() + "/follow").header(HttpHeaders.AUTHORIZATION, reader.bearer()))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/telemetry/broadcast").header(HttpHeaders.AUTHORIZATION, author.bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"content\": \"hello\"}"))
+                .andExpect(status().isOk());
+        String chat = mockMvc.perform(post("/api/chats/with/" + reader.id())
+                        .header(HttpHeaders.AUTHORIZATION, author.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$..email").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+        UUID chatId = UUID.fromString(JsonPath.read(chat, "$.id"));
+        chatMessageService.processMessage(new ChatMessageRequestDto(chatId, null, "hi", null, null, null), author.id());
+
+        for (String path : new String[]{"/api/chats", "/api/chats/" + chatId + "/messages", "/api/telemetry/feed",
+                "/api/users/" + author.id(), "/api/users/following", "/api/users/search?q=Tester",
+                "/api/search?q=Tester"}) {
+            mockMvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, reader.bearer()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$..displayName").isNotEmpty())
+                    .andExpect(jsonPath("$..email").doesNotExist());
+        }
+        mockMvc.perform(get("/api/users/me").header(HttpHeaders.AUTHORIZATION, reader.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(reader.email()));
+    }
+
     private Track saveTrack(UUID authorId) {
         Album album = albumRepository.save(Album.builder()
                 .title("Album")
@@ -130,13 +165,15 @@ class UsersModuleIntegrationTest {
     }
 
     private Registered register() throws Exception {
+        String email = UUID.randomUUID() + "@example.com";
         String body = """
-                {"email": "%s@example.com", "password": "secret123", "displayName": "Tester"}
-                """.formatted(UUID.randomUUID());
+                {"email": "%s", "password": "secret123", "displayName": "Tester"}
+                """.formatted(email);
         String response = mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        return new Registered(UUID.fromString(JsonPath.read(response, "$.userId")), JsonPath.read(response, "$.accessToken"));
+        return new Registered(UUID.fromString(JsonPath.read(response, "$.userId")), email,
+                JsonPath.read(response, "$.accessToken"));
     }
 
     private Registered becomeArtist(Registered user) throws Exception {
@@ -144,10 +181,10 @@ class UsersModuleIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, user.bearer()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getHeader(HttpHeaders.AUTHORIZATION);
-        return new Registered(user.id(), authorization.substring("Bearer ".length()));
+        return new Registered(user.id(), user.email(), authorization.substring("Bearer ".length()));
     }
 
-    private record Registered(UUID id, String token) {
+    private record Registered(UUID id, String email, String token) {
 
         String bearer() {
             return "Bearer " + token;
