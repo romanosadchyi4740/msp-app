@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,12 +32,12 @@ class MinioFileStorageTest {
 
     @BeforeEach
     void setUp() {
-        fileStorage = new MinioFileStorage(minioClient, minioPresignClient);
+        fileStorage = new MinioFileStorage(minioClient, minioPresignClient, new MinioProperties("http://minio:9000",
+                "http://localhost:9000", "us-east-1", "access", "secret", "test-bucket", 3600));
     }
 
     @Test
     void init_BucketDoesNotExist_CreatesBucket() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(false);
 
         fileStorage.init();
@@ -48,7 +47,6 @@ class MinioFileStorageTest {
 
     @Test
     void init_BucketExists_DoesNotCreateBucket() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         fileStorage.init();
@@ -58,7 +56,6 @@ class MinioFileStorageTest {
 
     @Test
     void upload_Success() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
 
         fileStorage.upload(file, "objectName");
@@ -68,8 +65,6 @@ class MinioFileStorageTest {
 
     @Test
     void presignedGetUrl_SignsWithPresignClient() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
-        ReflectionTestUtils.setField(fileStorage, "presignedUrlExpirySeconds", 3600);
         when(minioPresignClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenReturn("http://presigned-url");
 
         String url = fileStorage.presignedGetUrl("objectName");
@@ -80,7 +75,6 @@ class MinioFileStorageTest {
 
     @Test
     void delete_ValidName_Success() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
 
         fileStorage.delete("objectName");
 
@@ -89,7 +83,6 @@ class MinioFileStorageTest {
 
     @Test
     void upload_ClientFails_ThrowsStorageException() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
         MockMultipartFile file = new MockMultipartFile("file", "test.mp3", "audio/mpeg", "test data".getBytes());
         when(minioClient.putObject(any(PutObjectArgs.class))).thenThrow(new IllegalStateException("down"));
 
@@ -98,7 +91,6 @@ class MinioFileStorageTest {
 
     @Test
     void delete_ClientFails_DoesNotThrow() throws Exception {
-        ReflectionTestUtils.setField(fileStorage, "bucketName", "test-bucket");
         doThrow(new IllegalStateException("down")).when(minioClient).removeObject(any(RemoveObjectArgs.class));
 
         fileStorage.delete("objectName");

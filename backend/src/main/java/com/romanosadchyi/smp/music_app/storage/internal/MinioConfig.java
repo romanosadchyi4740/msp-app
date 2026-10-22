@@ -2,38 +2,26 @@ package com.romanosadchyi.smp.music_app.storage.internal;
 
 import io.minio.MinioClient;
 import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @Configuration
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 class MinioConfig {
 
-    @Value("${minio.url}")
-    String minioUrl;
-
-    @Value("${minio.public-url}")
-    String minioPublicUrl;
-
-    @Value("${minio.region}")
-    String region;
-
-    @Value("${minio.access-key}")
-    String accessKey;
-
-    @Value("${minio.secret-key}")
-    String secretKey;
+    MinioProperties properties;
 
     @Bean
     @Primary
     public MinioClient minioClient() {
         return MinioClient.builder()
-                .endpoint(minioUrl)
-                .region(region)
-                .credentials(accessKey, secretKey)
+                .endpoint(properties.url())
+                .region(properties.region())
+                .credentials(properties.accessKey(), properties.secretKey())
                 .build();
     }
 
@@ -44,9 +32,9 @@ class MinioConfig {
     @Bean
     public MinioClient minioPresignClient() {
         return MinioClient.builder()
-                .endpoint(minioPublicUrl)
-                .region(region)
-                .credentials(accessKey, secretKey)
+                .endpoint(properties.publicUrl())
+                .region(properties.region())
+                .credentials(properties.accessKey(), properties.secretKey())
                 .build();
     }
 }

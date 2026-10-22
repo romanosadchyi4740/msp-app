@@ -7,7 +7,6 @@ import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Date;
 import java.util.UUID;
@@ -65,10 +64,21 @@ class JwtServiceTest {
         assertThatThrownBy(() -> jwtService.parseToken(token)).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void constructor_SecretShorterThan256Bits_Throws() {
+        assertThatThrownBy(() -> jwtService("c2hvcnQtc2VjcmV0", 60_000))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("jwt.secret");
+    }
+
+    @Test
+    void constructor_SecretNotBase64_Throws() {
+        assertThatThrownBy(() -> jwtService("not base64 at all!", 60_000))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("jwt.secret");
+    }
+
     private static JwtService jwtService(String secret, long expiration) {
-        JwtService service = new JwtService();
-        ReflectionTestUtils.setField(service, "secretKey", secret);
-        ReflectionTestUtils.setField(service, "jwtExpiration", expiration);
-        return service;
+        return new JwtService(new JwtProperties(secret, expiration));
     }
 }

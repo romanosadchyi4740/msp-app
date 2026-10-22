@@ -14,10 +14,8 @@ import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,19 +35,13 @@ class MinioFileStorage implements FileStorage {
     @Qualifier("minioPresignClient")
     MinioClient minioPresignClient;
 
-    @NonFinal
-    @Value("${minio.bucket-name}")
-    String bucketName;
-
-    @NonFinal
-    @Value("${minio.presigned-url-expiry-seconds}")
-    int presignedUrlExpirySeconds;
+    MinioProperties properties;
 
     @PostConstruct
     void init() throws MinioException {
-        boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+        boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(properties.bucketName()).build());
         if (!found) {
-            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(properties.bucketName()).build());
         }
     }
 
@@ -58,7 +50,7 @@ class MinioFileStorage implements FileStorage {
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(bucketName)
+                            .bucket(properties.bucketName())
                             .object(key)
                             .stream(inputStream, file.getSize(), -1L)
                             .contentType(file.getContentType())
@@ -78,9 +70,9 @@ class MinioFileStorage implements FileStorage {
             return minioPresignClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
-                            .bucket(bucketName)
+                            .bucket(properties.bucketName())
                             .object(key)
-                            .expiry(presignedUrlExpirySeconds)
+                            .expiry(properties.presignedUrlExpirySeconds())
                             .build()
             );
         } catch (Exception e) {
@@ -97,7 +89,7 @@ class MinioFileStorage implements FileStorage {
         try {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
-                            .bucket(bucketName)
+                            .bucket(properties.bucketName())
                             .object(key)
                             .build()
             );

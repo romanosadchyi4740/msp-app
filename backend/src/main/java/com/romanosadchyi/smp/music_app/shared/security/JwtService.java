@@ -4,10 +4,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.WeakKeyException;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -15,17 +16,26 @@ import java.util.Date;
 import java.util.UUID;
 
 @Service
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class JwtService {
 
     static final String EMAIL_CLAIM = "email";
     static final String ROLE_CLAIM = "role";
 
-    @Value("${jwt.secret}")
-    String secretKey;
-
-    @Value("${jwt.expiration}")
+    SecretKey signInKey;
     long jwtExpiration;
+
+    /**
+     * @throws IllegalArgumentException if the secret is not Base64 of at least 256 bits, so startup fails
+     */
+    public JwtService(JwtProperties properties) {
+        try {
+            signInKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.secret()));
+        } catch (DecodingException | WeakKeyException ex) {
+            throw new IllegalArgumentException("jwt.secret must be Base64 of at least 32 bytes", ex);
+        }
+        jwtExpiration = properties.expiration();
+    }
 
     public String generateToken(AuthenticatedUser user) {
         return Jwts.builder()
@@ -34,7 +44,7 @@ public class JwtService {
                 .claim(EMAIL_CLAIM, user.email())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSignInKey(), Jwts.SIG.HS256)
+                .signWith(signInKey, Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -46,7 +56,7 @@ public class JwtService {
      */
     public AuthenticatedUser parseToken(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith(getSignInKey())
+                .verifyWith(signInKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -55,10 +65,5 @@ public class JwtService {
             throw new IllegalArgumentException("Token has no role claim");
         }
         return new AuthenticatedUser(UUID.fromString(claims.getSubject()), claims.get(EMAIL_CLAIM, String.class), role);
-    }
-
-    private SecretKey getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

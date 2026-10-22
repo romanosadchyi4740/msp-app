@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.chats.internal.entity;
 
-import com.romanosadchyi.smp.music_app.chats.internal.entity.MessageEncryptionConverter;
+import com.romanosadchyi.smp.music_app.shared.util.EncryptedStringConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -33,7 +33,7 @@ public class Message {
     @Column(name = "sender_id", nullable = false)
     UUID senderId;
 
-    @Convert(converter = MessageEncryptionConverter.class)
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(columnDefinition = "TEXT", nullable = false)
     String content;
 
