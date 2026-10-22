@@ -74,8 +74,11 @@ Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO AP
 (`minio_user/minio_password`), bucket `music-files`. All backend config is in
 `backend/src/main/resources/`: `application.yaml` (shared), `application-local.yaml` (default profile; env vars
 with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTIVE=prod`; no defaults, fails to
-start if a variable is missing). Frontend config comes from Vite env vars (`VITE_API_URL`, `VITE_WS_URL`,
-`VITE_GOOGLE_CLIENT_ID`) read in `src/config.js`; dev defaults are in the committed `frontend/.env.development`,
+start if a variable is missing). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
+refuses to start while a secret is missing or has a value committed to the repo; settings are bound to
+`@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`).
+Frontend config comes from Vite env vars (`VITE_API_URL`, `VITE_WS_URL`, `VITE_GOOGLE_CLIENT_ID`) read in
+`src/config.js`; dev defaults are in the committed `frontend/.env.development`,
 and `frontend/.env.example` lists them for builds.
 
 ## 3a. How the existing msp-app pieces fit together
@@ -287,10 +290,9 @@ and `RoomParticipant.rttMs`.
 
 ## 7. Known issues in the base project (fix before production; see Jira epic KAN-5)
 
-- Secrets have committed working defaults (JWT secret, AES key, DB/MinIO passwords, Google client id).
-  Treat them as public. Non-local profiles must fail to start without real secrets.
+- The local and test secrets are committed and public; they are only accepted in those profiles (KAN-20).
 - `EncryptionUtil`: AES-CBC with a fixed IV and silent decrypt fallback. Target AES-GCM, random 12-byte
-  IV per message, versioned ciphertext prefix, data migration for existing `messages`.
+  IV per message, versioned ciphertext prefix, data migration for existing `messages` (KAN-21, postponed).
 - `setAllowedOriginPatterns("*")` on WebSocket endpoints.
 - Simple in-memory STOMP broker → one backend instance only (fine for MVP; later RabbitMQ STOMP relay or
   Redis pub/sub).
