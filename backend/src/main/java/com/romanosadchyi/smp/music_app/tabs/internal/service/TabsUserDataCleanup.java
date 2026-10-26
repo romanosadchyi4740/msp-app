@@ -27,11 +27,13 @@ class TabsUserDataCleanup implements UserDataCleanup {
     @Override
     public void deleteUserData(UUID userId) {
         List<Tab> tabs = tabRepository.findAllByOwnerId(userId);
+        // Rows first, so rows the database refuses to delete keep their files
+        tabRepository.deleteAll(tabs);
+        tabRepository.flush();
         for (Tab tab : tabs) {
             if (tab instanceof GuitarProTab guitarProTab) {
                 fileStorage.delete(guitarProTab.getFileKey());
             }
         }
-        tabRepository.deleteAll(tabs);
     }
 }
