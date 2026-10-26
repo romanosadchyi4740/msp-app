@@ -119,9 +119,9 @@ public class UserService {
         // 1. Purge content and every other module's data linked to the user
         userDataCleanups.forEach(cleanup -> cleanup.deleteUserData(userId));
 
-        // 2. Social Purge
+        // 2. Social Purge: the user's own follows, then everyone's follows of the user
         user.getFollowing().clear();
-        user.getFollowers().clear();
+        userRepository.deleteFollowsOf(userId);
 
         // 3. Anonymize (Soft Delete)
         user.setEmail("deleted_" + UUID.randomUUID() + "@system.local");
