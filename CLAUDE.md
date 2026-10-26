@@ -46,7 +46,8 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
   Maven wrapper. webmvc, websocket (STOMP + SockJS),
   security (stateless JWT, BCrypt, Google sign-in), data-jpa (Hibernate), Flyway, actuator, Lombok,
   MinIO client (S3-compatible). Base package `com.romanosadchyi.smp.music_app`.
-- **DB**: PostgreSQL 15, Flyway migrations `V1..V16` exist; **new migrations start at `V17__`**.
+- **DB**: PostgreSQL 15, Flyway migrations in `backend/src/main/resources/db/migration`; a new one takes the next free
+  version number (tickets written early may name an older number such as `V17__`).
 - **Frontend** `frontend/`: React 19, Vite 8, Tailwind 4, Zustand 5, axios, react-router 7,
   `@stomp/stompjs` + `sockjs-client`, `@react-oauth/google`, react-hot-toast, lucide-react. Plain JS (no TS).
 - **New libraries planned**: `@coderline/alphatab` (tab rendering, Guitar Pro parsing in the browser),
@@ -312,7 +313,7 @@ and `RoomParticipant.rttMs`.
 - Project agents in `.claude/agents/`: `code-reviewer` (read-only review of the branch against these rules; run it
   before opening or updating a PR) and `test-gap-finder` (lists untested branches; writes tests under
   `backend/src/test` only when asked).
-- New schema only through new Flyway migrations (`V17__...`); never edit applied migrations.
+- New schema only through new Flyway migrations (next free version number); never edit applied migrations.
 - Never log tokens, SDP payloads, or message plaintext. Never commit secrets.
 - Do not touch Terraform state or run `terraform apply`; the owner runs `plan/apply` with their credentials.
 - When a requirement is unclear, check the requirement IDs referenced in the Jira ticket. Jira tickets are
