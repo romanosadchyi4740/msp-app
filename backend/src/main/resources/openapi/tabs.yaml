@@ -1,0 +1,335 @@
+openapi: 3.0.3
+info:
+  title: SyncChord tabs API
+  description: |
+    A user's own tabs and the public tab library (KAN-30). Every endpoint needs a JWT. A tab is readable by its
+    owner, and by others only while it is public and not hidden; anyone else gets 404. Only the owner changes or
+    deletes a tab. Input is checked by the service, so schemas carry no validation constraints.
+
+    A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
+    that response comes from Spring Security and has no ErrorResponse body.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: Tabs
+paths:
+  /api/tabs/upload:
+    post:
+      tags: [Tabs]
+      operationId: uploadGuitarProTab
+      summary: Upload a Guitar Pro tab (.gp, .gp5, .gpx, at most 10 MB)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                artist:
+                  type: string
+                tempoBpm:
+                  type: integer
+                timeSignature:
+                  type: string
+                  example: 4/4
+                isPublic:
+                  type: boolean
+                rightsConfirmed:
+                  type: boolean
+                  description: The material is the uploader's own or in the public domain (R14); must be true.
+      responses:
+        '201':
+          description: The created tab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TabResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/tabs:
+    post:
+      tags: [Tabs]
+      operationId: createAsciiTab
+      summary: Create an ASCII tab
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AsciiTabCreateRequest'
+      responses:
+        '201':
+          description: The created tab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TabResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/tabs/my:
+    get:
+      tags: [Tabs]
+      operationId: getMyTabs
+      summary: The current user's tabs, newest first, hidden ones included; without ASCII text
+      responses:
+        '200':
+          description: The tabs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TabResponse'
+  /api/tabs/search:
+    get:
+      tags: [Tabs]
+      operationId: searchTabs
+      summary: Public, not hidden tabs whose title or artist contains the query, newest first; without ASCII text
+      parameters:
+        - name: q
+          in: query
+          description: Matched ignoring case; % and _ match only themselves. Empty lists every public tab.
+          schema:
+            type: string
+            default: ''
+        - name: pageNo
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: pageSize
+          in: query
+          description: At most 100.
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: One page of tabs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TabPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/tabs/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TabId'
+    get:
+      tags: [Tabs]
+      operationId: getTab
+      summary: One tab, with the text of an ASCII tab
+      responses:
+        '200':
+          description: The tab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TabResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Tabs]
+      operationId: updateTab
+      summary: Replace a tab's metadata, and the text of an ASCII tab
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TabUpdateRequest'
+      responses:
+        '200':
+          description: The updated tab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TabResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Tabs]
+      operationId: deleteTab
+      summary: Delete a tab and its file
+      responses:
+        '204':
+          description: Deleted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tabs/{id}/url:
+    parameters:
+      - $ref: '#/components/parameters/TabId'
+    get:
+      tags: [Tabs]
+      operationId: getTabFileUrl
+      summary: A presigned URL of a Guitar Pro tab's file, valid for a limited time
+      responses:
+        '200':
+          description: The URL
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TabId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: The tab is someone else's
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: No such tab, or one the user may not read
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    TabFormat:
+      type: string
+      enum: [GUITAR_PRO, ASCII]
+    TabResponse:
+      type: object
+      required: [id, format, title, ownerId, isPublic, hidden, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        format:
+          $ref: '#/components/schemas/TabFormat'
+        title:
+          type: string
+        artist:
+          type: string
+        ownerId:
+          type: string
+          format: uuid
+        ownerName:
+          type: string
+        tempoBpm:
+          type: integer
+        timeSignature:
+          type: string
+        isPublic:
+          type: boolean
+        hidden:
+          type: boolean
+        gpVersion:
+          type: string
+          description: Set only for Guitar Pro tabs, e.g. GP5.
+        rawText:
+          type: string
+          description: Set only for an ASCII tab read on its own, not in lists.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AsciiTabCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        artist:
+          type: string
+        tempoBpm:
+          type: integer
+        timeSignature:
+          type: string
+        isPublic:
+          type: boolean
+        rightsConfirmed:
+          type: boolean
+          description: Must be true (R14).
+        rawText:
+          type: string
+    TabUpdateRequest:
+      type: object
+      description: Replaces the metadata; a missing isPublic makes the tab private. rawText is required for an ASCII
+        tab and must be absent for a Guitar Pro tab.
+      properties:
+        title:
+          type: string
+        artist:
+          type: string
+        tempoBpm:
+          type: integer
+        timeSignature:
+          type: string
+        isPublic:
+          type: boolean
+        rawText:
+          type: string
+    TabPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TabResponse'
+        number:
+          type: integer
+          description: The page number, from 0.
+        size:
+          type: integer
+        numberOfElements:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+    ErrorResponse:
+      type: object
+      description: The error body of every endpoint, from GlobalExceptionHandler.
+      properties:
+        code:
+          type: string
+          example: 404 NOT_FOUND
+        message:
+          type: string

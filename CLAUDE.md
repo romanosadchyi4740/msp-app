@@ -46,6 +46,9 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
   Maven wrapper. webmvc, websocket (STOMP + SockJS),
   security (stateless JWT, BCrypt, Google sign-in), data-jpa (Hibernate), Flyway, actuator, Lombok,
   MinIO client (S3-compatible). Base package `com.romanosadchyi.smp.music_app`.
+  `openapi-generator-maven-plugin` (`spring` generator) for contract-first APIs: interfaces and models are
+  generated during the build into `target/generated-sources/openapi` (never committed) from
+  `src/main/resources/openapi/<module>.yaml`, one plugin execution per module.
 - **DB**: PostgreSQL 15, Flyway migrations in `backend/src/main/resources/db/migration`; a new one takes the next free
   version number (tickets written early may name an older number such as `V17__`).
 - **Frontend** `frontend/`: React 19, Vite 8, Tailwind 4, Zustand 5, axios, react-router 7,
@@ -195,12 +198,20 @@ Follow the existing style:
   Entities hold data only: no methods besides the Lombok-generated ones. Logic goes into services, or into a
   small helper class next to them (e.g. `ChatMemberships`).
 - Services/controllers: `@RequiredArgsConstructor @FieldDefaults(level = PRIVATE, makeFinal = true)`,
-  `@Slf4j`, `@Transactional` on writes. DTOs are Java `record`s (`@Builder` where useful).
+  `@Slf4j`, `@Transactional` on writes. DTOs are Java `record`s (`@Builder` where useful), except the API
+  models of contract-first modules, which are generated.
+- **New REST APIs are contract-first** (KAN-91; `tabs` is the first): write or extend
+  `src/main/resources/openapi/<module>.yaml`, add a plugin execution generating into `<module>.internal.api` and
+  `<module>.internal.api.model` (never a shared package), and let the controller implement the generated
+  interface, which holds the mappings. Existing msp-app controllers stay hand-written. Specs carry no validation
+  constraints (`useBeanValidation=false`): input is checked in the services, so errors keep the
+  `GlobalExceptionHandler` body. Paginated responses use an explicit page schema, not `Page<T>`.
 - Mapping is done in `*MappingService` beans, not in controllers.
 - Domain errors are dedicated `RuntimeException`s mapped in `GlobalExceptionHandler`: extend
   `shared.exception.NotFoundException` (404) or `ConflictException` (409); 403 is `UserNotAuthorizedException`,
   400 `IllegalArgumentException`. Do not add per-exception handlers.
-- Current user in REST: `@AuthenticationPrincipal AuthenticatedUser user` (STOMP handlers: cast
+- Current user in REST: `@AuthenticationPrincipal AuthenticatedUser user`; a controller implementing a generated
+  interface cannot add that parameter and calls `shared.security.CurrentUser.get()` instead (STOMP handlers: cast
   `authentication.getPrincipal()` to it); never the `User` entity. Its `getName()` is the user UUID, so per-user
   STOMP delivery uses `convertAndSendToUser(userId.toString(), ...)`.
 - Tests: JUnit 5 + Mockito (`@ExtendWith(MockitoExtension.class)`, `@Mock`/`@InjectMocks`), one test

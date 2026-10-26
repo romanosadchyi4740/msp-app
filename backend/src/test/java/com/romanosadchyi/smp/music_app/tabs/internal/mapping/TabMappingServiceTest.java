@@ -1,7 +1,8 @@
 package com.romanosadchyi.smp.music_app.tabs.internal.mapping;
 
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.TabFormat;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.TabResponseDto;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabFormat;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabPage;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabResponse;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.AsciiTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.GuitarProTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
@@ -45,13 +46,13 @@ class TabMappingServiceTest {
                 .rawText("e|---0---|").build();
         when(userLookup.findSummary(ownerId)).thenReturn(Optional.of(owner));
 
-        TabResponseDto dto = mappingService.map(tab);
+        TabResponse dto = mappingService.map(tab);
 
-        assertThat(dto.format()).isEqualTo(TabFormat.ASCII);
-        assertThat(dto.rawText()).isEqualTo("e|---0---|");
-        assertThat(dto.gpVersion()).isNull();
-        assertThat(dto.ownerName()).isEqualTo("Teacher");
-        assertThat(dto.isPublic()).isTrue();
+        assertThat(dto.getFormat()).isEqualTo(TabFormat.ASCII);
+        assertThat(dto.getRawText()).isEqualTo("e|---0---|");
+        assertThat(dto.getGpVersion()).isNull();
+        assertThat(dto.getOwnerName()).isEqualTo("Teacher");
+        assertThat(dto.getIsPublic()).isTrue();
     }
 
     @Test
@@ -60,14 +61,14 @@ class TabMappingServiceTest {
                 .fileKey("tabs/x.gp5").gpVersion("GP5").tempoBpm(100).timeSignature("3/4").build();
         when(userLookup.findSummary(ownerId)).thenReturn(Optional.empty());
 
-        TabResponseDto dto = mappingService.map(tab);
+        TabResponse dto = mappingService.map(tab);
 
-        assertThat(dto.format()).isEqualTo(TabFormat.GUITAR_PRO);
-        assertThat(dto.gpVersion()).isEqualTo("GP5");
-        assertThat(dto.rawText()).isNull();
-        assertThat(dto.tempoBpm()).isEqualTo(100);
-        assertThat(dto.timeSignature()).isEqualTo("3/4");
-        assertThat(dto.ownerName()).isNull();
+        assertThat(dto.getFormat()).isEqualTo(TabFormat.GUITAR_PRO);
+        assertThat(dto.getGpVersion()).isEqualTo("GP5");
+        assertThat(dto.getRawText()).isNull();
+        assertThat(dto.getTempoBpm()).isEqualTo(100);
+        assertThat(dto.getTimeSignature()).isEqualTo("3/4");
+        assertThat(dto.getOwnerName()).isNull();
     }
 
     @Test
@@ -79,10 +80,10 @@ class TabMappingServiceTest {
                 GuitarProTab.builder().ownerId(otherId).title("C").fileKey("tabs/c.gp").build());
         when(userLookup.findSummaries(List.of(ownerId, otherId))).thenReturn(Map.of(ownerId, owner));
 
-        List<TabResponseDto> dtos = mappingService.mapAll(tabs);
+        List<TabResponse> dtos = mappingService.mapAll(tabs);
 
-        assertThat(dtos).extracting(TabResponseDto::ownerName).containsExactly("Teacher", "Teacher", null);
-        assertThat(dtos).extracting(TabResponseDto::rawText).containsOnlyNulls();
+        assertThat(dtos).extracting(TabResponse::getOwnerName).containsExactly("Teacher", "Teacher", null);
+        assertThat(dtos).extracting(TabResponse::getRawText).containsOnlyNulls();
         verify(userLookup, never()).findSummary(any());
     }
 
@@ -91,11 +92,19 @@ class TabMappingServiceTest {
         Page<Tab> tabs = new PageImpl<>(List.of(AsciiTab.builder().ownerId(ownerId).title("A").rawText("x").build()));
         when(userLookup.findSummaries(List.of(ownerId))).thenReturn(Map.of(ownerId, owner));
 
-        Page<TabResponseDto> page = mappingService.mapPage(tabs);
+        TabPage page = mappingService.mapPage(tabs);
 
         assertThat(page.getContent()).singleElement()
-                .satisfies(dto -> assertThat(dto.ownerName()).isEqualTo("Teacher"))
-                .satisfies(dto -> assertThat(dto.rawText()).isNull());
+                .satisfies(dto -> assertThat(dto.getOwnerName()).isEqualTo("Teacher"))
+                .satisfies(dto -> assertThat(dto.getRawText()).isNull());
+        assertThat(page.getNumber()).isZero();
+        assertThat(page.getSize()).isEqualTo(1);
+        assertThat(page.getNumberOfElements()).isEqualTo(1);
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getTotalPages()).isEqualTo(1);
+        assertThat(page.getFirst()).isTrue();
+        assertThat(page.getLast()).isTrue();
+        assertThat(page.getEmpty()).isFalse();
         verify(userLookup, never()).findSummary(any());
     }
 }

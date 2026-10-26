@@ -194,6 +194,22 @@ class TabsModuleIntegrationTest {
     }
 
     @Test
+    void getFileUrl_Rejected_AnswersWithTheJsonErrorBody() throws Exception {
+        Registered owner = register();
+        UUID asciiTabId = createAscii(owner, "Riff", false);
+
+        mockMvc.perform(get("/api/tabs/" + asciiTabId + "/url").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("An ASCII tab has no file"));
+        mockMvc.perform(get("/api/tabs/" + UUID.randomUUID() + "/url").header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .accept(MediaType.ALL))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("Tab not found"));
+    }
+
+    @Test
     void createAscii_RightsNotConfirmed_IsBadRequest() throws Exception {
         Registered owner = register();
 

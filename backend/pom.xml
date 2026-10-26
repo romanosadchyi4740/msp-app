@@ -33,6 +33,7 @@
 		<google-api-client.version>2.9.0</google-api-client.version>
 		<flyway.version>12.4.0</flyway.version>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
+		<openapi-generator.version>7.23.0</openapi-generator.version>
 	</properties>
 
 	<dependencyManagement>
@@ -190,6 +191,56 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<!--
+				Contract-first APIs: each module with a spec in src/main/resources/openapi/<module>.yaml gets its own
+				execution, generating interfaces and models into <module>.internal.api(.model). Validation stays in the
+				services, so no bean validation is generated.
+			-->
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>${openapi-generator.version}</version>
+				<executions>
+					<execution>
+						<id>generate-tabs-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/tabs.yaml</inputSpec>
+							<apiPackage>com.romanosadchyi.smp.music_app.tabs.internal.api</apiPackage>
+							<modelPackage>com.romanosadchyi.smp.music_app.tabs.internal.api.model</modelPackage>
+						</configuration>
+					</execution>
+				</executions>
+				<configuration>
+					<generatorName>spring</generatorName>
+					<generateApis>true</generateApis>
+					<generateModels>true</generateModels>
+					<generateSupportingFiles>false</generateSupportingFiles>
+					<generateApiTests>false</generateApiTests>
+					<generateModelTests>false</generateModelTests>
+					<generateApiDocumentation>false</generateApiDocumentation>
+					<generateModelDocumentation>false</generateModelDocumentation>
+					<configOptions>
+						<interfaceOnly>true</interfaceOnly>
+						<skipDefaultInterface>true</skipDefaultInterface>
+						<useTags>true</useTags>
+						<useSpringBoot4>true</useSpringBoot4>
+						<openApiNullable>false</openApiNullable>
+						<useBeanValidation>false</useBeanValidation>
+						<documentationProvider>none</documentationProvider>
+						<annotationLibrary>none</annotationLibrary>
+						<hideGenerationTimestamp>true</hideGenerationTimestamp>
+					</configOptions>
+					<typeMappings>
+						<typeMapping>OffsetDateTime=Instant</typeMapping>
+					</typeMappings>
+					<importMappings>
+						<importMapping>OffsetDateTime=java.time.Instant</importMapping>
+					</importMappings>
 				</configuration>
 			</plugin>
 			<plugin>

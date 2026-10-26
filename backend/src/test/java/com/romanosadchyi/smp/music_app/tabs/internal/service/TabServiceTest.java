@@ -2,10 +2,10 @@ package com.romanosadchyi.smp.music_app.tabs.internal.service;
 
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.AsciiTabCreateDto;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabCreateRequest;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabResponse;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabUpdateRequest;
 import com.romanosadchyi.smp.music_app.tabs.internal.dto.GuitarProTabUploadDto;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.TabResponseDto;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.TabUpdateDto;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.AsciiTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.GuitarProTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
@@ -70,7 +70,7 @@ class TabServiceTest {
         GuitarProTabUploadDto dto = new GuitarProTabUploadDto(" Song ", "  ", 120, "4/4", true, true);
         when(tabValidator.validateGuitarProFile(file)).thenReturn("gp5");
         when(tabRepository.saveAndFlush(any(Tab.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        TabResponseDto response = TabResponseDto.builder().build();
+        TabResponse response = new TabResponse();
         when(tabMappingService.map(any(Tab.class))).thenReturn(response);
 
         assertThat(tabService.uploadGuitarPro(ownerId, dto, file)).isSameAs(response);
@@ -104,10 +104,10 @@ class TabServiceTest {
 
     @Test
     void createAscii_Valid_SavesAPrivateTabByDefault() {
-        AsciiTabCreateDto dto = new AsciiTabCreateDto("Riff", null, null, null, null, true, "e|---0---|");
+        AsciiTabCreateRequest request = new AsciiTabCreateRequest().title("Riff").rightsConfirmed(true).rawText("e|---0---|");
         when(tabRepository.save(any(Tab.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        tabService.createAscii(ownerId, dto);
+        tabService.createAscii(ownerId, request);
 
         ArgumentCaptor<AsciiTab> saved = ArgumentCaptor.forClass(AsciiTab.class);
         verify(tabRepository).save(saved.capture());
@@ -124,7 +124,7 @@ class TabServiceTest {
         when(tabRepository.findById(tabId)).thenReturn(Optional.of(tab));
         when(tabRepository.saveAndFlush(tab)).thenReturn(tab);
 
-        tabService.update(ownerId, tabId, new TabUpdateDto("New", "Band", 90, "3/4", null, "B|---1---|"));
+        tabService.update(ownerId, tabId, update("New", "Band", 90, "3/4", null, "B|---1---|"));
 
         assertThat(tab.getTitle()).isEqualTo("New");
         assertThat(tab.getArtist()).isEqualTo("Band");
@@ -139,7 +139,7 @@ class TabServiceTest {
     void update_GuitarProTabWithText_Rejects() {
         when(tabRepository.findById(tabId)).thenReturn(Optional.of(guitarProTab(ownerId, true)));
 
-        assertThatThrownBy(() -> tabService.update(ownerId, tabId, new TabUpdateDto("New", null, null, null, null, "x")))
+        assertThatThrownBy(() -> tabService.update(ownerId, tabId, update("New", null, null, null, null, "x")))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(tabRepository, never()).saveAndFlush(any());
     }
@@ -147,9 +147,9 @@ class TabServiceTest {
     @Test
     void updateAndDelete_SomeoneElsesTab_AreForbidden() {
         when(tabRepository.findById(tabId)).thenReturn(Optional.of(asciiTab(ownerId, true)));
-        TabUpdateDto dto = new TabUpdateDto("New", null, null, null, null, "x");
+        TabUpdateRequest request = update("New", null, null, null, null, "x");
 
-        assertThatThrownBy(() -> tabService.update(otherId, tabId, dto)).isInstanceOf(UserNotAuthorizedException.class);
+        assertThatThrownBy(() -> tabService.update(otherId, tabId, request)).isInstanceOf(UserNotAuthorizedException.class);
         assertThatThrownBy(() -> tabService.delete(otherId, tabId)).isInstanceOf(UserNotAuthorizedException.class);
         verify(tabRepository, never()).saveAndFlush(any());
         verify(tabRepository, never()).delete(any());
@@ -159,7 +159,7 @@ class TabServiceTest {
     void updateAndDelete_MissingTab_AreNotFound() {
         when(tabRepository.findById(tabId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> tabService.update(ownerId, tabId, new TabUpdateDto("a", null, null, null, null, null)))
+        assertThatThrownBy(() -> tabService.update(ownerId, tabId, update("a", null, null, null, null, null)))
                 .isInstanceOf(TabNotFoundException.class);
         assertThatThrownBy(() -> tabService.delete(ownerId, tabId)).isInstanceOf(TabNotFoundException.class);
     }
@@ -287,6 +287,12 @@ class TabServiceTest {
         tabService.search(null, 0, 20);
 
         verify(tabRepository).searchPublic(eq(""), any(Pageable.class));
+    }
+
+    private static TabUpdateRequest update(String title, String artist, Integer tempoBpm, String timeSignature,
+                                           Boolean isPublic, String rawText) {
+        return new TabUpdateRequest().title(title).artist(artist).tempoBpm(tempoBpm).timeSignature(timeSignature)
+                .isPublic(isPublic).rawText(rawText);
     }
 
     private AsciiTab asciiTab(UUID owner, boolean isPublic) {

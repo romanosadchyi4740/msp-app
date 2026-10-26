@@ -2,10 +2,11 @@ package com.romanosadchyi.smp.music_app.tabs.internal.service;
 
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.AsciiTabCreateDto;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabCreateRequest;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabPage;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabResponse;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabUpdateRequest;
 import com.romanosadchyi.smp.music_app.tabs.internal.dto.GuitarProTabUploadDto;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.TabResponseDto;
-import com.romanosadchyi.smp.music_app.tabs.internal.dto.TabUpdateDto;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.AsciiTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.GuitarProTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
@@ -16,7 +17,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -49,7 +49,7 @@ public class TabService {
      * Saves the tab first, so the database checks it before the file is stored; a failed upload rolls the row back.
      */
     @Transactional
-    public TabResponseDto uploadGuitarPro(UUID ownerId, GuitarProTabUploadDto dto, MultipartFile file) {
+    public TabResponse uploadGuitarPro(UUID ownerId, GuitarProTabUploadDto dto, MultipartFile file) {
         tabValidator.requireRightsConfirmed(dto.rightsConfirmed());
         String title = stripToNull(dto.title());
         String artist = stripToNull(dto.artist());
@@ -73,22 +73,22 @@ public class TabService {
     }
 
     @Transactional
-    public TabResponseDto createAscii(UUID ownerId, AsciiTabCreateDto dto) {
-        tabValidator.requireRightsConfirmed(dto.rightsConfirmed());
-        String title = stripToNull(dto.title());
-        String artist = stripToNull(dto.artist());
-        tabValidator.validateMetadata(title, artist, dto.tempoBpm(), dto.timeSignature());
-        tabValidator.validateRawText(dto.rawText());
+    public TabResponse createAscii(UUID ownerId, AsciiTabCreateRequest request) {
+        tabValidator.requireRightsConfirmed(request.getRightsConfirmed());
+        String title = stripToNull(request.getTitle());
+        String artist = stripToNull(request.getArtist());
+        tabValidator.validateMetadata(title, artist, request.getTempoBpm(), request.getTimeSignature());
+        tabValidator.validateRawText(request.getRawText());
 
         AsciiTab tab = tabRepository.save(AsciiTab.builder()
                 .ownerId(ownerId)
                 .title(title)
                 .artist(artist)
-                .tempoBpm(dto.tempoBpm())
-                .timeSignature(dto.timeSignature())
-                .isPublic(Boolean.TRUE.equals(dto.isPublic()))
+                .tempoBpm(request.getTempoBpm())
+                .timeSignature(request.getTimeSignature())
+                .isPublic(Boolean.TRUE.equals(request.getIsPublic()))
                 .rightsConfirmed(true)
-                .rawText(dto.rawText())
+                .rawText(request.getRawText())
                 .build());
         log.info("User {} created ASCII tab {}", ownerId, tab.getId());
         return tabMappingService.map(tab);
@@ -101,23 +101,23 @@ public class TabService {
      *                                    is sent text
      */
     @Transactional
-    public TabResponseDto update(UUID userId, UUID tabId, TabUpdateDto dto) {
+    public TabResponse update(UUID userId, UUID tabId, TabUpdateRequest request) {
         Tab tab = getOwnTab(userId, tabId);
-        String title = stripToNull(dto.title());
-        String artist = stripToNull(dto.artist());
-        tabValidator.validateMetadata(title, artist, dto.tempoBpm(), dto.timeSignature());
+        String title = stripToNull(request.getTitle());
+        String artist = stripToNull(request.getArtist());
+        tabValidator.validateMetadata(title, artist, request.getTempoBpm(), request.getTimeSignature());
         if (tab instanceof AsciiTab asciiTab) {
-            tabValidator.validateRawText(dto.rawText());
-            asciiTab.setRawText(dto.rawText());
-        } else if (dto.rawText() != null) {
+            tabValidator.validateRawText(request.getRawText());
+            asciiTab.setRawText(request.getRawText());
+        } else if (request.getRawText() != null) {
             throw new IllegalArgumentException("A Guitar Pro tab has no text to change");
         }
 
         tab.setTitle(title);
         tab.setArtist(artist);
-        tab.setTempoBpm(dto.tempoBpm());
-        tab.setTimeSignature(dto.timeSignature());
-        tab.setPublic(Boolean.TRUE.equals(dto.isPublic()));
+        tab.setTempoBpm(request.getTempoBpm());
+        tab.setTimeSignature(request.getTimeSignature());
+        tab.setPublic(Boolean.TRUE.equals(request.getIsPublic()));
         return tabMappingService.map(tabRepository.saveAndFlush(tab));
     }
 
@@ -136,7 +136,7 @@ public class TabService {
     }
 
     @Transactional(readOnly = true)
-    public TabResponseDto getTab(UUID userId, UUID tabId) {
+    public TabResponse getTab(UUID userId, UUID tabId) {
         return tabMappingService.map(getReadableTab(userId, tabId));
     }
 
@@ -154,7 +154,7 @@ public class TabService {
     }
 
     @Transactional(readOnly = true)
-    public List<TabResponseDto> getMyTabs(UUID userId) {
+    public List<TabResponse> getMyTabs(UUID userId) {
         return tabMappingService.mapAll(tabRepository.findAllByOwnerIdOrderByCreatedAtDesc(userId));
     }
 
@@ -163,7 +163,7 @@ public class TabService {
      * {@code _} in the query match themselves, and a page has at most {@value #MAX_PAGE_SIZE} tabs.
      */
     @Transactional(readOnly = true)
-    public Page<TabResponseDto> search(String query, int pageNo, int pageSize) {
+    public TabPage search(String query, int pageNo, int pageSize) {
         PageRequest page = PageRequest.of(pageNo, Math.min(pageSize, MAX_PAGE_SIZE),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
         return tabMappingService.mapPage(tabRepository.searchPublic(escapeLike(query), page));
