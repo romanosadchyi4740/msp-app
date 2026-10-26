@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import useUiStore from './store/uiStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -19,6 +19,9 @@ import LikedTracksPage from './pages/LikedTracksPage';
 import TelemetryPage from './pages/TelemetryPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+
+// Development only: not part of production builds
+const TabCanvasDemoPage = import.meta.env.DEV ? lazy(() => import('./pages/TabCanvasDemoPage')) : null;
 
 function App() {
   const theme = useUiStore((state) => state.theme);
@@ -74,6 +77,12 @@ function App() {
           <Route path="/collection/tracks" element={<LikedTracksPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/upload" element={<UploadPage />} />
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/tab-canvas"
+              element={<Suspense fallback={null}><TabCanvasDemoPage /></Suspense>}
+            />
+          )}
         </Route>
 
         {/* Redirect unknown routes */}
