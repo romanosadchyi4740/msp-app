@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -46,6 +48,13 @@ class TabsModuleIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    /**
+     * An A minor chord, one beat in one measure.
+     */
+    static final String RIFF = "e|-0-|\nB|-1-|\nG|-0-|\nD|-2-|\nA|-3-|\nE|---|";
+
+    static final String OTHER_RIFF = "e|---3---|\nB|---0---|\nG|---0---|\nD|---0---|\nA|---2---|\nE|---3---|";
 
     @Test
     void save_BothFormats_LoadsEachAsItsSubclass() throws Exception {
@@ -119,7 +128,7 @@ class TabsModuleIntegrationTest {
     @Test
     void uploadGuitarPro_Valid_IsStoredAndServedThroughAUrl() throws Exception {
         Registered owner = register();
-        MockMultipartFile file = new MockMultipartFile("file", "song.gp5", "application/octet-stream", new byte[]{1, 2, 3});
+        MockMultipartFile file = new MockMultipartFile("file", "song.gp5", "application/octet-stream", gp5Header());
 
         String response = mockMvc.perform(multipart("/api/tabs/upload").file(file)
                         .param("title", "Song")
@@ -160,13 +169,59 @@ class TabsModuleIntegrationTest {
     }
 
     @Test
+    void uploadGuitarPro_ContentIsNotThatFormat_IsBadRequest() throws Exception {
+        Registered owner = register();
+        MockMultipartFile renamedPdf = new MockMultipartFile("file", "song.gp5", "application/octet-stream",
+                "%PDF-1.7 not a tab".getBytes(StandardCharsets.US_ASCII));
+
+        mockMvc.perform(multipart("/api/tabs/upload").file(renamedPdf).param("title", "Song")
+                        .param("rightsConfirmed", "true")
+                        .header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("The file is not a valid .gp5 Guitar Pro file"));
+        assertThat(tabRepository.findAllByOwnerId(owner.id())).isEmpty();
+    }
+
+    @Test
+    void asciiTab_TextThatIsNotATab_IsBadRequest() throws Exception {
+        Registered owner = register();
+        UUID tabId = createAscii(owner, "Riff", false);
+
+        mockMvc.perform(post("/api/tabs").header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Lyrics\", \"rawText\": \"la la la\", \"rightsConfirmed\": true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(startsWith("No tab found")));
+        mockMvc.perform(put("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Riff\", \"rawText\": \"e|---0---|\"}"))
+                .andExpect(status().isBadRequest());
+        assertThat(tabRepository.findAllByOwnerId(owner.id())).hasSize(1);
+    }
+
+    @Test
+    void getTab_AsciiTab_CarriesItsAlphaTex() throws Exception {
+        Registered owner = register();
+        UUID tabId = createAscii(owner, "Riff", false);
+
+        mockMvc.perform(get("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rawText").value(RIFF))
+                .andExpect(jsonPath("$.alphaTex").value(containsString("\\tuning (E4 B3 G3 D3 A2 E2)")))
+                .andExpect(jsonPath("$.alphaTex").value(containsString(":1 (0.1 1.2 0.3 2.4 3.5) |")));
+        mockMvc.perform(get("/api/tabs/my").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].alphaTex").value(nullValue()));
+    }
+
+    @Test
     void asciiTab_OnlyTheOwnerChangesItAndOthersSeeItOnlyWhenPublic() throws Exception {
         Registered owner = register();
         Registered other = register();
         UUID tabId = createAscii(owner, "Riff", false);
         String update = """
-                {"title": "Riff 2", "tempoBpm": 100, "timeSignature": "6/8", "isPublic": true, "rawText": "B|---1---|"}
-                """;
+                {"title": "Riff 2", "tempoBpm": 100, "timeSignature": "6/8", "isPublic": true, "rawText": "%s"}
+                """.formatted(json(OTHER_RIFF));
 
         mockMvc.perform(get("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, other.bearer()))
                 .andExpect(status().isNotFound());
@@ -182,7 +237,7 @@ class TabsModuleIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Riff 2"));
         mockMvc.perform(get("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, other.bearer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rawText").value("B|---1---|"))
+                .andExpect(jsonPath("$.rawText").value(OTHER_RIFF))
                 .andExpect(jsonPath("$.timeSignature").value("6/8"));
         mockMvc.perform(get("/api/tabs/" + tabId + "/url").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
                 .andExpect(status().isBadRequest());
@@ -251,10 +306,28 @@ class TabsModuleIntegrationTest {
                 .andExpect(jsonPath("$[1].hidden").value(true));
     }
 
+    /**
+     * The text as the inside of a JSON string.
+     */
+    private static String json(String text) {
+        return text.replace("\n", "\\n");
+    }
+
+    /**
+     * The start of a Guitar Pro 5 file, enough for the signature check.
+     */
+    private static byte[] gp5Header() {
+        byte[] version = "FICHIER GUITAR PRO v5.00".getBytes(StandardCharsets.US_ASCII);
+        byte[] content = new byte[64];
+        content[0] = (byte) version.length;
+        System.arraycopy(version, 0, content, 1, version.length);
+        return content;
+    }
+
     private UUID createAscii(Registered owner, String title, boolean isPublic) throws Exception {
         String body = """
-                {"title": "%s", "rawText": "e|---0---|", "isPublic": %s, "rightsConfirmed": true}
-                """.formatted(title, isPublic);
+                {"title": "%s", "rawText": "%s", "isPublic": %s, "rightsConfirmed": true}
+                """.formatted(title, json(RIFF), isPublic);
         String response = mockMvc.perform(post("/api/tabs").header(HttpHeaders.AUTHORIZATION, owner.bearer())
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())

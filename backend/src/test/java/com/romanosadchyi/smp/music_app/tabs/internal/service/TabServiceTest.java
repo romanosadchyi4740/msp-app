@@ -11,6 +11,7 @@ import com.romanosadchyi.smp.music_app.tabs.internal.entity.GuitarProTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
 import com.romanosadchyi.smp.music_app.tabs.internal.exception.TabNotFoundException;
 import com.romanosadchyi.smp.music_app.tabs.internal.mapping.TabMappingService;
+import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiTabParser;
 import com.romanosadchyi.smp.music_app.tabs.internal.repository.TabRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,9 @@ class TabServiceTest {
 
     @Mock
     TabMappingService tabMappingService;
+
+    @Mock
+    AsciiTabParser asciiTabParser;
 
     @Mock
     FileStorage fileStorage;
@@ -103,19 +107,33 @@ class TabServiceTest {
     }
 
     @Test
-    void createAscii_Valid_SavesAPrivateTabByDefault() {
-        AsciiTabCreateRequest request = new AsciiTabCreateRequest().title("Riff").rightsConfirmed(true).rawText("e|---0---|");
+    void createAscii_Valid_ParsesTheTextAndSavesAPrivateTabByDefault() {
+        AsciiTabCreateRequest request = new AsciiTabCreateRequest().title("Riff").rightsConfirmed(true)
+                .rawText("e|---0---|");
         when(tabRepository.save(any(Tab.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         tabService.createAscii(ownerId, request);
 
         ArgumentCaptor<AsciiTab> saved = ArgumentCaptor.forClass(AsciiTab.class);
-        verify(tabRepository).save(saved.capture());
-        verify(tabValidator).requireRightsConfirmed(true);
-        verify(tabValidator).validateRawText("e|---0---|");
+        InOrder order = inOrder(tabValidator, asciiTabParser, tabRepository);
+        order.verify(tabValidator).requireRightsConfirmed(true);
+        order.verify(tabValidator).validateRawText("e|---0---|");
+        order.verify(asciiTabParser).parse("e|---0---|");
+        order.verify(tabRepository).save(saved.capture());
         assertThat(saved.getValue().getRawText()).isEqualTo("e|---0---|");
         assertThat(saved.getValue().isPublic()).isFalse();
         verify(tabMappingService).map(saved.getValue());
+    }
+
+    @Test
+    void createAscii_TextIsNotATab_StoresNothing() {
+        AsciiTabCreateRequest request = new AsciiTabCreateRequest().title("Lyrics").rightsConfirmed(true)
+                .rawText("la la la");
+        when(asciiTabParser.parse("la la la")).thenThrow(new IllegalArgumentException("No tab found"));
+
+        assertThatThrownBy(() -> tabService.createAscii(ownerId, request)).isInstanceOf(IllegalArgumentException.class);
+
+        verifyNoInteractions(tabRepository);
     }
 
     @Test
@@ -133,6 +151,20 @@ class TabServiceTest {
         assertThat(tab.isPublic()).isFalse();
         assertThat(tab.getRawText()).isEqualTo("B|---1---|");
         verify(tabValidator).validateRawText("B|---1---|");
+        verify(asciiTabParser).parse("B|---1---|");
+    }
+
+    @Test
+    void update_AsciiTextIsNotATab_KeepsTheOldText() {
+        AsciiTab tab = asciiTab(ownerId, true);
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(tab));
+        when(asciiTabParser.parse("la")).thenThrow(new IllegalArgumentException("No tab found"));
+
+        assertThatThrownBy(() -> tabService.update(ownerId, tabId, update("New", null, null, null, null, "la")))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(tab.getRawText()).isEqualTo("e|---0---|");
+        verify(tabRepository, never()).saveAndFlush(any());
     }
 
     @Test

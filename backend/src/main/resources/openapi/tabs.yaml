@@ -20,7 +20,7 @@ paths:
     post:
       tags: [Tabs]
       operationId: uploadGuitarProTab
-      summary: Upload a Guitar Pro tab (.gp, .gp5, .gpx, at most 10 MB)
+      summary: Upload a Guitar Pro tab (.gp, .gp5, .gpx, at most 10 MB); the content must match the extension
       requestBody:
         required: true
         content:
@@ -127,7 +127,7 @@ paths:
     get:
       tags: [Tabs]
       operationId: getTab
-      summary: One tab, with the text of an ASCII tab
+      summary: One tab, with the text of an ASCII tab and its alphaTex
       responses:
         '200':
           description: The tab
@@ -258,6 +258,10 @@ components:
         rawText:
           type: string
           description: Set only for an ASCII tab read on its own, not in lists.
+        alphaTex:
+          type: string
+          description: The ASCII tab as alphaTex for the tab canvas, one bar per measure. Set only for an ASCII tab
+            read on its own; null if the stored text is not a tab.
         createdAt:
           type: string
           format: date-time
@@ -282,6 +286,8 @@ components:
           description: Must be true (R14).
         rawText:
           type: string
+          description: The tab as text, one line per string such as e|---0---|, at least 4 strings; at most 100000
+            characters. Text without a tab is rejected with 400.
     TabUpdateRequest:
       type: object
       description: Replaces the metadata; a missing isPublic makes the tab private. rawText is required for an ASCII
