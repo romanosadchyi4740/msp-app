@@ -75,6 +75,26 @@ paths:
                 $ref: '#/components/schemas/TabResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+  /api/tabs/preview:
+    post:
+      tags: [Tabs]
+      operationId: previewAsciiTab
+      summary: The alphaTex of ASCII tab text, for a preview while editing; nothing is stored
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AsciiTabPreviewRequest'
+      responses:
+        '200':
+          description: The alphaTex and the number of measures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsciiTabPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /api/tabs/my:
     get:
       tags: [Tabs]
@@ -288,6 +308,29 @@ components:
           type: string
           description: The tab as text, one line per string such as e|---0---|, at least 4 strings; at most 100000
             characters. Text without a tab is rejected with 400.
+    AsciiTabPreviewRequest:
+      type: object
+      description: The fields that change the preview. They are checked as when the tab is saved, except that the
+        title is optional.
+      properties:
+        rawText:
+          type: string
+        title:
+          type: string
+        artist:
+          type: string
+        tempoBpm:
+          type: integer
+        timeSignature:
+          type: string
+    AsciiTabPreview:
+      type: object
+      required: [alphaTex, measureCount]
+      properties:
+        alphaTex:
+          type: string
+        measureCount:
+          type: integer
     TabUpdateRequest:
       type: object
       description: Replaces the metadata; a missing isPublic makes the tab private. rawText is required for an ASCII

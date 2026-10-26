@@ -17,6 +17,9 @@ import PlaylistsPage from './pages/PlaylistsPage';
 import PlaylistPage from './pages/PlaylistPage';
 import LikedTracksPage from './pages/LikedTracksPage';
 import TelemetryPage from './pages/TelemetryPage';
+import TabsPage from './pages/TabsPage';
+import TabNewPage from './pages/TabNewPage';
+import TabPage from './pages/TabPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -77,6 +80,9 @@ function App() {
           <Route path="/collection/tracks" element={<LikedTracksPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/upload" element={<UploadPage />} />
+          <Route path="/tabs" element={<TabsPage />} />
+          <Route path="/tabs/new" element={<TabNewPage />} />
+          <Route path="/tabs/:id" element={<TabPage />} />
           {import.meta.env.DEV && (
             <Route
               path="/dev/tab-canvas"

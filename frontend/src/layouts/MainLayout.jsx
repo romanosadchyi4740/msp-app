@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {
   Activity,
+  Guitar,
   Layers,
   Loader2,
   LogOut,
@@ -75,6 +76,7 @@ const MainLayout = () => {
     { icon: Search, label: 'Global Query', path: '/search' },
     { icon: Radar, label: 'Network Radar', path: '/explore' },
     { icon: Activity, label: 'Telemetry', path: '/telemetry' },
+    { icon: Guitar, label: 'Tabs', path: '/tabs' },
     { icon: Layers, label: 'Collections', path: '/playlists' },
     { icon: Star, label: 'Saved Transmissions', path: '/collection/tracks' },
     { icon: RadioReceiver, label: 'Comms Link', path: '/chat' },
@@ -97,7 +99,8 @@ const MainLayout = () => {
         <nav className="flex-1 px-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path
+              || (item.path !== '/' && location.pathname.startsWith(`${item.path}/`));
             return (
               <Link
                 key={item.path}

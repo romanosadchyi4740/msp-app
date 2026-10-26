@@ -35,6 +35,8 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (error.config?.suppressErrorToast) {
+      // The caller shows the error itself (e.g. a live preview while typing)
     } else if (status === 403) {
       // Permission Denied
       toast.error(`ACCESS_DENIED: ${errorMessage}`, { id: 'forbidden' });

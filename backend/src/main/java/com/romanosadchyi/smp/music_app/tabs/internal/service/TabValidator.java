@@ -41,9 +41,24 @@ public class TabValidator {
         if (!StringUtils.hasText(title)) {
             throw new IllegalArgumentException("Title is required");
         }
-        if (title.length() > MAX_TEXT_LENGTH || (artist != null && artist.length() > MAX_TEXT_LENGTH)) {
+        validateTextLengths(title, artist);
+        validateRhythm(tempoBpm, timeSignature);
+    }
+
+    /**
+     * Title and artist, both optional here, are at most 255 characters long.
+     */
+    public void validateTextLengths(String title, String artist) {
+        if ((title != null && title.length() > MAX_TEXT_LENGTH)
+                || (artist != null && artist.length() > MAX_TEXT_LENGTH)) {
             throw new IllegalArgumentException("Title and artist can be at most 255 characters long");
         }
+    }
+
+    /**
+     * The tempo and time signature, both optional.
+     */
+    public void validateRhythm(Integer tempoBpm, String timeSignature) {
         if (tempoBpm != null && tempoBpm <= 0) {
             throw new IllegalArgumentException("Tempo must be a positive number of beats per minute");
         }
