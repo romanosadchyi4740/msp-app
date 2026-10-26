@@ -12,6 +12,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -19,13 +20,20 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The tabs table against a real database: both formats in one table, the constraints of the migration, and what
- * account deletion does to tabs.
+ * Tabs against a real database: both formats in one table, the constraints of the migration, the REST API with its
+ * ownership and visibility rules, and what account deletion does to tabs.
  */
 @IntegrationTest
 class TabsModuleIntegrationTest {
@@ -106,6 +114,136 @@ class TabsModuleIntegrationTest {
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tabs WHERE owner_id = ?", Integer.class, user.id()))
                 .isZero();
         assertThat(tabRepository.findById(othersTab.getId())).isPresent();
+    }
+
+    @Test
+    void uploadGuitarPro_Valid_IsStoredAndServedThroughAUrl() throws Exception {
+        Registered owner = register();
+        MockMultipartFile file = new MockMultipartFile("file", "song.gp5", "application/octet-stream", new byte[]{1, 2, 3});
+
+        String response = mockMvc.perform(multipart("/api/tabs/upload").file(file)
+                        .param("title", "Song")
+                        .param("tempoBpm", "120")
+                        .param("timeSignature", "4/4")
+                        .param("isPublic", "true")
+                        .param("rightsConfirmed", "true")
+                        .header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.format").value("GUITAR_PRO"))
+                .andExpect(jsonPath("$.gpVersion").value("GP5"))
+                .andExpect(jsonPath("$.isPublic").value(true))
+                .andExpect(jsonPath("$.ownerName").value("Player"))
+                .andExpect(jsonPath("$.fileKey").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+        UUID tabId = UUID.fromString(JsonPath.read(response, "$.id"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT file_key FROM tabs WHERE id = ?", String.class, tabId))
+                .matches("tabs/[0-9a-f-]{36}\\.gp5");
+        mockMvc.perform(get("/api/tabs/" + tabId + "/url").header(HttpHeaders.AUTHORIZATION, register().bearer()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("tabs/")));
+    }
+
+    @Test
+    void uploadGuitarPro_WrongExtensionOrRightsNotConfirmed_IsBadRequest() throws Exception {
+        Registered owner = register();
+        MockMultipartFile pdf = new MockMultipartFile("file", "song.pdf", "application/pdf", new byte[]{1});
+        MockMultipartFile gp5 = new MockMultipartFile("file", "song.gp5", "application/octet-stream", new byte[]{1});
+
+        mockMvc.perform(multipart("/api/tabs/upload").file(pdf).param("title", "Song").param("rightsConfirmed", "true")
+                        .header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(multipart("/api/tabs/upload").file(gp5).param("title", "Song")
+                        .header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isBadRequest());
+        assertThat(tabRepository.findAllByOwnerId(owner.id())).isEmpty();
+    }
+
+    @Test
+    void asciiTab_OnlyTheOwnerChangesItAndOthersSeeItOnlyWhenPublic() throws Exception {
+        Registered owner = register();
+        Registered other = register();
+        UUID tabId = createAscii(owner, "Riff", false);
+        String update = """
+                {"title": "Riff 2", "tempoBpm": 100, "timeSignature": "6/8", "isPublic": true, "rawText": "B|---1---|"}
+                """;
+
+        mockMvc.perform(get("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, other.bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content(update))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content(update))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Riff 2"));
+        mockMvc.perform(get("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, other.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rawText").value("B|---1---|"))
+                .andExpect(jsonPath("$.timeSignature").value("6/8"));
+        mockMvc.perform(get("/api/tabs/" + tabId + "/url").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(delete("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/tabs/" + tabId).header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createAscii_RightsNotConfirmed_IsBadRequest() throws Exception {
+        Registered owner = register();
+
+        mockMvc.perform(post("/api/tabs").header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Riff\", \"rawText\": \"e|---0---|\", \"rightsConfirmed\": false}"))
+                .andExpect(status().isBadRequest());
+        assertThat(tabRepository.findAllByOwnerId(owner.id())).isEmpty();
+    }
+
+    @Test
+    void searchAndMyTabs_ListTheRightTabsWithoutText() throws Exception {
+        Registered owner = register();
+        String token = UUID.randomUUID().toString().substring(0, 8);
+        createAscii(owner, "Blues " + token, true);
+        createAscii(owner, token + " private", false);
+        UUID hiddenId = createAscii(owner, token + " hidden", true);
+        jdbcTemplate.update("UPDATE tabs SET hidden = TRUE WHERE id = ?", hiddenId);
+        createAscii(owner, token + "_x", true);
+
+        mockMvc.perform(get("/api/tabs/search").param("q", token.toUpperCase())
+                        .header(HttpHeaders.AUTHORIZATION, register().bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[1].title").value("Blues " + token))
+                .andExpect(jsonPath("$.content[1].rawText").value(nullValue()));
+        // Wildcards in the query match only themselves
+        mockMvc.perform(get("/api/tabs/search").param("q", token + "_").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value(token + "_x"));
+        mockMvc.perform(get("/api/tabs/search").param("q", token + "%").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+        mockMvc.perform(get("/api/tabs/my").header(HttpHeaders.AUTHORIZATION, owner.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[1].title").value(token + " hidden"))
+                .andExpect(jsonPath("$[1].hidden").value(true));
+    }
+
+    private UUID createAscii(Registered owner, String title, boolean isPublic) throws Exception {
+        String body = """
+                {"title": "%s", "rawText": "e|---0---|", "isPublic": %s, "rightsConfirmed": true}
+                """.formatted(title, isPublic);
+        String response = mockMvc.perform(post("/api/tabs").header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(JsonPath.read(response, "$.id"));
     }
 
     private String format(UUID tabId) {

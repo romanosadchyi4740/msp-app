@@ -7,6 +7,7 @@ import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
 import com.romanosadchyi.smp.music_app.tabs.internal.repository.TabRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -14,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,8 +42,10 @@ class TabsUserDataCleanupTest {
 
         cleanup.deleteUserData(userId);
 
-        verify(fileStorage).delete("tabs/song.gp5");
-        verify(tabRepository).deleteAll(tabs);
+        InOrder order = inOrder(tabRepository, fileStorage);
+        order.verify(tabRepository).deleteAll(tabs);
+        order.verify(tabRepository).flush();
+        order.verify(fileStorage).delete("tabs/song.gp5");
     }
 
     @Test
