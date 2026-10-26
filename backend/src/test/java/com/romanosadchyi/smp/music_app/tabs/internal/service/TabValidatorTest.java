@@ -4,10 +4,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class TabValidatorTest {
 
@@ -51,17 +58,63 @@ class TabValidatorTest {
     }
 
     @Test
-    void validateRawText_Blank_Rejects() {
+    void validateRawText_BlankOrTooLong_Rejects() {
         assertThatThrownBy(() -> validator.validateRawText(null)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> validator.validateRawText("  ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.validateRawText("-".repeat(TabValidator.MAX_RAW_TEXT_LENGTH + 1)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatCode(() -> validator.validateRawText("-".repeat(TabValidator.MAX_RAW_TEXT_LENGTH)))
+                .doesNotThrowAnyException();
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"song.gp", "song.GP5", "song.gpx"})
-    void validateGuitarProFile_SupportedExtension_ReturnsItInLowerCase(String filename) {
-        String extension = validator.validateGuitarProFile(new MockMultipartFile("file", filename, null, new byte[]{1}));
+    void validateGuitarProFile_SupportedExtensionAndMatchingContent_ReturnsTheExtensionInLowerCase(String filename) {
+        String expected = filename.substring(filename.indexOf('.') + 1).toLowerCase();
 
-        assertThat(extension).isEqualTo(filename.substring(filename.indexOf('.') + 1).toLowerCase());
+        String extension = validator.validateGuitarProFile(
+                new MockMultipartFile("file", filename, null, contentOf(expected)));
+
+        assertThat(extension).isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"song.gp", "song.gp5", "song.gpx"})
+    void validateGuitarProFile_ContentNotOfThatFormat_Rejects(String filename) {
+        MockMultipartFile file = new MockMultipartFile("file", filename, null, "%PDF-1.7".getBytes(US_ASCII));
+
+        assertThatThrownBy(() -> validator.validateGuitarProFile(file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("The file is not a valid .gp");
+    }
+
+    @Test
+    void validateGuitarProFile_UnreadableFile_FailsAsAServerError() throws IOException {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getSize()).thenReturn(10L);
+        when(file.getOriginalFilename()).thenReturn("song.gp5");
+        when(file.getBytes()).thenThrow(new IOException("disk"));
+
+        assertThatThrownBy(() -> validator.validateGuitarProFile(file))
+                .isInstanceOf(UncheckedIOException.class)
+                .hasMessage("The uploaded file could not be read");
+    }
+
+    /**
+     * The smallest content each format's signature check accepts.
+     */
+    private static byte[] contentOf(String extension) {
+        return switch (extension) {
+            case "gp5" -> {
+                byte[] version = "FICHIER GUITAR PRO v5.10".getBytes(US_ASCII);
+                byte[] content = new byte[version.length + 1];
+                content[0] = (byte) version.length;
+                System.arraycopy(version, 0, content, 1, version.length);
+                yield content;
+            }
+            case "gpx" -> "BCFZ".getBytes(US_ASCII);
+            default -> "PK\u0003\u0004 Content/score.gpif".getBytes(US_ASCII);
+        };
     }
 
     @ParameterizedTest

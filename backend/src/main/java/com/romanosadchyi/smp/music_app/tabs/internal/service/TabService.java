@@ -12,6 +12,7 @@ import com.romanosadchyi.smp.music_app.tabs.internal.entity.GuitarProTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
 import com.romanosadchyi.smp.music_app.tabs.internal.exception.TabNotFoundException;
 import com.romanosadchyi.smp.music_app.tabs.internal.mapping.TabMappingService;
+import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiTabParser;
 import com.romanosadchyi.smp.music_app.tabs.internal.repository.TabRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class TabService {
     TabRepository tabRepository;
     TabValidator tabValidator;
     TabMappingService tabMappingService;
+    AsciiTabParser asciiTabParser;
     FileStorage fileStorage;
 
     /**
@@ -72,6 +74,9 @@ public class TabService {
         return tabMappingService.map(tab);
     }
 
+    /**
+     * @throws IllegalArgumentException if the input is invalid or the text contains no tab
+     */
     @Transactional
     public TabResponse createAscii(UUID ownerId, AsciiTabCreateRequest request) {
         tabValidator.requireRightsConfirmed(request.getRightsConfirmed());
@@ -79,6 +84,7 @@ public class TabService {
         String artist = stripToNull(request.getArtist());
         tabValidator.validateMetadata(title, artist, request.getTempoBpm(), request.getTimeSignature());
         tabValidator.validateRawText(request.getRawText());
+        asciiTabParser.parse(request.getRawText());
 
         AsciiTab tab = tabRepository.save(AsciiTab.builder()
                 .ownerId(ownerId)
@@ -97,8 +103,8 @@ public class TabService {
     /**
      * @throws TabNotFoundException       if there is no such tab
      * @throws UserNotAuthorizedException if the tab is someone else's
-     * @throws IllegalArgumentException   if the metadata is invalid, an ASCII tab has no text or a Guitar Pro tab
-     *                                    is sent text
+     * @throws IllegalArgumentException   if the metadata is invalid, an ASCII tab has no text or text that is not
+     *                                    a tab, or a Guitar Pro tab is sent text
      */
     @Transactional
     public TabResponse update(UUID userId, UUID tabId, TabUpdateRequest request) {
@@ -108,6 +114,7 @@ public class TabService {
         tabValidator.validateMetadata(title, artist, request.getTempoBpm(), request.getTimeSignature());
         if (tab instanceof AsciiTab asciiTab) {
             tabValidator.validateRawText(request.getRawText());
+            asciiTabParser.parse(request.getRawText());
             asciiTab.setRawText(request.getRawText());
         } else if (request.getRawText() != null) {
             throw new IllegalArgumentException("A Guitar Pro tab has no text to change");

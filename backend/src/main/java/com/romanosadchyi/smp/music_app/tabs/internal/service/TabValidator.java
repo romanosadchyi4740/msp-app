@@ -1,9 +1,12 @@
 package com.romanosadchyi.smp.music_app.tabs.internal.service;
 
+import com.romanosadchyi.smp.music_app.tabs.internal.parsing.GuitarProSignature;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -17,6 +20,7 @@ public class TabValidator {
     static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
     static final Set<String> GUITAR_PRO_EXTENSIONS = Set.of("gp", "gp5", "gpx");
     static final int MAX_TEXT_LENGTH = 255;
+    static final int MAX_RAW_TEXT_LENGTH = 100_000;
 
     /**
      * Beats per measure, then a note value that is a power of two: {@code 4/4}, {@code 6/8}, {@code 12/16}.
@@ -48,13 +52,21 @@ public class TabValidator {
         }
     }
 
+    /**
+     * Only checks presence and size; whether the text is a tab is decided by parsing it.
+     */
     public void validateRawText(String rawText) {
         if (!StringUtils.hasText(rawText)) {
             throw new IllegalArgumentException("Tab text is required");
         }
+        if (rawText.length() > MAX_RAW_TEXT_LENGTH) {
+            throw new IllegalArgumentException("Tab text can be at most 100000 characters long");
+        }
     }
 
     /**
+     * Checks size, extension and that the content is the Guitar Pro format the extension names.
+     *
      * @return the file's extension in lower case, which names the Guitar Pro version
      */
     public String validateGuitarProFile(MultipartFile file) {
@@ -69,6 +81,20 @@ public class TabValidator {
         if (!GUITAR_PRO_EXTENSIONS.contains(normalized)) {
             throw new IllegalArgumentException("Only Guitar Pro files (.gp, .gp5, .gpx) can be uploaded");
         }
+        if (!GuitarProSignature.matches(normalized, readContent(file))) {
+            throw new IllegalArgumentException("The file is not a valid ." + normalized + " Guitar Pro file");
+        }
         return normalized;
+    }
+
+    /**
+     * A read failure is the server's, not the client's, so it is not a 400.
+     */
+    private static byte[] readContent(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException("The uploaded file could not be read", e);
+        }
     }
 }
