@@ -217,7 +217,7 @@ public class TabService {
 
     private Tab getReadableTab(UUID userId, UUID tabId) {
         return tabRepository.findById(tabId)
-                .filter(tab -> tab.getOwnerId().equals(userId) || (tab.isPublic() && !tab.isHidden()))
+                .filter(tab -> TabVisibility.isReadableBy(tab, userId))
                 .orElseThrow(() -> new TabNotFoundException("Tab not found"));
     }
 }

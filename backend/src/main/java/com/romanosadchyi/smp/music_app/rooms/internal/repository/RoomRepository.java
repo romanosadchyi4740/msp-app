@@ -24,6 +24,14 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
     @Query("SELECT r FROM Room r WHERE r.inviteCode = :inviteCode")
     Optional<Room> findByInviteCodeForUpdate(@Param("inviteCode") String inviteCode);
 
+    /**
+     * The room with its row locked until the transaction ends, so starting, ending and closing a lesson in one room
+     * happen one after another.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Room r WHERE r.id = :id")
+    Optional<Room> findByIdForUpdate(@Param("id") UUID id);
+
     boolean existsByInviteCode(String inviteCode);
 
     List<Room> findAllByHostId(UUID hostId);

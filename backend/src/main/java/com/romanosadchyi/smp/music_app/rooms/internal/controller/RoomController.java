@@ -70,4 +70,11 @@ public class RoomController implements RoomsApi {
         log.info("User {} regenerating the invite of room {}", userId, id);
         return ResponseEntity.ok(roomService.regenerateInvite(userId, id));
     }
+
+    @Override
+    public ResponseEntity<RoomResponse> closeRoom(UUID id) {
+        UUID userId = CurrentUser.get().id();
+        log.info("User {} closing room {}", userId, id);
+        return ResponseEntity.ok(roomService.close(userId, id));
+    }
 }

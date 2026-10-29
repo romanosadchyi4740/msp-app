@@ -24,6 +24,10 @@ app:
 data-seeder:
   enabled: false
 
+# Scheduled jobs (lesson limit) would race the integration tests on the real clock; tests call them directly
+scheduling:
+  enabled: false
+
 # Statement counts for the N+1 checks in the module integration tests
 spring:
   jpa:

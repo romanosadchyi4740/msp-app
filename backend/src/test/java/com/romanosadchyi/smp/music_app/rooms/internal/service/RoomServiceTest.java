@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateReques
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.entity.LessonEndReason;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.Room;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomParticipant;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomRole;
@@ -61,6 +62,9 @@ class RoomServiceTest {
 
     @Mock
     UserLookup userLookup;
+
+    @Mock
+    LessonService lessonService;
 
     @InjectMocks
     RoomService roomService;
@@ -255,6 +259,57 @@ class RoomServiceTest {
 
         assertThatThrownBy(() -> roomService.regenerateInvite(userId, roomId))
                 .isInstanceOf(RoomNotFoundException.class);
+    }
+
+    @Test
+    void close_Host_ClosesUnderTheLockAndEndsTheLesson() {
+        Room room = room(RoomStatus.OPEN);
+        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
+        when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
+                .thenReturn(Optional.of(participant(room, hostId, RoomRole.HOST)));
+        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
+
+        assertThat(roomService.close(hostId, roomId)).isSameAs(response);
+        assertThat(room.getStatus()).isEqualTo(RoomStatus.CLOSED);
+        verify(roomRepository).save(room);
+        verify(lessonService).endActiveLesson(roomId, LessonEndReason.ROOM_CLOSED);
+    }
+
+    @Test
+    void close_AlreadyClosed_ChangesNothing() {
+        Room room = room(RoomStatus.CLOSED);
+        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
+        when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
+                .thenReturn(Optional.of(participant(room, hostId, RoomRole.HOST)));
+        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
+
+        assertThat(roomService.close(hostId, roomId)).isSameAs(response);
+        verify(roomRepository, never()).save(any());
+        verifyNoInteractions(lessonService);
+    }
+
+    @Test
+    void close_Participant_IsForbidden() {
+        Room room = room(RoomStatus.OPEN);
+        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
+        when(participantRepository.findByRoomIdAndUserId(roomId, userId))
+                .thenReturn(Optional.of(participant(room, userId, RoomRole.PARTICIPANT)));
+
+        assertThatThrownBy(() -> roomService.close(userId, roomId)).isInstanceOf(UserNotAuthorizedException.class);
+        assertThat(room.getStatus()).isEqualTo(RoomStatus.OPEN);
+        verifyNoInteractions(lessonService);
+    }
+
+    @Test
+    void close_NotAParticipantOrNoRoom_IsNotFound() {
+        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room(RoomStatus.OPEN)));
+        when(participantRepository.findByRoomIdAndUserId(roomId, userId)).thenReturn(Optional.empty());
+        UUID missingRoomId = UUID.randomUUID();
+        when(roomRepository.findByIdForUpdate(missingRoomId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> roomService.close(userId, roomId)).isInstanceOf(RoomNotFoundException.class);
+        assertThatThrownBy(() -> roomService.close(hostId, missingRoomId)).isInstanceOf(RoomNotFoundException.class);
+        verifyNoInteractions(lessonService);
     }
 
     @Test
