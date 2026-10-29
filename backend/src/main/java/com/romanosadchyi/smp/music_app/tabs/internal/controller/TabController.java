@@ -3,6 +3,8 @@ package com.romanosadchyi.smp.music_app.tabs.internal.controller;
 import com.romanosadchyi.smp.music_app.shared.security.CurrentUser;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.TabsApi;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabCreateRequest;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreview;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreviewRequest;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabPage;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabResponse;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabUpdateRequest;
@@ -48,6 +50,11 @@ public class TabController implements TabsApi {
         UUID userId = CurrentUser.get().id();
         log.info("Creating ASCII tab for user: {}", userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(tabService.createAscii(userId, request));
+    }
+
+    @Override
+    public ResponseEntity<AsciiTabPreview> previewAsciiTab(AsciiTabPreviewRequest request) {
+        return ResponseEntity.ok(tabService.previewAscii(request));
     }
 
     @Override

@@ -3,6 +3,8 @@ package com.romanosadchyi.smp.music_app.tabs.internal.service;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabCreateRequest;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreview;
+import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreviewRequest;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabPage;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabResponse;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.TabUpdateRequest;
@@ -12,7 +14,9 @@ import com.romanosadchyi.smp.music_app.tabs.internal.entity.GuitarProTab;
 import com.romanosadchyi.smp.music_app.tabs.internal.entity.Tab;
 import com.romanosadchyi.smp.music_app.tabs.internal.exception.TabNotFoundException;
 import com.romanosadchyi.smp.music_app.tabs.internal.mapping.TabMappingService;
+import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AlphaTexWriter;
 import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiTabParser;
+import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiTabScore;
 import com.romanosadchyi.smp.music_app.tabs.internal.repository.TabRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +49,7 @@ public class TabService {
     TabValidator tabValidator;
     TabMappingService tabMappingService;
     AsciiTabParser asciiTabParser;
+    AlphaTexWriter alphaTexWriter;
     FileStorage fileStorage;
 
     /**
@@ -140,6 +145,22 @@ public class TabService {
             fileStorage.delete(guitarProTab.getFileKey());
         }
         log.info("User {} deleted tab {}", userId, tabId);
+    }
+
+    /**
+     * The alphaTex of ASCII tab text, for the editor's preview; nothing is stored.
+     *
+     * @throws IllegalArgumentException if the text is missing, too long or not a tab, or the rhythm is invalid
+     */
+    public AsciiTabPreview previewAscii(AsciiTabPreviewRequest request) {
+        String title = stripToNull(request.getTitle());
+        String artist = stripToNull(request.getArtist());
+        tabValidator.validateRawText(request.getRawText());
+        tabValidator.validateTextLengths(title, artist);
+        tabValidator.validateRhythm(request.getTempoBpm(), request.getTimeSignature());
+        AsciiTabScore score = asciiTabParser.parse(request.getRawText());
+        String alphaTex = alphaTexWriter.write(score, title, artist, request.getTempoBpm(), request.getTimeSignature());
+        return new AsciiTabPreview(alphaTex, score.measures().size());
     }
 
     @Transactional(readOnly = true)

@@ -50,6 +50,23 @@ class TabValidatorTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void validateRhythm_TempoNotPositiveOrMalformedTimeSignature_Rejects() {
+        assertThatThrownBy(() -> validator.validateRhythm(-1, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.validateRhythm(null, "3")).isInstanceOf(IllegalArgumentException.class);
+        assertThatCode(() -> validator.validateRhythm(null, null)).doesNotThrowAnyException();
+        assertThatCode(() -> validator.validateRhythm(60, "12/8")).doesNotThrowAnyException();
+    }
+
+    @Test
+    void validateTextLengths_TooLong_RejectsAndMissingIsFine() {
+        assertThatThrownBy(() -> validator.validateTextLengths("a".repeat(256), null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.validateTextLengths(null, "a".repeat(256)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatCode(() -> validator.validateTextLengths(null, null)).doesNotThrowAnyException();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"4", "4/3", "0/4", "4/4/4", "four/four", "4/ 4"})
     void validateMetadata_MalformedTimeSignature_Rejects(String timeSignature) {

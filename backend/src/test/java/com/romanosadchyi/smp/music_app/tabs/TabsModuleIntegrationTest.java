@@ -200,6 +200,24 @@ class TabsModuleIntegrationTest {
     }
 
     @Test
+    void previewAscii_TabOrNot_AnswersAlphaTexOrBadRequestAndStoresNothing() throws Exception {
+        Registered owner = register();
+
+        mockMvc.perform(post("/api/tabs/preview").header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rawText\": \"%s\", \"timeSignature\": \"3/4\"}".formatted(json(RIFF))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.measureCount").value(1))
+                .andExpect(jsonPath("$.alphaTex").value(containsString("\\ts (3 4) :2 (0.1 1.2 0.3 2.4 3.5) |")));
+        mockMvc.perform(post("/api/tabs/preview").header(HttpHeaders.AUTHORIZATION, owner.bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rawText\": \"la la la\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(startsWith("No tab found")));
+        assertThat(tabRepository.findAllByOwnerId(owner.id())).isEmpty();
+    }
+
+    @Test
     void getTab_AsciiTab_CarriesItsAlphaTex() throws Exception {
         Registered owner = register();
         UUID tabId = createAscii(owner, "Riff", false);
