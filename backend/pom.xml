@@ -214,6 +214,17 @@
 							<modelPackage>com.romanosadchyi.smp.music_app.tabs.internal.api.model</modelPackage>
 						</configuration>
 					</execution>
+					<execution>
+						<id>generate-rooms-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/rooms.yaml</inputSpec>
+							<apiPackage>com.romanosadchyi.smp.music_app.rooms.internal.api</apiPackage>
+							<modelPackage>com.romanosadchyi.smp.music_app.rooms.internal.api.model</modelPackage>
+						</configuration>
+					</execution>
 				</executions>
 				<configuration>
 					<generatorName>spring</generatorName>

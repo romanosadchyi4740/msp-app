@@ -1,0 +1,282 @@
+openapi: 3.0.3
+info:
+  title: SyncChord rooms API
+  description: |
+    Rooms for live lessons (KAN-34, UR-1, FR-5). Every endpoint needs a JWT. The creator of a room is its host; others
+    join with the room's invite code. A room holds the host and up to 4 participants, and a closed room takes no new
+    participants. A room is readable only by its participants; anyone else gets 404. Input is checked by the service,
+    so schemas carry no validation constraints.
+
+    A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
+    that response comes from Spring Security and has no ErrorResponse body.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: Rooms
+paths:
+  /api/rooms:
+    post:
+      tags: [Rooms]
+      operationId: createRoom
+      summary: Create a room; the current user becomes its host
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomCreateRequest'
+      responses:
+        '201':
+          description: The created room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/rooms/my:
+    get:
+      tags: [Rooms]
+      operationId: getMyRooms
+      summary: The rooms the current user takes part in, most recently joined first
+      responses:
+        '200':
+          description: The rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoomListItem'
+  /api/rooms/invite/{code}:
+    parameters:
+      - $ref: '#/components/parameters/InviteCode'
+    get:
+      tags: [Rooms]
+      operationId: getRoomPreview
+      summary: What an invite leads to, shown before joining
+      responses:
+        '200':
+          description: The room's preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomPreview'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/join/{code}:
+    parameters:
+      - $ref: '#/components/parameters/InviteCode'
+    post:
+      tags: [Rooms]
+      operationId: joinRoom
+      summary: Join a room by its invite code; joining a room the user is already in changes nothing
+      responses:
+        '200':
+          description: The joined room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The room is full or closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [Rooms]
+      operationId: getRoom
+      summary: A room with its participants
+      responses:
+        '200':
+          description: The room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/invite:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: regenerateInvite
+      summary: Replace the room's invite code, so the old link stops working; host only
+      responses:
+        '200':
+          description: The room with its new invite code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '403':
+          description: The user is a participant but not the host
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The room is closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RoomId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InviteCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: No such room, or one the user does not take part in
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RoomStatus:
+      type: string
+      enum: [OPEN, CLOSED]
+    RoomRole:
+      type: string
+      enum: [HOST, PARTICIPANT]
+    RoomCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Required, at most 100 characters.
+    RoomResponse:
+      type: object
+      required: [id, name, hostId, status, capacity, myRole, participants, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hostId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/RoomStatus'
+        capacity:
+          type: integer
+          description: The most participants the room holds, the host included.
+        inviteCode:
+          type: string
+          description: Set only for the host.
+        myRole:
+          $ref: '#/components/schemas/RoomRole'
+        participants:
+          type: array
+          description: In the order they joined, the host first.
+          items:
+            $ref: '#/components/schemas/ParticipantResponse'
+        createdAt:
+          type: string
+          format: date-time
+    ParticipantResponse:
+      type: object
+      required: [userId, role, joinedAt, online]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          $ref: '#/components/schemas/RoomRole'
+        joinedAt:
+          type: string
+          format: date-time
+        online:
+          type: boolean
+    RoomPreview:
+      type: object
+      required: [id, name, status, participantCount, capacity, full]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hostName:
+          type: string
+        status:
+          $ref: '#/components/schemas/RoomStatus'
+        participantCount:
+          type: integer
+        capacity:
+          type: integer
+        full:
+          type: boolean
+    RoomListItem:
+      type: object
+      required: [id, name, hostId, status, myRole, participantCount, capacity, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hostId:
+          type: string
+          format: uuid
+        hostName:
+          type: string
+        status:
+          $ref: '#/components/schemas/RoomStatus'
+        myRole:
+          $ref: '#/components/schemas/RoomRole'
+        participantCount:
+          type: integer
+        capacity:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      description: The error body of every endpoint, from GlobalExceptionHandler.
+      properties:
+        code:
+          type: string
+          example: 404 NOT_FOUND
+        message:
+          type: string
