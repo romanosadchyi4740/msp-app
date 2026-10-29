@@ -30,6 +30,18 @@ The owner reviews and merges every PR. Move the Jira ticket with the work, never
 - Follow CLAUDE.md. Before each commit run, from `backend/`: `./mvnw test` (Docker must be running for the
   Testcontainers integration tests), and from the repo root:
   `python .claude/scripts/java/java_style.py $(git diff --name-only --diff-filter=AMR development -- '*.java')`.
+- Test totals for the PR come from the surefire reports, not from scrolling the log (PowerShell, from `backend/`):
+  `$t=0;$f=0;$e=0;$s=0; Get-ChildItem target/surefire-reports/TEST-*.xml | % { [xml]$x = Get-Content $_; $n=$x.testsuite; $t+=[int]$n.tests; $f+=[int]$n.failures; $e+=[int]$n.errors; $s+=[int]$n.skipped }; "$t run, $f failures, $e errors, $s skipped"`.
+- Frontend changes: from `frontend/`, `npm run build`, and `npx eslint <changed files>` must be clean.
+  `npm run lint` on the whole tree already fails on `development` (23 problems before KAN-92); report its total and
+  make sure it did not grow. Visible changes are checked in the browser with the `browser-check` skill; new REST
+  endpoints follow the `contract-first-api` skill.
+- Windows shell pitfalls:
+  - Text containing backslashes (Java string escapes, `ESCAPE '\\'`, regexes, JS) is written with the Edit/Write
+    tools. Python heredocs and Bash `echo`/`sed` have mangled them several times. In JS checks run with Node, use
+    `String.raw` for text with backslashes.
+  - Commit messages and PR bodies always go through a file in the scratchpad (`git commit -F <file>`,
+    `gh pr create --body-file <file>`); PowerShell 5.1 splits inline messages that contain quotes into pathspecs.
 - Re-run the full test suite right before committing. The owner's IDE may save stale copies of files you edited;
   if a file you changed is suddenly different or broken, check `git diff` and the file times, tell the owner, and
   restore your version.
@@ -43,6 +55,10 @@ The owner reviews and merges every PR. Move the Jira ticket with the work, never
 - `git push -u origin <branch>`.
 
 ## 4. Open the PR
+Before opening (and before pushing more commits into an open PR), run the `code-reviewer` agent on the branch, fix
+what it finds or say in the PR why not, then re-run the tests and, for frontend changes, the browser check: fixes
+from the review have broken rendering before.
+
 `gh pr create --base development --title "KAN-<n>: <summary>" --body-file -` with this layout:
 
 ```markdown
@@ -66,7 +82,10 @@ When more commits go into an open PR, push them and update the PR body (`gh pr v
 edit, `gh pr edit <n> --body-file <file>`) so the test count and sections stay true.
 
 ## 5. After the owner merges
-1. `gh pr view <n> --json state,mergeCommit -q '.state+" "+.mergeCommit.oid'` and confirm `MERGED`.
+1. `gh pr view <n> --json state,mergeCommit -q '.state+" "+.mergeCommit.oid'` and confirm `MERGED`. If you do not
+   know the PR number, find it with `gh pr list --state all --head <branch>`. No PR at all, or one still open,
+   means the ticket is not done: tell the owner, and if the branch holds finished work, check it against the ticket,
+   push it and open the PR (4) instead of closing the ticket (KAN-75 was reported merged without a PR).
 2. Comment on the ticket: `Merged: <PR url> (into development as <short sha>).` plus 3-7 bullets of what landed,
    bugs fixed on the way, and follow-up tickets.
 3. Transition to Done (`41`).

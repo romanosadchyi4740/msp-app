@@ -71,7 +71,7 @@ cd backend && ./mvnw -Dtest=ArchitectureTest test   # module boundaries (Spring 
 cd backend && ./mvnw -Dtest=ChatServiceTest test
 cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
-cd frontend && npm run lint && npm run build # there is no frontend test runner yet
+cd frontend && npm run lint; npm run build  # no frontend test runner yet; lint has 23 pre-existing problems
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
@@ -319,7 +319,8 @@ and `RoomParticipant.rttMs`.
   starting, In Review when the PR is opened, Done after the merge.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
 - Project skills in `.claude/skills/`: `kan-ticket` (ticket, branch, PR and Jira workflow), `modulith-extract`
-  (extracting a module), `split-service` (splitting an oversized service). Their Java helpers are in
+  (extracting a module), `split-service` (splitting an oversized service), `contract-first-api` (adding a REST
+  endpoint from an OpenAPI spec), `browser-check` (running the app and checking a frontend change in Chrome). Their Java helpers are in
   `.claude/scripts/java/` (`java_style.py --check` checks the mechanical style rules of section 4).
 - Project agents in `.claude/agents/`: `code-reviewer` (read-only review of the branch against these rules; run it
   before opening or updating a PR) and `test-gap-finder` (lists untested branches; writes tests under
