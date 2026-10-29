@@ -16,6 +16,7 @@ security:
   - bearerAuth: []
 tags:
   - name: Rooms
+  - name: Lessons
 paths:
   /api/rooms:
     post:
@@ -133,6 +134,136 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: closeRoom
+      summary: Close the room and end its lesson; host only. Closing a closed room changes nothing
+      responses:
+        '200':
+          description: The closed room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/sessions:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Lessons]
+      operationId: startLesson
+      summary: Start a lesson with a tab; host only (KAN-35)
+      description: |
+        The tab must be the host's own or a public one. Playback starts stopped at the tab's tempo (120 BPM if the
+        tab has none). Without Premium the lesson ends after 40 minutes, with a warning 5 minutes before; the events
+        go to `/topic/rooms/{id}/state`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonTabRequest'
+      responses:
+        '201':
+          description: The started lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, or a tab the host may not read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The room is closed or already has an active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/sessions/current:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [Lessons]
+      operationId: getCurrentLesson
+      summary: The room's active lesson
+      responses:
+        '200':
+          description: The active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '404':
+          description: No such room, one the user does not take part in, or no active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/sessions/current/tab:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    put:
+      tags: [Lessons]
+      operationId: changeLessonTab
+      summary: Put another tab on screen; playback starts over, stopped, at the new tab's tempo; host only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonTabRequest'
+      responses:
+        '200':
+          description: The lesson with its new tab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, no active lesson, or a tab the host may not read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/sessions/current/end:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Lessons]
+      operationId: endLesson
+      summary: End the active lesson; host only
+      responses:
+        '200':
+          description: The ended lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, or no active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -162,6 +293,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: No such room, or one the user does not take part in
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotHost:
+      description: The user is a participant but not the host
       content:
         application/json:
           schema:
@@ -271,6 +408,46 @@ components:
         createdAt:
           type: string
           format: date-time
+    LessonTabRequest:
+      type: object
+      properties:
+        tabId:
+          type: string
+          format: uuid
+          description: Required; the host's own tab or a public one.
+    LessonEndReason:
+      type: string
+      enum: [HOST_ENDED, LIMIT_REACHED, ROOM_CLOSED]
+    LessonResponse:
+      type: object
+      required: [id, roomId, startedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        tabId:
+          type: string
+          format: uuid
+          description: Missing once the tab is deleted.
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+          description: Set once the lesson has ended.
+        limitMinutes:
+          type: integer
+          description: The lesson's length limit; missing for no limit (Premium).
+        endsAt:
+          type: string
+          format: date-time
+          description: When the limit ends the lesson; missing for no limit.
+        endReason:
+          $ref: '#/components/schemas/LessonEndReason'
     ErrorResponse:
       type: object
       description: The error body of every endpoint, from GlobalExceptionHandler.

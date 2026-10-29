@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateReques
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.entity.LessonEndReason;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.Room;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomParticipant;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomRole;
@@ -31,7 +32,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Creating rooms, invite codes and joining (FR-5). A room is readable only by its participants; to anyone else it
+ * Creating rooms, invite codes, joining (FR-5) and closing. A room is readable only by its participants; to anyone else it
  * answers as not found, so room ids reveal nothing. Joins lock the room's row, so the capacity holds under concurrent
  * joins.
  */
@@ -53,6 +54,7 @@ public class RoomService {
     InviteCodeGenerator inviteCodeGenerator;
     RoomMappingService roomMappingService;
     UserLookup userLookup;
+    LessonService lessonService;
 
     /**
      * @throws UserNotFoundException    if the account is deleted
@@ -105,6 +107,29 @@ public class RoomService {
         room.setInviteCode(newInviteCode());
         roomRepository.save(room);
         log.info("User {} regenerated the invite code of room {}", userId, roomId);
+        return mapRoom(room, userId);
+    }
+
+    /**
+     * Closes the room, so nobody can join it any more, and ends its active lesson. Closing a closed room changes
+     * nothing. The room's row stays locked until the commit, so a lesson cannot start meanwhile.
+     *
+     * @throws RoomNotFoundException      if there is no such room or the user is not in it
+     * @throws UserNotAuthorizedException if the user is not the host
+     */
+    @Transactional
+    public RoomResponse close(UUID userId, UUID roomId) {
+        Room room = roomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new RoomNotFoundException("Room not found"));
+        if (getParticipant(userId, roomId).getRole() != RoomRole.HOST) {
+            throw new UserNotAuthorizedException("Only the host can close the room");
+        }
+        if (room.getStatus() != RoomStatus.CLOSED) {
+            room.setStatus(RoomStatus.CLOSED);
+            roomRepository.save(room);
+            lessonService.endActiveLesson(roomId, LessonEndReason.ROOM_CLOSED);
+            log.info("User {} closed room {}", userId, roomId);
+        }
         return mapRoom(room, userId);
     }
 
