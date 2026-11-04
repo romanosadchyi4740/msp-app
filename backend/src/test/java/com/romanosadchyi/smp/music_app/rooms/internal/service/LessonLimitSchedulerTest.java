@@ -17,7 +17,7 @@ import static org.mockito.Mockito.when;
 class LessonLimitSchedulerTest {
 
     @Mock
-    LessonService lessonService;
+    LessonLimitService lessonLimitService;
 
     @InjectMocks
     LessonLimitScheduler lessonLimitScheduler;
@@ -26,12 +26,12 @@ class LessonLimitSchedulerTest {
     void checkLimits_ChecksEveryDueRoom_EvenAfterOneFails() {
         UUID failing = UUID.randomUUID();
         UUID next = UUID.randomUUID();
-        when(lessonService.findRoomsDueForLimitCheck()).thenReturn(List.of(failing, next));
-        doThrow(new IllegalStateException("boom")).when(lessonService).checkLimit(failing);
+        when(lessonLimitService.findRoomsDueForLimitCheck()).thenReturn(List.of(failing, next));
+        doThrow(new IllegalStateException("boom")).when(lessonLimitService).checkLimit(failing);
 
         lessonLimitScheduler.checkLimits();
 
-        verify(lessonService).checkLimit(failing);
-        verify(lessonService).checkLimit(next);
+        verify(lessonLimitService).checkLimit(failing);
+        verify(lessonLimitService).checkLimit(next);
     }
 }

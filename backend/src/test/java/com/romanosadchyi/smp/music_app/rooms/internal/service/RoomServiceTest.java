@@ -2,29 +2,22 @@ package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateRequest;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
-import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
-import com.romanosadchyi.smp.music_app.rooms.internal.entity.LessonEndReason;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.Room;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomParticipant;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomRole;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomStatus;
-import com.romanosadchyi.smp.music_app.rooms.internal.exception.RoomClosedException;
-import com.romanosadchyi.smp.music_app.rooms.internal.exception.RoomFullException;
 import com.romanosadchyi.smp.music_app.rooms.internal.exception.RoomNotFoundException;
 import com.romanosadchyi.smp.music_app.rooms.internal.mapping.RoomMappingService;
 import com.romanosadchyi.smp.music_app.rooms.internal.repository.RoomParticipantCount;
 import com.romanosadchyi.smp.music_app.rooms.internal.repository.RoomParticipantRepository;
 import com.romanosadchyi.smp.music_app.rooms.internal.repository.RoomRepository;
-import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,7 +29,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -45,6 +37,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+/**
+ * With the real {@link RoomAccess} and {@link InviteCodes} built from the mocks, so the checks run as in production.
+ */
 @ExtendWith(MockitoExtension.class)
 class RoomServiceTest {
 
@@ -55,18 +50,14 @@ class RoomServiceTest {
     RoomParticipantRepository participantRepository;
 
     @Mock
-    InviteCodeGenerator inviteCodeGenerator;
-
-    @Mock
     RoomMappingService roomMappingService;
 
     @Mock
     UserLookup userLookup;
 
     @Mock
-    LessonService lessonService;
+    InviteCodeGenerator inviteCodeGenerator;
 
-    @InjectMocks
     RoomService roomService;
 
     UUID hostId = UUID.randomUUID();
@@ -75,8 +66,11 @@ class RoomServiceTest {
     RoomResponse response = new RoomResponse();
 
     @BeforeEach
-    void usersExist() {
+    void setUp() {
         lenient().when(userLookup.exists(any())).thenReturn(true);
+        RoomAccess roomAccess = new RoomAccess(roomRepository, participantRepository, userLookup);
+        roomService = new RoomService(roomRepository, participantRepository,
+                new InviteCodes(inviteCodeGenerator, roomRepository), roomAccess, roomMappingService);
     }
 
     @Test
@@ -144,172 +138,8 @@ class RoomServiceTest {
 
         assertThatThrownBy(() -> roomService.create(hostId, new RoomCreateRequest().name("Lesson")))
                 .isInstanceOf(IllegalStateException.class);
-        verify(inviteCodeGenerator, times(RoomService.MAX_INVITE_CODE_ATTEMPTS)).generate();
+        verify(inviteCodeGenerator, times(InviteCodes.MAX_ATTEMPTS)).generate();
         verify(roomRepository, never()).save(any());
-    }
-
-    @Test
-    void join_NewUserInOpenRoomWithAFreePlace_AddsAParticipantUnderTheLock() {
-        Room room = room(RoomStatus.OPEN);
-        when(roomRepository.findByInviteCodeForUpdate("code")).thenReturn(Optional.of(room));
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId)).thenReturn(Optional.empty());
-        when(participantRepository.countByRoomId(roomId)).thenReturn(4L);
-        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
-
-        RoomResponse result = roomService.join(userId, "code");
-
-        ArgumentCaptor<RoomParticipant> participant = ArgumentCaptor.forClass(RoomParticipant.class);
-        InOrder order = inOrder(roomRepository, participantRepository);
-        order.verify(roomRepository).findByInviteCodeForUpdate("code");
-        order.verify(participantRepository).save(participant.capture());
-        assertThat(participant.getValue().getUserId()).isEqualTo(userId);
-        assertThat(participant.getValue().getRole()).isEqualTo(RoomRole.PARTICIPANT);
-        assertThat(participant.getValue().getRoom()).isSameAs(room);
-        verify(roomRepository, never()).findByInviteCode(any());
-        assertThat(result).isSameAs(response);
-    }
-
-    @Test
-    void join_FullRoom_IsRejectedWithRoomFull() {
-        when(roomRepository.findByInviteCodeForUpdate("code")).thenReturn(Optional.of(room(RoomStatus.OPEN)));
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId)).thenReturn(Optional.empty());
-        when(participantRepository.countByRoomId(roomId)).thenReturn(5L);
-
-        assertThatThrownBy(() -> roomService.join(userId, "code"))
-                .isInstanceOf(RoomFullException.class)
-                .hasMessage("The room is full");
-        verify(participantRepository, never()).save(any());
-    }
-
-    @Test
-    void join_UserAlreadyInFullRoom_AddsNothingAndSucceeds() {
-        Room room = room(RoomStatus.OPEN);
-        when(roomRepository.findByInviteCodeForUpdate("code")).thenReturn(Optional.of(room));
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId))
-                .thenReturn(Optional.of(participant(room, userId, RoomRole.PARTICIPANT)));
-        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
-
-        assertThat(roomService.join(userId, "code")).isSameAs(response);
-        verify(participantRepository, never()).countByRoomId(any());
-        verify(participantRepository, never()).save(any());
-    }
-
-    @Test
-    void join_ClosedRoom_IsRejected() {
-        when(roomRepository.findByInviteCodeForUpdate("code")).thenReturn(Optional.of(room(RoomStatus.CLOSED)));
-
-        assertThatThrownBy(() -> roomService.join(userId, "code")).isInstanceOf(RoomClosedException.class);
-        verify(participantRepository, never()).save(any());
-    }
-
-    @Test
-    void join_DeletedAccount_IsRejectedBeforeLockingTheRoom() {
-        when(userLookup.exists(userId)).thenReturn(false);
-
-        assertThatThrownBy(() -> roomService.join(userId, "code")).isInstanceOf(UserNotFoundException.class);
-        verifyNoInteractions(roomRepository, participantRepository);
-    }
-
-    @Test
-    void join_UnknownCode_IsNotFound() {
-        when(roomRepository.findByInviteCodeForUpdate("nope")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> roomService.join(userId, "nope")).isInstanceOf(RoomNotFoundException.class);
-    }
-
-    @Test
-    void regenerateInvite_Host_ReplacesTheCode() {
-        Room room = room(RoomStatus.OPEN);
-        when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
-                .thenReturn(Optional.of(participant(room, hostId, RoomRole.HOST)));
-        when(inviteCodeGenerator.generate()).thenReturn("NewCode00000");
-        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
-
-        assertThat(roomService.regenerateInvite(hostId, roomId)).isSameAs(response);
-        assertThat(room.getInviteCode()).isEqualTo("NewCode00000");
-        verify(roomRepository).save(room);
-    }
-
-    @Test
-    void regenerateInvite_Participant_IsForbidden() {
-        Room room = room(RoomStatus.OPEN);
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId))
-                .thenReturn(Optional.of(participant(room, userId, RoomRole.PARTICIPANT)));
-
-        assertThatThrownBy(() -> roomService.regenerateInvite(userId, roomId))
-                .isInstanceOf(UserNotAuthorizedException.class);
-        assertThat(room.getInviteCode()).isEqualTo("OldCode00000");
-        verifyNoInteractions(inviteCodeGenerator);
-    }
-
-    @Test
-    void regenerateInvite_ClosedRoom_IsRejected() {
-        Room room = room(RoomStatus.CLOSED);
-        when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
-                .thenReturn(Optional.of(participant(room, hostId, RoomRole.HOST)));
-
-        assertThatThrownBy(() -> roomService.regenerateInvite(hostId, roomId))
-                .isInstanceOf(RoomClosedException.class);
-        verifyNoInteractions(inviteCodeGenerator);
-    }
-
-    @Test
-    void regenerateInvite_NotAParticipant_IsNotFound() {
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> roomService.regenerateInvite(userId, roomId))
-                .isInstanceOf(RoomNotFoundException.class);
-    }
-
-    @Test
-    void close_Host_ClosesUnderTheLockAndEndsTheLesson() {
-        Room room = room(RoomStatus.OPEN);
-        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
-        when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
-                .thenReturn(Optional.of(participant(room, hostId, RoomRole.HOST)));
-        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
-
-        assertThat(roomService.close(hostId, roomId)).isSameAs(response);
-        assertThat(room.getStatus()).isEqualTo(RoomStatus.CLOSED);
-        verify(roomRepository).save(room);
-        verify(lessonService).endActiveLesson(roomId, LessonEndReason.ROOM_CLOSED);
-    }
-
-    @Test
-    void close_AlreadyClosed_ChangesNothing() {
-        Room room = room(RoomStatus.CLOSED);
-        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
-        when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
-                .thenReturn(Optional.of(participant(room, hostId, RoomRole.HOST)));
-        when(roomMappingService.map(any(), any(), any())).thenReturn(response);
-
-        assertThat(roomService.close(hostId, roomId)).isSameAs(response);
-        verify(roomRepository, never()).save(any());
-        verifyNoInteractions(lessonService);
-    }
-
-    @Test
-    void close_Participant_IsForbidden() {
-        Room room = room(RoomStatus.OPEN);
-        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId))
-                .thenReturn(Optional.of(participant(room, userId, RoomRole.PARTICIPANT)));
-
-        assertThatThrownBy(() -> roomService.close(userId, roomId)).isInstanceOf(UserNotAuthorizedException.class);
-        assertThat(room.getStatus()).isEqualTo(RoomStatus.OPEN);
-        verifyNoInteractions(lessonService);
-    }
-
-    @Test
-    void close_NotAParticipantOrNoRoom_IsNotFound() {
-        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room(RoomStatus.OPEN)));
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId)).thenReturn(Optional.empty());
-        UUID missingRoomId = UUID.randomUUID();
-        when(roomRepository.findByIdForUpdate(missingRoomId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> roomService.close(userId, roomId)).isInstanceOf(RoomNotFoundException.class);
-        assertThatThrownBy(() -> roomService.close(hostId, missingRoomId)).isInstanceOf(RoomNotFoundException.class);
-        verifyNoInteractions(lessonService);
     }
 
     @Test
@@ -330,24 +160,6 @@ class RoomServiceTest {
 
         assertThatThrownBy(() -> roomService.getRoom(userId, roomId)).isInstanceOf(RoomNotFoundException.class);
         verifyNoInteractions(roomMappingService);
-    }
-
-    @Test
-    void getPreview_KnownCode_MapsTheRoomWithItsParticipantCount() {
-        Room room = room(RoomStatus.OPEN);
-        RoomPreview preview = new RoomPreview();
-        when(roomRepository.findByInviteCode("code")).thenReturn(Optional.of(room));
-        when(participantRepository.countByRoomId(roomId)).thenReturn(3L);
-        when(roomMappingService.mapPreview(room, 3L)).thenReturn(preview);
-
-        assertThat(roomService.getPreview("code")).isSameAs(preview);
-    }
-
-    @Test
-    void getPreview_UnknownCode_IsNotFound() {
-        when(roomRepository.findByInviteCode("nope")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> roomService.getPreview("nope")).isInstanceOf(RoomNotFoundException.class);
     }
 
     @Test

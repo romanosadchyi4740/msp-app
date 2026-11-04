@@ -19,13 +19,13 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 class LessonLimitScheduler {
 
-    LessonService lessonService;
+    LessonLimitService lessonLimitService;
 
     @Scheduled(cron = "0 * * * * *")
     void checkLimits() {
-        for (UUID roomId : lessonService.findRoomsDueForLimitCheck()) {
+        for (UUID roomId : lessonLimitService.findRoomsDueForLimitCheck()) {
             try {
-                lessonService.checkLimit(roomId);
+                lessonLimitService.checkLimit(roomId);
             } catch (RuntimeException e) {
                 log.error("Could not check the lesson limit of room {}", roomId, e);
             }

@@ -2,7 +2,9 @@ package com.romanosadchyi.smp.music_app.rooms;
 
 import com.jayway.jsonpath.JsonPath;
 import com.romanosadchyi.smp.music_app.IntegrationTest;
-import com.romanosadchyi.smp.music_app.rooms.internal.service.LessonService;
+import com.romanosadchyi.smp.music_app.rooms.internal.entity.LessonEndReason;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.LessonLifecycle;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.LessonLimitService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +37,10 @@ class LessonsIntegrationTest {
     MockMvc mockMvc;
 
     @Autowired
-    LessonService lessonService;
+    LessonLimitService lessonLimitService;
+
+    @Autowired
+    LessonLifecycle lessonLifecycle;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -121,8 +127,8 @@ class LessonsIntegrationTest {
         jdbcTemplate.update("UPDATE lesson_sessions SET started_at = now() - interval '41 minutes' WHERE id = ?",
                 sessionId);
 
-        assertThat(lessonService.findRoomsDueForLimitCheck()).contains(room.id());
-        lessonService.checkLimit(room.id());
+        assertThat(lessonLimitService.findRoomsDueForLimitCheck()).contains(room.id());
+        lessonLimitService.checkLimit(room.id());
 
         assertThat(jdbcTemplate.queryForObject("SELECT end_reason FROM lesson_sessions WHERE id = ?", String.class,
                 sessionId)).isEqualTo("LIMIT_REACHED");
@@ -137,7 +143,7 @@ class LessonsIntegrationTest {
         jdbcTemplate.update("UPDATE lesson_sessions SET started_at = now() - interval '36 minutes' WHERE id = ?",
                 sessionId);
 
-        lessonService.checkLimit(room.id());
+        lessonLimitService.checkLimit(room.id());
 
         assertThat(jdbcTemplate.queryForObject("SELECT limit_warning_sent FROM lesson_sessions WHERE id = ?",
                 Boolean.class, sessionId)).isTrue();
@@ -216,6 +222,15 @@ class LessonsIntegrationTest {
 
         assertThat(jdbcTemplate.queryForObject("SELECT tab_id IS NULL FROM lesson_sessions WHERE id = ?", Boolean.class,
                 sessionId)).isTrue();
+    }
+
+    /**
+     * Lifecycle changes rely on the caller's room lock, so they refuse to run without the caller's transaction.
+     */
+    @Test
+    void lessonLifecycle_OutsideATransaction_IsRejected() {
+        assertThatThrownBy(() -> lessonLifecycle.endActive(UUID.randomUUID(), LessonEndReason.ROOM_CLOSED))
+                .isInstanceOf(IllegalTransactionStateException.class);
     }
 
     @Test

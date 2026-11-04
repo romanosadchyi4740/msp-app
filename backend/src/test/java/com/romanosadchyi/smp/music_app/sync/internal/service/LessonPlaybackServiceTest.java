@@ -24,26 +24,26 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class PlaybackStateLessonListenerTest {
+class LessonPlaybackServiceTest {
 
     static final Instant NOW = Instant.parse("2026-10-29T10:00:00Z");
 
     @Mock
     PlaybackStateRepository playbackStateRepository;
 
-    PlaybackStateLessonListener listener;
+    LessonPlaybackService lessonPlayback;
 
     UUID sessionId = UUID.randomUUID();
     UUID roomId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        listener = new PlaybackStateLessonListener(playbackStateRepository, Clock.fixed(NOW, ZoneOffset.UTC));
+        lessonPlayback = new LessonPlaybackService(playbackStateRepository, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
-    void lessonStarted_CreatesAStoppedStateAtTheFirstMeasureAndTheTabsTempo() {
-        listener.lessonStarted(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96));
+    void start_CreatesAStoppedStateAtTheFirstMeasureAndTheTabsTempo() {
+        lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96));
 
         ArgumentCaptor<PlaybackState> saved = ArgumentCaptor.forClass(PlaybackState.class);
         verify(playbackStateRepository).save(saved.capture());
@@ -59,7 +59,7 @@ class PlaybackStateLessonListenerTest {
     }
 
     @Test
-    void tabChanged_RewindsTheExistingStateAndKeepsTheMetronome() {
+    void changeTab_RewindsTheExistingStateAndKeepsTheMetronome() {
         PlaybackState state = PlaybackState.builder()
                 .sessionId(sessionId)
                 .measure(17)
@@ -72,7 +72,7 @@ class PlaybackStateLessonListenerTest {
                 .build();
         when(playbackStateRepository.findById(sessionId)).thenReturn(Optional.of(state));
 
-        listener.tabChanged(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70));
+        lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70));
 
         verify(playbackStateRepository).save(state);
         assertThat(state.getMeasure()).isEqualTo(1);
@@ -84,7 +84,7 @@ class PlaybackStateLessonListenerTest {
     }
 
     @Test
-    void lessonEnded_StopsWhereItIs() {
+    void stop_StopsWhereItIs() {
         PlaybackState state = PlaybackState.builder()
                 .sessionId(sessionId)
                 .measure(9)
@@ -95,7 +95,7 @@ class PlaybackStateLessonListenerTest {
                 .build();
         when(playbackStateRepository.findById(sessionId)).thenReturn(Optional.of(state));
 
-        listener.lessonEnded(sessionId);
+        lessonPlayback.stop(sessionId);
 
         verify(playbackStateRepository).save(state);
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
@@ -107,8 +107,8 @@ class PlaybackStateLessonListenerTest {
     void withoutState_ChangesNothing() {
         when(playbackStateRepository.findById(sessionId)).thenReturn(Optional.empty());
 
-        listener.tabChanged(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70));
-        listener.lessonEnded(sessionId);
+        lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70));
+        lessonPlayback.stop(sessionId);
 
         verify(playbackStateRepository, never()).save(any());
     }

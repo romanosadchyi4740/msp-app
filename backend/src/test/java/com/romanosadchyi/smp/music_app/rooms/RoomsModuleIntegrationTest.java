@@ -3,7 +3,7 @@ package com.romanosadchyi.smp.music_app.rooms;
 import com.jayway.jsonpath.JsonPath;
 import com.romanosadchyi.smp.music_app.IntegrationTest;
 import com.romanosadchyi.smp.music_app.rooms.internal.exception.RoomFullException;
-import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomService;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomInviteService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -42,7 +42,7 @@ class RoomsModuleIntegrationTest {
     MockMvc mockMvc;
 
     @Autowired
-    RoomService roomService;
+    RoomInviteService roomInviteService;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -120,7 +120,7 @@ class RoomsModuleIntegrationTest {
 
         List<Callable<Boolean>> joins = userIds.stream().<Callable<Boolean>>map(userId -> () -> {
             try {
-                roomService.join(userId, room.inviteCode());
+                roomInviteService.join(userId, room.inviteCode());
                 return true;
             } catch (RoomFullException e) {
                 return false;

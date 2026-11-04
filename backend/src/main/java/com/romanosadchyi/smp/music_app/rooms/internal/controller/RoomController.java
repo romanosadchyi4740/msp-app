@@ -5,6 +5,8 @@ import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateReques
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomClosingService;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomInviteService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomService;
 import com.romanosadchyi.smp.music_app.shared.security.CurrentUser;
 import lombok.AccessLevel;
@@ -29,6 +31,8 @@ import java.util.UUID;
 public class RoomController implements RoomsApi {
 
     RoomService roomService;
+    RoomInviteService roomInviteService;
+    RoomClosingService roomClosingService;
 
     @Override
     public ResponseEntity<RoomResponse> createRoom(RoomCreateRequest request) {
@@ -47,14 +51,14 @@ public class RoomController implements RoomsApi {
     @Override
     public ResponseEntity<RoomPreview> getRoomPreview(String code) {
         log.info("User {} previewing an invite", CurrentUser.get().id());
-        return ResponseEntity.ok(roomService.getPreview(code));
+        return ResponseEntity.ok(roomInviteService.getPreview(code));
     }
 
     @Override
     public ResponseEntity<RoomResponse> joinRoom(String code) {
         UUID userId = CurrentUser.get().id();
         log.info("User {} joining a room by invite", userId);
-        return ResponseEntity.ok(roomService.join(userId, code));
+        return ResponseEntity.ok(roomInviteService.join(userId, code));
     }
 
     @Override
@@ -68,13 +72,13 @@ public class RoomController implements RoomsApi {
     public ResponseEntity<RoomResponse> regenerateInvite(UUID id) {
         UUID userId = CurrentUser.get().id();
         log.info("User {} regenerating the invite of room {}", userId, id);
-        return ResponseEntity.ok(roomService.regenerateInvite(userId, id));
+        return ResponseEntity.ok(roomInviteService.regenerateInvite(userId, id));
     }
 
     @Override
     public ResponseEntity<RoomResponse> closeRoom(UUID id) {
         UUID userId = CurrentUser.get().id();
         log.info("User {} closing room {}", userId, id);
-        return ResponseEntity.ok(roomService.close(userId, id));
+        return ResponseEntity.ok(roomClosingService.close(userId, id));
     }
 }

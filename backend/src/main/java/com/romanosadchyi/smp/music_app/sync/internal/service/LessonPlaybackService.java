@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.sync.internal.service;
 
-import com.romanosadchyi.smp.music_app.rooms.external.LessonListener;
+import com.romanosadchyi.smp.music_app.rooms.external.LessonPlayback;
 import com.romanosadchyi.smp.music_app.rooms.external.LessonTab;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackState;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackStatus;
@@ -8,7 +8,7 @@ import com.romanosadchyi.smp.music_app.sync.internal.repository.PlaybackStateRep
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.util.UUID;
@@ -17,10 +17,10 @@ import java.util.UUID;
  * Keeps one playback state per lesson: a new lesson and a new tab start stopped at the first measure and the tab's
  * tempo, and an ended lesson stops. The state is deleted with its lesson, by the database.
  */
-@Component
+@Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-class PlaybackStateLessonListener implements LessonListener {
+class LessonPlaybackService implements LessonPlayback {
 
     static final int FIRST_MEASURE = 1;
 
@@ -28,7 +28,7 @@ class PlaybackStateLessonListener implements LessonListener {
     Clock clock;
 
     @Override
-    public void lessonStarted(LessonTab lesson) {
+    public void start(LessonTab lesson) {
         PlaybackState state = PlaybackState.builder()
                 .sessionId(lesson.sessionId())
                 .metronomeOn(false)
@@ -40,13 +40,13 @@ class PlaybackStateLessonListener implements LessonListener {
      * Keeps the row, so its version grows and clients take the reset as newer than what they had.
      */
     @Override
-    public void tabChanged(LessonTab lesson) {
+    public void changeTab(LessonTab lesson) {
         playbackStateRepository.findById(lesson.sessionId())
                 .ifPresent(state -> playbackStateRepository.save(rewind(state, lesson.tempoBpm())));
     }
 
     @Override
-    public void lessonEnded(UUID sessionId) {
+    public void stop(UUID sessionId) {
         playbackStateRepository.findById(sessionId).ifPresent(state -> {
             state.setStatus(PlaybackStatus.STOPPED);
             state.setAnchorTime(clock.millis());

@@ -1,7 +1,7 @@
 package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
 import com.romanosadchyi.smp.music_app.billing.external.PremiumChecker;
-import com.romanosadchyi.smp.music_app.rooms.external.LessonListener;
+import com.romanosadchyi.smp.music_app.rooms.external.LessonPlayback;
 import com.romanosadchyi.smp.music_app.rooms.external.LessonTab;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.LessonResponse;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.LessonTabRequest;
@@ -25,6 +25,7 @@ import com.romanosadchyi.smp.music_app.rooms.internal.repository.RoomRepository;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.tabs.external.TabLookup;
 import com.romanosadchyi.smp.music_app.tabs.external.TabSummary;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +37,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,7 +51,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Runs on a fixed clock, so the 40-minute limit and the warning before it are checked at exact instants.
+ * Runs on a fixed clock with the real {@link RoomAccess}, {@link LessonTabResolver} and {@link LessonLifecycle} built
+ * from the mocks, so each use case is checked through to the playback and the room event.
  */
 @ExtendWith(MockitoExtension.class)
 class LessonServiceTest {
@@ -68,13 +69,16 @@ class LessonServiceTest {
     RoomParticipantRepository participantRepository;
 
     @Mock
+    UserLookup userLookup;
+
+    @Mock
     TabLookup tabLookup;
 
     @Mock
     PremiumChecker premiumChecker;
 
     @Mock
-    LessonListener lessonListener;
+    LessonPlayback lessonPlayback;
 
     @Mock
     LessonNotifier lessonNotifier;
@@ -84,17 +88,19 @@ class LessonServiceTest {
 
     LessonService lessonService;
 
-    UUID hostId = UUID.randomUUID();
     UUID studentId = UUID.randomUUID();
+    LessonResponse response = new LessonResponse();
+
+    UUID hostId = UUID.randomUUID();
     UUID roomId = UUID.randomUUID();
     UUID tabId = UUID.randomUUID();
     UUID sessionId = UUID.randomUUID();
     Room room;
-    LessonResponse response = new LessonResponse();
 
     @BeforeEach
     void setUp() {
-        lessonService = serviceAt(NOW);
+        lessonService = new LessonService(new RoomAccess(roomRepository, participantRepository, userLookup),
+                new LessonTabResolver(tabLookup), lifecycleAt(NOW), lessonRepository, lessonMappingService);
         room = Room.builder().id(roomId).hostId(hostId).status(RoomStatus.OPEN).build();
         lenient().when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
         lenient().when(participantRepository.findByRoomIdAndUserId(roomId, hostId))
@@ -123,7 +129,7 @@ class LessonServiceTest {
         assertThat(saved.getValue().getTabId()).isEqualTo(tabId);
         assertThat(saved.getValue().getStartedAt()).isEqualTo(NOW);
         assertThat(saved.getValue().getLimitMinutes()).isEqualTo(40);
-        verify(lessonListener).lessonStarted(new LessonTab(sessionId, roomId, tabId, 90));
+        verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 90));
         LessonEvent event = publishedEvent();
         assertThat(event.type()).isEqualTo(LessonEventType.LESSON_STARTED);
         assertThat(event.endsAt()).isEqualTo(NOW.plus(Duration.ofMinutes(40)));
@@ -149,21 +155,21 @@ class LessonServiceTest {
 
         lessonService.start(hostId, roomId, new LessonTabRequest().tabId(tabId));
 
-        verify(lessonListener).lessonStarted(new LessonTab(sessionId, roomId, tabId, 120));
+        verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 120));
     }
 
     @Test
     void start_WithoutTab_IsRejected() {
         assertThatThrownBy(() -> lessonService.start(hostId, roomId, new LessonTabRequest()))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(roomRepository, lessonRepository, lessonListener);
+        verifyNoInteractions(roomRepository, lessonRepository, lessonPlayback);
     }
 
     @Test
     void start_ByParticipant_IsForbidden() {
         assertThatThrownBy(() -> lessonService.start(studentId, roomId, new LessonTabRequest().tabId(tabId)))
                 .isInstanceOf(UserNotAuthorizedException.class);
-        verifyNoInteractions(lessonRepository, lessonListener, lessonNotifier);
+        verifyNoInteractions(lessonRepository, lessonPlayback, lessonNotifier);
     }
 
     @Test
@@ -205,7 +211,7 @@ class LessonServiceTest {
         assertThatThrownBy(() -> lessonService.start(hostId, roomId, new LessonTabRequest().tabId(tabId)))
                 .isInstanceOf(LessonTabNotFoundException.class);
         verify(lessonRepository, never()).save(any());
-        verifyNoInteractions(lessonListener, lessonNotifier);
+        verifyNoInteractions(lessonPlayback, lessonNotifier);
     }
 
     @Test
@@ -241,7 +247,7 @@ class LessonServiceTest {
 
         assertThat(lesson.getTabId()).isEqualTo(newTabId);
         verify(lessonRepository).save(lesson);
-        verify(lessonListener).tabChanged(new LessonTab(sessionId, roomId, newTabId, 70));
+        verify(lessonPlayback).changeTab(new LessonTab(sessionId, roomId, newTabId, 70));
         LessonEvent event = publishedEvent();
         assertThat(event.type()).isEqualTo(LessonEventType.TAB_CHANGED);
         assertThat(event.tabId()).isEqualTo(newTabId);
@@ -255,7 +261,7 @@ class LessonServiceTest {
                 .isInstanceOf(UserNotAuthorizedException.class);
         assertThatThrownBy(() -> lessonService.changeTab(hostId, roomId, new LessonTabRequest().tabId(tabId)))
                 .isInstanceOf(LessonNotFoundException.class);
-        verifyNoInteractions(lessonListener, lessonNotifier);
+        verifyNoInteractions(lessonPlayback, lessonNotifier);
     }
 
     @Test
@@ -268,7 +274,7 @@ class LessonServiceTest {
         assertThatThrownBy(() -> lessonService.changeTab(hostId, roomId, new LessonTabRequest().tabId(privateTabId)))
                 .isInstanceOf(LessonTabNotFoundException.class);
         assertThat(lesson.getTabId()).isEqualTo(tabId);
-        verifyNoInteractions(lessonListener);
+        verifyNoInteractions(lessonPlayback);
     }
 
     @Test
@@ -280,7 +286,7 @@ class LessonServiceTest {
 
         assertThat(lesson.getEndedAt()).isEqualTo(NOW);
         assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.HOST_ENDED);
-        verify(lessonListener).lessonEnded(sessionId);
+        verify(lessonPlayback).stop(sessionId);
         LessonEvent event = publishedEvent();
         assertThat(event.type()).isEqualTo(LessonEventType.LESSON_ENDED);
         assertThat(event.reason()).isEqualTo(LessonEndReason.HOST_ENDED);
@@ -294,115 +300,7 @@ class LessonServiceTest {
                 .isInstanceOf(UserNotAuthorizedException.class);
         assertThatThrownBy(() -> lessonService.end(hostId, roomId))
                 .isInstanceOf(LessonNotFoundException.class);
-        verifyNoInteractions(lessonListener, lessonNotifier);
-    }
-
-    @Test
-    void endActiveLesson_EndsWithTheReason_OrDoesNothingWithoutLesson() {
-        LessonSession lesson = activeLesson(null, NOW.minus(Duration.ofHours(2)));
-        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.of(lesson), Optional.empty());
-
-        lessonService.endActiveLesson(roomId, LessonEndReason.ROOM_CLOSED);
-        lessonService.endActiveLesson(roomId, LessonEndReason.ROOM_CLOSED);
-
-        assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.ROOM_CLOSED);
-        assertThat(lesson.getEndedAt()).isEqualTo(NOW);
-        verify(lessonListener).lessonEnded(sessionId);
-    }
-
-    @Test
-    void findRoomsDueForLimitCheck_OnlyExpiredOrWarningDue() {
-        Room expiredRoom = Room.builder().id(UUID.randomUUID()).build();
-        Room warnRoom = Room.builder().id(UUID.randomUUID()).build();
-        Room warnedRoom = Room.builder().id(UUID.randomUUID()).build();
-        Room earlyRoom = Room.builder().id(UUID.randomUUID()).build();
-        LessonSession warned = lessonIn(warnedRoom, NOW.minus(Duration.ofMinutes(37)));
-        warned.setLimitWarningSent(true);
-        when(lessonRepository.findActiveLimitedStartedBy(NOW.minus(Duration.ofMinutes(35)))).thenReturn(List.of(
-                lessonIn(expiredRoom, NOW.minus(Duration.ofMinutes(40))),
-                lessonIn(warnRoom, NOW.minus(Duration.ofMinutes(35))),
-                warned,
-                lessonIn(earlyRoom, NOW.minus(Duration.ofMinutes(34)))));
-
-        assertThat(lessonService.findRoomsDueForLimitCheck()).containsExactly(expiredRoom.getId(), warnRoom.getId());
-    }
-
-    @Test
-    void checkLimit_FiveMinutesBefore_WarnsOnce() {
-        LessonSession lesson = activeLesson(40, NOW.minus(Duration.ofMinutes(35)));
-        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.of(lesson));
-
-        lessonService.checkLimit(roomId);
-        lessonService.checkLimit(roomId);
-
-        assertThat(lesson.isLimitWarningSent()).isTrue();
-        assertThat(lesson.getEndedAt()).isNull();
-        LessonEvent event = publishedEvent();
-        assertThat(event.type()).isEqualTo(LessonEventType.LIMIT_WARNING);
-        assertThat(event.endsAt()).isEqualTo(NOW.plus(Duration.ofMinutes(5)));
-        verifyNoInteractions(lessonListener);
-    }
-
-    @Test
-    void checkLimit_AtTheLimit_EndsTheLesson() {
-        LessonSession lesson = activeLesson(40, NOW.minus(Duration.ofMinutes(40)));
-        lesson.setLimitWarningSent(true);
-        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.of(lesson));
-
-        lessonService.checkLimit(roomId);
-
-        assertThat(lesson.getEndedAt()).isEqualTo(NOW);
-        assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.LIMIT_REACHED);
-        verify(lessonListener).lessonEnded(sessionId);
-        assertThat(publishedEvent().reason()).isEqualTo(LessonEndReason.LIMIT_REACHED);
-    }
-
-    @Test
-    void checkLimit_BeforeTheWarningOrWithoutLimit_ChangesNothing() {
-        LessonSession early = activeLesson(40, NOW.minus(Duration.ofMinutes(34)));
-        LessonSession premium = activeLesson(null, NOW.minus(Duration.ofHours(3)));
-        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.of(early), Optional.of(premium));
-
-        lessonService.checkLimit(roomId);
-        lessonService.checkLimit(roomId);
-
-        assertThat(early.isLimitWarningSent()).isFalse();
-        assertThat(early.getEndedAt()).isNull();
-        assertThat(premium.getEndedAt()).isNull();
-        verify(lessonRepository, never()).save(any());
-        verifyNoInteractions(lessonNotifier, lessonListener);
-    }
-
-    @Test
-    void checkLimit_LessonEndedMeanwhileOrRoomDeleted_ChangesNothing() {
-        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.empty());
-        UUID deletedRoomId = UUID.randomUUID();
-        when(roomRepository.findByIdForUpdate(deletedRoomId)).thenReturn(Optional.empty());
-
-        lessonService.checkLimit(roomId);
-        lessonService.checkLimit(deletedRoomId);
-
-        verify(lessonRepository, never()).save(any());
-        verify(lessonRepository, never()).findByRoomIdAndEndedAtIsNull(deletedRoomId);
-        verifyNoInteractions(lessonNotifier);
-    }
-
-    @Test
-    void checkLimit_ALaterRun_EndsTheWarnedLesson() {
-        LessonSession lesson = activeLesson(40, NOW.minus(Duration.ofMinutes(36)));
-        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.of(lesson));
-
-        lessonService.checkLimit(roomId);
-        serviceAt(NOW.plus(Duration.ofMinutes(4))).checkLimit(roomId);
-
-        assertThat(lesson.isLimitWarningSent()).isTrue();
-        assertThat(lesson.getEndedAt()).isEqualTo(NOW.plus(Duration.ofMinutes(4)));
-        assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.LIMIT_REACHED);
-    }
-
-    private LessonService serviceAt(Instant now) {
-        return new LessonService(lessonRepository, roomRepository, participantRepository, tabLookup, premiumChecker,
-                List.of(lessonListener), lessonNotifier, lessonMappingService, Clock.fixed(now, ZoneOffset.UTC));
+        verifyNoInteractions(lessonPlayback, lessonNotifier);
     }
 
     private LessonEvent publishedEvent() {
@@ -421,15 +319,16 @@ class LessonServiceTest {
                 .build();
     }
 
-    private static LessonSession lessonIn(Room room, Instant startedAt) {
-        return LessonSession.builder().id(UUID.randomUUID()).room(room).startedAt(startedAt).limitMinutes(40).build();
-    }
-
     private RoomParticipant participant(UUID userId, RoomRole role) {
         return RoomParticipant.builder().room(room).userId(userId).role(role).build();
     }
 
     private TabSummary tab(Integer tempoBpm) {
         return new TabSummary(tabId, "Blues in A", tempoBpm, "4/4");
+    }
+
+    private LessonLifecycle lifecycleAt(Instant now) {
+        return new LessonLifecycle(lessonRepository, premiumChecker, lessonPlayback, lessonNotifier,
+                Clock.fixed(now, ZoneOffset.UTC));
     }
 }
