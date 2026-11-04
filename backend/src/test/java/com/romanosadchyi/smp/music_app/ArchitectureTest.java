@@ -49,7 +49,7 @@ class ArchitectureTest {
     void modulesAreTheKnownOnes() {
         assertThat(MODULES.stream().map(ApplicationModule::getIdentifier).map(Object::toString))
                 .containsExactlyInAnyOrder("shared", "users", "storage", "music", "playlists", "chats", "telemetry",
-                        "search", "tabs", "rooms");
+                        "search", "tabs", "rooms", "sync", "billing");
     }
 
     /**
@@ -57,7 +57,8 @@ class ArchitectureTest {
      * package, which Spring Modulith would expose to every other module.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"users", "storage", "music", "playlists", "chats", "telemetry", "search", "tabs", "rooms"})
+    @ValueSource(strings = {"users", "storage", "music", "playlists", "chats", "telemetry", "search", "tabs", "rooms",
+            "sync", "billing"})
     void moduleHasOnlyInternalAndExternalPackages(String module) {
         String modulePackage = BASE_PACKAGE + "." + module;
         classes().that().resideInAPackage(modulePackage + "..")
@@ -95,7 +96,9 @@ class ArchitectureTest {
                 Arguments.of("telemetry", List.of("users", "music")),
                 Arguments.of("search", List.of("users", "music")),
                 Arguments.of("tabs", List.of("users", "storage")),
-                Arguments.of("rooms", List.of("users")));
+                Arguments.of("rooms", List.of("users", "tabs", "billing")),
+                Arguments.of("sync", List.of("rooms")),
+                Arguments.of("billing", List.of()));
     }
 
     @Test
