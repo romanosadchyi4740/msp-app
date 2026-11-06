@@ -286,7 +286,7 @@ class LessonServiceTest {
 
         assertThat(lesson.getEndedAt()).isEqualTo(NOW);
         assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.HOST_ENDED);
-        verify(lessonPlayback).stop(sessionId);
+        verify(lessonPlayback).stop(roomId, sessionId);
         LessonEvent event = publishedEvent();
         assertThat(event.type()).isEqualTo(LessonEventType.LESSON_ENDED);
         assertThat(event.reason()).isEqualTo(LessonEndReason.HOST_ENDED);
