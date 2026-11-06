@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Music, User, Mail, Lock, Loader2 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../store/authStore';
+import { authPath, safeNextPath } from '../api/authRedirect';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,8 @@ const RegisterPage = () => {
   });
   const { register, loginWithGoogle, loading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = safeNextPath(searchParams.get('next'));
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,7 +24,7 @@ const RegisterPage = () => {
     e.preventDefault();
     const success = await register(formData);
     if (success) {
-      navigate('/');
+      navigate(next, { replace: true });
     }
   };
 
@@ -29,7 +32,7 @@ const RegisterPage = () => {
     if (credentialResponse.credential) {
       const success = await loginWithGoogle(credentialResponse.credential);
       if (success) {
-        navigate('/');
+        navigate(next, { replace: true });
       }
     }
   };
@@ -121,7 +124,7 @@ const RegisterPage = () => {
 
         <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
           Already Registered?{' '}
-          <Link to="/login" className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
+          <Link to={authPath('/login', next)} className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
             Access Account
           </Link>
         </p>

@@ -20,6 +20,10 @@ import TelemetryPage from './pages/TelemetryPage';
 import TabsPage from './pages/TabsPage';
 import TabNewPage from './pages/TabNewPage';
 import TabPage from './pages/TabPage';
+import RoomsPage from './pages/RoomsPage';
+import RoomNewPage from './pages/RoomNewPage';
+import RoomPage from './pages/RoomPage';
+import JoinRoomPage from './pages/JoinRoomPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -83,6 +87,10 @@ function App() {
           <Route path="/tabs" element={<TabsPage />} />
           <Route path="/tabs/new" element={<TabNewPage />} />
           <Route path="/tabs/:id" element={<TabPage />} />
+          <Route path="/rooms" element={<RoomsPage />} />
+          <Route path="/rooms/new" element={<RoomNewPage />} />
+          <Route path="/rooms/:id" element={<RoomPage />} />
+          <Route path="/join/:code" element={<JoinRoomPage />} />
           {import.meta.env.DEV && (
             <Route
               path="/dev/tab-canvas"
