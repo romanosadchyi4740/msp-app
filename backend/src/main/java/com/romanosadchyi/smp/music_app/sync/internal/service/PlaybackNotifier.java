@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app.sync.internal.service;
 
+import com.romanosadchyi.smp.music_app.shared.util.AfterCommit;
 import com.romanosadchyi.smp.music_app.sync.internal.dto.PlaybackStateDto;
 import com.romanosadchyi.smp.music_app.sync.internal.dto.RoomSyncSnapshot;
 import lombok.AccessLevel;
@@ -8,8 +9,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -30,14 +29,14 @@ public class PlaybackNotifier {
      * To {@code /topic/rooms/{roomId}/state}, which every participant subscribes to.
      */
     public void publishState(UUID roomId, PlaybackStateDto state) {
-        afterCommit(() -> send("/topic/rooms/" + roomId + "/state", state));
+        AfterCommit.run(() -> send("/topic/rooms/" + roomId + "/state", state));
     }
 
     /**
      * To {@code /user/queue/rooms/{roomId}/snapshot} of this user only.
      */
     public void sendSnapshot(UUID userId, RoomSyncSnapshot snapshot) {
-        afterCommit(() -> {
+        AfterCommit.run(() -> {
             try {
                 messagingTemplate.convertAndSendToUser(userId.toString(),
                         "/queue/rooms/" + snapshot.roomId() + "/snapshot", snapshot);
@@ -53,18 +52,5 @@ public class PlaybackNotifier {
         } catch (RuntimeException e) {
             log.warn("Could not send to {}", destination, e);
         }
-    }
-
-    private static void afterCommit(Runnable send) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            send.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                send.run();
-            }
-        });
     }
 }

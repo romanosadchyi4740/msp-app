@@ -46,7 +46,16 @@ public class RoomParticipant {
     @Column(name = "rtt_ms")
     Integer rttMs;
 
+    /**
+     * Whether the participant has the room open: subscribed to its participants topic in at least one session.
+     */
     @Column(nullable = false)
     @Builder.Default
     boolean online = false;
+
+    /**
+     * When the participant last went offline; null while online or if never seen online.
+     */
+    @Column(name = "offline_since")
+    Instant offlineSince;
 }

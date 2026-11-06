@@ -19,6 +19,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     JwtStompChannelInterceptor jwtStompChannelInterceptor;
     StompAuthorizationInterceptor stompAuthorizationInterceptor;
+    StompDeliveryInterceptor stompDeliveryInterceptor;
     WebSocketSessionRegistry webSocketSessionRegistry;
 
     @Override
@@ -48,5 +49,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureClientInboundChannel(ChannelRegistration registration) {
         // Authentication first: the authorization checks need the session user it sets
         registration.interceptors(jwtStompChannelInterceptor, stompAuthorizationInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompDeliveryInterceptor);
     }
 }

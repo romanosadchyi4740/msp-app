@@ -21,6 +21,12 @@ public interface LessonPlayback {
     void changeTab(LessonTab lesson);
 
     /**
+     * The room got a new host without the old one stopping playback (the host left or stayed away); playing
+     * playback pauses where it is, so the new host decides when it goes on. Anything else stays as it is.
+     */
+    void pause(UUID roomId, UUID sessionId);
+
+    /**
      * The lesson ended; playback stops where it is.
      */
     void stop(UUID roomId, UUID sessionId);

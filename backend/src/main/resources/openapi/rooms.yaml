@@ -7,6 +7,10 @@ info:
     participants. A room is readable only by its participants; anyone else gets 404. Input is checked by the service,
     so schemas carry no validation constraints.
 
+    Presence and role changes go to `/topic/rooms/{id}/participants` (KAN-36): `JOINED`, `LEFT`, `ONLINE`, `OFFLINE`
+    and `HOST_CHANGED`. A host who stays offline for more than 60 seconds hands the role to the participant who
+    joined earliest among those online, and the lesson's playback is paused.
+
     A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
     that response comes from Spring Security and has no ErrorResponse body.
   version: 1.0.0
@@ -150,6 +154,62 @@ paths:
                 $ref: '#/components/schemas/RoomResponse'
         '403':
           $ref: '#/components/responses/NotHost'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/host:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: transferHost
+      summary: Hand the host role to another participant; host only (KAN-36, FR-11)
+      description: |
+        The current host becomes a participant. Playback goes on as it is; only the new host can control it. The
+        change goes to `/topic/rooms/{id}/participants` as `HOST_CHANGED`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostTransferRequest'
+      responses:
+        '200':
+          description: The room with its new host
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, or a new host who is not in the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The room is closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/leave:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: leaveRoom
+      summary: Leave the room (KAN-36)
+      description: |
+        The user's place is freed and their subscriptions to the room's topics end. A leaving host hands the role
+        to the participant who joined earliest among those online, or among all if nobody is online, and the
+        lesson's playback is paused; a host who is the last one in the room closes it, which ends its lesson.
+        Joining again needs the invite link. The changes go to `/topic/rooms/{id}/participants`.
+      responses:
+        '204':
+          description: Left the room
         '404':
           $ref: '#/components/responses/NotFound'
   /api/rooms/{id}/sessions:
@@ -364,6 +424,9 @@ components:
           format: date-time
         online:
           type: boolean
+          description: |
+            Whether the participant has the room open, i.e. is subscribed to `/topic/rooms/{id}/participants`
+            (KAN-36).
     RoomPreview:
       type: object
       required: [id, name, status, participantCount, capacity, full]
@@ -408,6 +471,13 @@ components:
         createdAt:
           type: string
           format: date-time
+    HostTransferRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Required; a participant of the room other than the current host.
     LessonTabRequest:
       type: object
       properties:
