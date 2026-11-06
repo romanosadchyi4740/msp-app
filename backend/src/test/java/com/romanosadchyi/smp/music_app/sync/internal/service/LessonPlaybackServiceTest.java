@@ -178,6 +178,45 @@ class LessonPlaybackServiceTest {
     }
 
     @Test
+    void pause_PlayingState_PausesWhereItIsNowAndPublishes() {
+        // 120 BPM: 2 quarter beats per second, so 1.5 s after the anchor at measure 2 beat 0 it is at beat 3
+        PlaybackState state = PlaybackState.builder()
+                .sessionId(sessionId)
+                .measure(2)
+                .beat(0)
+                .tempoBpm(120)
+                .status(PlaybackStatus.PLAYING)
+                .anchorTime(NOW.toEpochMilli() - 1500)
+                .build();
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
+
+        lessonPlayback.pause(roomId, sessionId);
+
+        assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PAUSED);
+        assertThat(state.getMeasure()).isEqualTo(2);
+        assertThat(state.getBeat()).isEqualTo(3.0);
+        verify(playbackStateRepository).saveAndFlush(state);
+        verify(playbackNotifier).publishState(eq(roomId), any());
+    }
+
+    @Test
+    void pause_NotPlaying_ChangesAndPublishesNothing() {
+        PlaybackState state = PlaybackState.builder()
+                .sessionId(sessionId)
+                .measure(2)
+                .tempoBpm(120)
+                .status(PlaybackStatus.STOPPED)
+                .build();
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
+
+        lessonPlayback.pause(roomId, sessionId);
+
+        assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
+        verify(playbackStateRepository, never()).saveAndFlush(any());
+        verify(playbackNotifier, never()).publishState(any(), any());
+    }
+
+    @Test
     void start_PublishesToTheLessonsRoom() {
         lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96, "4/4"));
 

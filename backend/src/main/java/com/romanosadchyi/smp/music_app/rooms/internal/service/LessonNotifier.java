@@ -1,14 +1,13 @@
 package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.internal.dto.LessonEvent;
+import com.romanosadchyi.smp.music_app.shared.util.AfterCommit;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -25,16 +24,7 @@ public class LessonNotifier {
     SimpMessagingTemplate messagingTemplate;
 
     public void publish(UUID roomId, LessonEvent event) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            send(roomId, event);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                send(roomId, event);
-            }
-        });
+        AfterCommit.run(() -> send(roomId, event));
     }
 
     /**

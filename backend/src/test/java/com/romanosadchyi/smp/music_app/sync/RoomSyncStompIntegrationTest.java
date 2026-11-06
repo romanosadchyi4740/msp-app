@@ -1,39 +1,31 @@
 package com.romanosadchyi.smp.music_app.sync;
 
-import com.jayway.jsonpath.JsonPath;
 import com.romanosadchyi.smp.music_app.IntegrationTest;
+import com.romanosadchyi.smp.music_app.RoomTestFixtures;
+import com.romanosadchyi.smp.music_app.RoomTestFixtures.Lesson;
+import com.romanosadchyi.smp.music_app.RoomTestFixtures.Registered;
+import com.romanosadchyi.smp.music_app.StompTestClient;
+import com.romanosadchyi.smp.music_app.StompTestClient.Client;
 import com.romanosadchyi.smp.music_app.sync.internal.dto.PlaybackStateDto;
 import com.romanosadchyi.smp.music_app.sync.internal.dto.SyncCommand;
 import com.romanosadchyi.smp.music_app.sync.internal.dto.SyncCommandType;
 import com.romanosadchyi.smp.music_app.sync.internal.service.PlaybackStateService;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.messaging.converter.JacksonJsonMessageConverter;
-import org.springframework.messaging.simp.stomp.StompCommand;
-import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
-import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.socket.WebSocketHttpHeaders;
-import org.springframework.web.socket.client.standard.StandardWebSocketClient;
-import org.springframework.web.socket.messaging.WebSocketStompClient;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -49,10 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @IntegrationTest
 class RoomSyncStompIntegrationTest {
 
-    /**
-     * Subscriptions are registered asynchronously; this gives the broker time before the test acts on them.
-     */
-    static final long SUBSCRIBE_SETTLE_MS = 500;
+    static final long SUBSCRIBE_SETTLE_MS = StompTestClient.SUBSCRIBE_SETTLE_MS;
 
     @LocalServerPort
     int port;
@@ -66,11 +55,18 @@ class RoomSyncStompIntegrationTest {
     @Autowired
     PlaybackStateService playbackStateService;
 
+    RoomTestFixtures fixtures;
+
     List<StompSession> sessions = new ArrayList<>();
+
+    @BeforeEach
+    void setUp() {
+        fixtures = new RoomTestFixtures(mockMvc, jdbcTemplate);
+    }
 
     @AfterEach
     void disconnect() {
-        sessions.stream().filter(StompSession::isConnected).forEach(StompSession::disconnect);
+        StompTestClient.disconnectAll(sessions);
     }
 
     @Test
@@ -224,69 +220,28 @@ class RoomSyncStompIntegrationTest {
 
     @Test
     void connect_WithoutToken_IsRefused() throws Exception {
-        BlockingQueue<StompHeaders> errors = new LinkedBlockingQueue<>();
-        WebSocketStompClient client = stompClient();
-
-        client.connectAsync(url(), new WebSocketHttpHeaders(), new StompHeaders(), new ErrorCollector(errors));
+        BlockingQueue<StompHeaders> errors = StompTestClient.connectExpectingRefusal(port, null);
 
         assertThat(errors.poll(5, TimeUnit.SECONDS)).isNotNull();
     }
 
     private Client connect(String bearer) throws Exception {
-        BlockingQueue<StompHeaders> errors = new LinkedBlockingQueue<>();
-        StompHeaders connectHeaders = new StompHeaders();
-        connectHeaders.add("Authorization", bearer);
-        StompSession session = stompClient()
-                .connectAsync(url(), new WebSocketHttpHeaders(), connectHeaders, new ErrorCollector(errors))
-                .get(10, TimeUnit.SECONDS);
-        sessions.add(session);
-        return new Client(session, errors);
-    }
-
-    private static WebSocketStompClient stompClient() {
-        WebSocketStompClient client = new WebSocketStompClient(new StandardWebSocketClient());
-        client.setMessageConverter(new JacksonJsonMessageConverter());
+        Client client = StompTestClient.connect(port, bearer);
+        sessions.add(client.session());
         return client;
     }
 
-    private String url() {
-        return "ws://localhost:" + port + "/ws-raw";
-    }
-
     private static BlockingQueue<Map<String, Object>> subscribe(StompSession session, String destination) {
-        BlockingQueue<Map<String, Object>> received = new LinkedBlockingQueue<>();
-        session.subscribe(destination, new StompFrameHandler() {
-            @Override
-            public Type getPayloadType(StompHeaders headers) {
-                return Map.class;
-            }
-
-            @Override
-            @SuppressWarnings("unchecked")
-            public void handleFrame(StompHeaders headers, Object payload) {
-                received.add((Map<String, Object>) payload);
-            }
-        });
-        return received;
+        return StompTestClient.subscribe(session, destination);
     }
 
     private static Map<String, Object> poll(BlockingQueue<Map<String, Object>> queue) throws InterruptedException {
-        Map<String, Object> message = queue.poll(5, TimeUnit.SECONDS);
-        assertThat(message).as("a message within 5 s").isNotNull();
-        return message;
+        return StompTestClient.poll(queue);
     }
 
     private static Map<String, Object> pollUntil(BlockingQueue<Map<String, Object>> queue,
-                                                 Predicate<Map<String, Object>> wanted)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline) {
-            Map<String, Object> message = queue.poll(deadline - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-            if (message != null && wanted.test(message)) {
-                return message;
-            }
-        }
-        throw new AssertionError("No matching message within 5 s");
+                                                 Predicate<Map<String, Object>> wanted) throws InterruptedException {
+        return StompTestClient.pollUntil(queue, wanted);
     }
 
     @SuppressWarnings("unchecked")
@@ -307,84 +262,11 @@ class RoomSyncStompIntegrationTest {
         return "/app/rooms/" + lesson.roomId() + "/command";
     }
 
-    /**
-     * A host with a room and a running lesson, and a student who joined it.
-     */
     private Lesson startLessonWithStudent() throws Exception {
-        Registered host = register();
-        Registered student = register();
-        String room = mockMvc.perform(post("/api/rooms").header(HttpHeaders.AUTHORIZATION, host.bearer())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\": \"Lesson\"}"))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        UUID roomId = UUID.fromString(JsonPath.read(room, "$.id"));
-        String inviteCode = JsonPath.read(room, "$.inviteCode");
-        mockMvc.perform(post("/api/rooms/join/" + inviteCode).header(HttpHeaders.AUTHORIZATION, student.bearer()))
-                .andExpect(status().isOk());
-
-        // Tabs belong to another module, so the test writes the row directly rather than through its services
-        UUID tabId = UUID.randomUUID();
-        jdbcTemplate.update("""
-                INSERT INTO tabs (id, owner_id, format, title, raw_text, tempo_bpm, is_public, rights_confirmed,
-                                  created_at, updated_at)
-                VALUES (?, ?, 'ASCII', 'Etude', 'e|---0---|', 120, FALSE, TRUE, now(), now())
-                """, tabId, host.id());
-        String lesson = mockMvc.perform(post("/api/rooms/" + roomId + "/sessions")
-                        .header(HttpHeaders.AUTHORIZATION, host.bearer())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"tabId\": \"" + tabId + "\"}"))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        return new Lesson(roomId, UUID.fromString(JsonPath.read(lesson, "$.id")), host, student);
+        return fixtures.startLessonWithStudent();
     }
 
     private Registered register() throws Exception {
-        String response = mockMvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"email": "%s@example.com", "password": "secret123", "displayName": "Player"}
-                        """.formatted(UUID.randomUUID())))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        return new Registered(UUID.fromString(JsonPath.read(response, "$.userId")),
-                JsonPath.read(response, "$.accessToken"));
-    }
-
-    /**
-     * Collects the ERROR frames the server sends before it closes a refused session.
-     */
-    @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-    private static class ErrorCollector extends StompSessionHandlerAdapter {
-
-        BlockingQueue<StompHeaders> errors;
-
-        @Override
-        public void handleFrame(StompHeaders headers, Object payload) {
-            errors.add(headers);
-        }
-
-        @Override
-        public void handleTransportError(StompSession session, Throwable exception) {
-            StompHeaders headers = new StompHeaders();
-            headers.set("transport-error", String.valueOf(exception.getMessage()));
-            errors.add(headers);
-        }
-
-        @Override
-        public void handleException(StompSession session, StompCommand command, StompHeaders headers,
-                                    byte[] payload, Throwable exception) {
-            errors.add(headers);
-        }
-    }
-
-    private record Client(StompSession session, BlockingQueue<StompHeaders> errors) {
-    }
-
-    private record Lesson(UUID roomId, UUID sessionId, Registered host, Registered student) {
-    }
-
-    private record Registered(UUID id, String token) {
-
-        String bearer() {
-            return "Bearer " + token;
-        }
+        return fixtures.register();
     }
 }

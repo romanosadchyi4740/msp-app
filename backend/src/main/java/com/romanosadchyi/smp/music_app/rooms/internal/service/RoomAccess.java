@@ -60,6 +60,17 @@ public class RoomAccess {
     }
 
     /**
+     * Locks the room's row until the transaction ends; check the user's place after this, so the check sees the room
+     * as it is under the lock.
+     *
+     * @throws RoomNotFoundException if there is no such room
+     */
+    public Room lock(UUID roomId) {
+        return roomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new RoomNotFoundException("Room not found"));
+    }
+
+    /**
      * Locks the room's row until the transaction ends, then checks the user is its host, so the check sees the room
      * as it is under the lock.
      *
@@ -67,8 +78,7 @@ public class RoomAccess {
      * @throws UserNotAuthorizedException with {@code notHostMessage} if the user is not the host
      */
     public Room lockAsHost(UUID userId, UUID roomId, String notHostMessage) {
-        Room room = roomRepository.findByIdForUpdate(roomId)
-                .orElseThrow(() -> new RoomNotFoundException("Room not found"));
+        Room room = lock(roomId);
         requireHost(userId, roomId, notHostMessage);
         return room;
     }

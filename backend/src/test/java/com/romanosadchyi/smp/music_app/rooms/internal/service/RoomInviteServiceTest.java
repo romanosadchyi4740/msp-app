@@ -2,6 +2,8 @@ package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.dto.ParticipantEvent;
+import com.romanosadchyi.smp.music_app.rooms.internal.dto.ParticipantEventType;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.Room;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomParticipant;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomRole;
@@ -57,6 +59,9 @@ class RoomInviteServiceTest {
     @Mock
     InviteCodeGenerator inviteCodeGenerator;
 
+    @Mock
+    ParticipantNotifier participantNotifier;
+
     RoomInviteService roomInviteService;
 
     UUID hostId = UUID.randomUUID();
@@ -69,7 +74,8 @@ class RoomInviteServiceTest {
         lenient().when(userLookup.exists(any())).thenReturn(true);
         RoomAccess roomAccess = new RoomAccess(roomRepository, participantRepository, userLookup);
         roomInviteService = new RoomInviteService(roomRepository, participantRepository,
-                new InviteCodes(inviteCodeGenerator, roomRepository), roomAccess, roomMappingService);
+                new InviteCodes(inviteCodeGenerator, roomRepository), roomAccess, roomMappingService,
+                participantNotifier);
     }
 
     @Test
@@ -90,6 +96,8 @@ class RoomInviteServiceTest {
         assertThat(participant.getValue().getRole()).isEqualTo(RoomRole.PARTICIPANT);
         assertThat(participant.getValue().getRoom()).isSameAs(room);
         verify(roomRepository, never()).findByInviteCode(any());
+        verify(participantNotifier).publish(roomId, new ParticipantEvent(ParticipantEventType.JOINED, userId,
+                room.getHostId()));
         assertThat(result).isSameAs(response);
     }
 
@@ -116,6 +124,7 @@ class RoomInviteServiceTest {
         assertThat(roomInviteService.join(userId, "code")).isSameAs(response);
         verify(participantRepository, never()).countByRoomId(any());
         verify(participantRepository, never()).save(any());
+        verifyNoInteractions(participantNotifier);
     }
 
     @Test

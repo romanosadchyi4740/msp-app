@@ -2,7 +2,10 @@ package com.romanosadchyi.smp.music_app.sync.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.external.LessonPlayback;
 import com.romanosadchyi.smp.music_app.rooms.external.LessonTab;
+import com.romanosadchyi.smp.music_app.sync.internal.dto.SyncCommand;
+import com.romanosadchyi.smp.music_app.sync.internal.dto.SyncCommandType;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackState;
+import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackStatus;
 import com.romanosadchyi.smp.music_app.sync.internal.mapping.PlaybackStateMappingService;
 import com.romanosadchyi.smp.music_app.sync.internal.repository.PlaybackStateRepository;
 import lombok.AccessLevel;
@@ -48,6 +51,20 @@ class LessonPlaybackService implements LessonPlayback {
             loadTab(state, lesson);
             saveAndPublish(lesson.roomId(), state);
         });
+    }
+
+    /**
+     * Only playing playback changes, so a pause of paused or stopped playback publishes nothing.
+     */
+    @Override
+    public void pause(UUID roomId, UUID sessionId) {
+        playbackStateRepository.findByIdForUpdate(sessionId)
+                .filter(state -> state.getStatus() == PlaybackStatus.PLAYING)
+                .ifPresent(state -> {
+                    PlaybackStates.apply(state, new SyncCommand(SyncCommandType.PAUSE, null, null, null),
+                            clock.millis());
+                    saveAndPublish(roomId, state);
+                });
     }
 
     @Override

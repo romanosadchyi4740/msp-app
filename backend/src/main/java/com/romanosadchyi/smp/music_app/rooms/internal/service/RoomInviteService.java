@@ -2,6 +2,8 @@ package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.dto.ParticipantEvent;
+import com.romanosadchyi.smp.music_app.rooms.internal.dto.ParticipantEventType;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.Room;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomParticipant;
 import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomRole;
@@ -38,6 +40,7 @@ public class RoomInviteService {
     InviteCodes inviteCodes;
     RoomAccess roomAccess;
     RoomMappingService roomMappingService;
+    ParticipantNotifier participantNotifier;
 
     /**
      * Replaces the invite code, so links with the old one stop working.
@@ -95,6 +98,8 @@ public class RoomInviteService {
                     .userId(userId)
                     .role(RoomRole.PARTICIPANT)
                     .build());
+            participantNotifier.publish(room.getId(), new ParticipantEvent(ParticipantEventType.JOINED, userId,
+                    room.getHostId()));
             log.info("User {} joined room {}", userId, room.getId());
         }
         return mapRoom(room, userId);

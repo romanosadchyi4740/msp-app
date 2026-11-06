@@ -92,6 +92,19 @@ class LessonLifecycleTest {
     }
 
     @Test
+    void pauseActive_PausesTheLessonsPlayback_OrDoesNothingWithoutLesson() {
+        LessonSession lesson = activeLesson(null, NOW.minus(Duration.ofMinutes(5)));
+        when(lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)).thenReturn(Optional.of(lesson), Optional.empty());
+
+        lessonLifecycle.pauseActive(roomId);
+        lessonLifecycle.pauseActive(roomId);
+
+        verify(lessonPlayback).pause(roomId, sessionId);
+        assertThat(lesson.getEndedAt()).isNull();
+        verifyNoInteractions(lessonNotifier);
+    }
+
+    @Test
     void start_FreePlan_SavesStartsPlaybackThenPublishes() {
         LessonSession session = lessonLifecycle.start(room, hostId, tab(null));
 

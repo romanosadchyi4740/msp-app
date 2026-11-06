@@ -1,12 +1,15 @@
 package com.romanosadchyi.smp.music_app.rooms.internal.controller;
 
 import com.romanosadchyi.smp.music_app.rooms.internal.api.RoomsApi;
+import com.romanosadchyi.smp.music_app.rooms.internal.api.model.HostTransferRequest;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateRequest;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.HostTransferService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomClosingService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomInviteService;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomLeavingService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomService;
 import com.romanosadchyi.smp.music_app.shared.security.CurrentUser;
 import lombok.AccessLevel;
@@ -33,6 +36,8 @@ public class RoomController implements RoomsApi {
     RoomService roomService;
     RoomInviteService roomInviteService;
     RoomClosingService roomClosingService;
+    HostTransferService hostTransferService;
+    RoomLeavingService roomLeavingService;
 
     @Override
     public ResponseEntity<RoomResponse> createRoom(RoomCreateRequest request) {
@@ -80,5 +85,20 @@ public class RoomController implements RoomsApi {
         UUID userId = CurrentUser.get().id();
         log.info("User {} closing room {}", userId, id);
         return ResponseEntity.ok(roomClosingService.close(userId, id));
+    }
+
+    @Override
+    public ResponseEntity<RoomResponse> transferHost(UUID id, HostTransferRequest request) {
+        UUID userId = CurrentUser.get().id();
+        log.info("User {} handing over room {}", userId, id);
+        return ResponseEntity.ok(hostTransferService.transferHost(userId, id, request));
+    }
+
+    @Override
+    public ResponseEntity<Void> leaveRoom(UUID id) {
+        UUID userId = CurrentUser.get().id();
+        log.info("User {} leaving room {}", userId, id);
+        roomLeavingService.leave(userId, id);
+        return ResponseEntity.noContent().build();
     }
 }
