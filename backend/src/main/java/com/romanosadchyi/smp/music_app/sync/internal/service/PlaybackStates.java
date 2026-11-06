@@ -3,6 +3,7 @@ package com.romanosadchyi.smp.music_app.sync.internal.service;
 import com.romanosadchyi.smp.music_app.sync.internal.dto.SyncCommand;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackState;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackStatus;
+import lombok.experimental.UtilityClass;
 
 /**
  * The anchor-time model of a lesson's playback (lab 7: {@code PlaybackState.apply}, {@code positionAt}). The state
@@ -11,20 +12,18 @@ import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackStatus;
  * set a new anchor instead of streaming positions. A command that changes nothing leaves every field as it was, so
  * the stored version does not grow.
  */
-public final class PlaybackStates {
+@UtilityClass
+public class PlaybackStates {
 
-    static final int FIRST_MEASURE = 1;
-    static final int MIN_TEMPO_BPM = 20;
-    static final int MAX_TEMPO_BPM = 400;
-
-    private PlaybackStates() {
-    }
+    final int FIRST_MEASURE = 1;
+    final int MIN_TEMPO_BPM = 20;
+    final int MAX_TEMPO_BPM = 400;
 
     /**
      * Where playback is at {@code serverTime}. Before the anchor, during the count-in, it is still at the stored
      * position; paused and stopped playback does not move.
      */
-    public static Position positionAt(PlaybackState state, long serverTime) {
+    public Position positionAt(PlaybackState state, long serverTime) {
         if (state.getStatus() != PlaybackStatus.PLAYING || serverTime <= state.getAnchorTime()) {
             return new Position(state.getMeasure(), state.getBeat());
         }
@@ -46,7 +45,7 @@ public final class PlaybackStates {
      * @throws IllegalArgumentException if the command has no type, an invalid argument, or is
      *                                  {@code REQUEST_SYNC}, which asks for a snapshot and changes nothing
      */
-    public static void apply(PlaybackState state, SyncCommand command, long serverNow) {
+    public void apply(PlaybackState state, SyncCommand command, long serverNow) {
         if (command == null || command.type() == null) {
             throw new IllegalArgumentException("A command type is required");
         }
@@ -65,7 +64,7 @@ public final class PlaybackStates {
      * Back to the first measure, stopped, at the tab's tempo and time signature; the metronome stays as it is. A tab
      * tempo outside what {@code SET_TEMPO} accepts is brought to the nearest bound, so the count-in stays sensible.
      */
-    public static void loadTab(PlaybackState state, int tempoBpm, TimeSignature timeSignature, long serverNow) {
+    public void loadTab(PlaybackState state, int tempoBpm, TimeSignature timeSignature, long serverNow) {
         state.setMeasure(FIRST_MEASURE);
         state.setBeat(0);
         state.setTempoBpm(Math.clamp(tempoBpm, MIN_TEMPO_BPM, MAX_TEMPO_BPM));
@@ -78,7 +77,7 @@ public final class PlaybackStates {
     /**
      * Stops where playback is at {@code serverNow}.
      */
-    public static void stopAt(PlaybackState state, long serverNow) {
+    public void stopAt(PlaybackState state, long serverNow) {
         if (state.getStatus() == PlaybackStatus.PLAYING) {
             freeze(state, serverNow);
         }
@@ -88,18 +87,18 @@ public final class PlaybackStates {
     /**
      * One measure at the current tempo, counted in before playback starts.
      */
-    public static long countInMillis(PlaybackState state) {
+    public long countInMillis(PlaybackState state) {
         return Math.round(timeSignatureOf(state).quarterBeatsPerMeasure() * 60000.0 / state.getTempoBpm());
     }
 
-    public static TimeSignature timeSignatureOf(PlaybackState state) {
+    public TimeSignature timeSignatureOf(PlaybackState state) {
         return new TimeSignature(state.getBeatsPerMeasure(), state.getBeatUnit());
     }
 
     /**
      * Plays on from the stored position after a one-measure count-in, so the anchor lies in the future.
      */
-    private static void play(PlaybackState state, long serverNow) {
+    private void play(PlaybackState state, long serverNow) {
         if (state.getStatus() == PlaybackStatus.PLAYING) {
             return;
         }
@@ -107,7 +106,7 @@ public final class PlaybackStates {
         state.setAnchorTime(serverNow + countInMillis(state));
     }
 
-    private static void pause(PlaybackState state, long serverNow) {
+    private void pause(PlaybackState state, long serverNow) {
         if (state.getStatus() != PlaybackStatus.PLAYING) {
             return;
         }
@@ -119,7 +118,7 @@ public final class PlaybackStates {
      * Jumps to the start of the measure; playing goes on from there at once, without a new count-in, and a count-in
      * that is still running keeps its end.
      */
-    private static void seek(PlaybackState state, int measure, long serverNow) {
+    private void seek(PlaybackState state, int measure, long serverNow) {
         state.setMeasure(measure);
         state.setBeat(0);
         if (state.getStatus() == PlaybackStatus.PLAYING) {
@@ -131,7 +130,7 @@ public final class PlaybackStates {
      * While playing, the position reached so far becomes the new anchor, so it does not jump; a count-in that is
      * still running keeps its end.
      */
-    private static void setTempo(PlaybackState state, int tempoBpm, long serverNow) {
+    private void setTempo(PlaybackState state, int tempoBpm, long serverNow) {
         if (state.getStatus() == PlaybackStatus.PLAYING) {
             long anchorTime = Math.max(serverNow, state.getAnchorTime());
             Position position = positionAt(state, serverNow);
@@ -142,14 +141,14 @@ public final class PlaybackStates {
         state.setTempoBpm(tempoBpm);
     }
 
-    private static void freeze(PlaybackState state, long serverNow) {
+    private void freeze(PlaybackState state, long serverNow) {
         Position position = positionAt(state, serverNow);
         state.setMeasure(position.measure());
         state.setBeat(position.beat());
         state.setAnchorTime(serverNow);
     }
 
-    private static int parseMeasure(String argument) {
+    private int parseMeasure(String argument) {
         int measure = parseInt(argument, "SEEK needs a measure number");
         if (measure < FIRST_MEASURE) {
             throw new IllegalArgumentException("Measures are counted from 1");
@@ -157,7 +156,7 @@ public final class PlaybackStates {
         return measure;
     }
 
-    private static int parseTempo(String argument) {
+    private int parseTempo(String argument) {
         int tempoBpm = parseInt(argument, "SET_TEMPO needs a tempo in beats per minute");
         if (tempoBpm < MIN_TEMPO_BPM || tempoBpm > MAX_TEMPO_BPM) {
             throw new IllegalArgumentException(
@@ -166,7 +165,7 @@ public final class PlaybackStates {
         return tempoBpm;
     }
 
-    private static boolean parseSwitch(String argument) {
+    private boolean parseSwitch(String argument) {
         if ("true".equalsIgnoreCase(argument)) {
             return true;
         }
@@ -176,7 +175,7 @@ public final class PlaybackStates {
         throw new IllegalArgumentException("METRONOME needs true or false");
     }
 
-    private static int parseInt(String argument, String message) {
+    private int parseInt(String argument, String message) {
         if (argument == null) {
             throw new IllegalArgumentException(message);
         }
