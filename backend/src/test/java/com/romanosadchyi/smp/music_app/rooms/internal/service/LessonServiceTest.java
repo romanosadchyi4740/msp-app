@@ -129,7 +129,7 @@ class LessonServiceTest {
         assertThat(saved.getValue().getTabId()).isEqualTo(tabId);
         assertThat(saved.getValue().getStartedAt()).isEqualTo(NOW);
         assertThat(saved.getValue().getLimitMinutes()).isEqualTo(40);
-        verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 90));
+        verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 90, "4/4"));
         LessonEvent event = publishedEvent();
         assertThat(event.type()).isEqualTo(LessonEventType.LESSON_STARTED);
         assertThat(event.endsAt()).isEqualTo(NOW.plus(Duration.ofMinutes(40)));
@@ -155,7 +155,7 @@ class LessonServiceTest {
 
         lessonService.start(hostId, roomId, new LessonTabRequest().tabId(tabId));
 
-        verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 120));
+        verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 120, "4/4"));
     }
 
     @Test
@@ -247,7 +247,7 @@ class LessonServiceTest {
 
         assertThat(lesson.getTabId()).isEqualTo(newTabId);
         verify(lessonRepository).save(lesson);
-        verify(lessonPlayback).changeTab(new LessonTab(sessionId, roomId, newTabId, 70));
+        verify(lessonPlayback).changeTab(new LessonTab(sessionId, roomId, newTabId, 70, "3/4"));
         LessonEvent event = publishedEvent();
         assertThat(event.type()).isEqualTo(LessonEventType.TAB_CHANGED);
         assertThat(event.tabId()).isEqualTo(newTabId);

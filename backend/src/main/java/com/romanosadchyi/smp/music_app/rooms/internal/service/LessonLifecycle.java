@@ -92,6 +92,7 @@ public class LessonLifecycle {
     }
 
     private static LessonTab lessonTab(LessonSession session, TabSummary tab) {
-        return new LessonTab(session.getId(), session.getRoom().getId(), tab.id(), LessonTabResolver.tempoOf(tab));
+        return new LessonTab(session.getId(), session.getRoom().getId(), tab.id(), LessonTabResolver.tempoOf(tab),
+                tab.timeSignature());
     }
 }

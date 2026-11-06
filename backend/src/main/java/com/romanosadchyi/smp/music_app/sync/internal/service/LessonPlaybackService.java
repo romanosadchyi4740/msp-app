@@ -3,7 +3,6 @@ package com.romanosadchyi.smp.music_app.sync.internal.service;
 import com.romanosadchyi.smp.music_app.rooms.external.LessonPlayback;
 import com.romanosadchyi.smp.music_app.rooms.external.LessonTab;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackState;
-import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackStatus;
 import com.romanosadchyi.smp.music_app.sync.internal.repository.PlaybackStateRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,15 +13,14 @@ import java.time.Clock;
 import java.util.UUID;
 
 /**
- * Keeps one playback state per lesson: a new lesson and a new tab start stopped at the first measure and the tab's
- * tempo, and an ended lesson stops. The state is deleted with its lesson, by the database.
+ * Keeps one playback state per lesson: a new lesson and a new tab start stopped at the first measure with the tab's
+ * tempo and time signature, and an ended lesson stops where it is. The state is deleted with its lesson, by the
+ * database.
  */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 class LessonPlaybackService implements LessonPlayback {
-
-    static final int FIRST_MEASURE = 1;
 
     PlaybackStateRepository playbackStateRepository;
     Clock clock;
@@ -33,7 +31,8 @@ class LessonPlaybackService implements LessonPlayback {
                 .sessionId(lesson.sessionId())
                 .metronomeOn(false)
                 .build();
-        playbackStateRepository.save(rewind(state, lesson.tempoBpm()));
+        loadTab(state, lesson);
+        playbackStateRepository.save(state);
     }
 
     /**
@@ -41,25 +40,21 @@ class LessonPlaybackService implements LessonPlayback {
      */
     @Override
     public void changeTab(LessonTab lesson) {
-        playbackStateRepository.findById(lesson.sessionId())
-                .ifPresent(state -> playbackStateRepository.save(rewind(state, lesson.tempoBpm())));
-    }
-
-    @Override
-    public void stop(UUID sessionId) {
-        playbackStateRepository.findById(sessionId).ifPresent(state -> {
-            state.setStatus(PlaybackStatus.STOPPED);
-            state.setAnchorTime(clock.millis());
+        playbackStateRepository.findByIdForUpdate(lesson.sessionId()).ifPresent(state -> {
+            loadTab(state, lesson);
             playbackStateRepository.save(state);
         });
     }
 
-    private PlaybackState rewind(PlaybackState state, int tempoBpm) {
-        state.setMeasure(FIRST_MEASURE);
-        state.setBeat(0);
-        state.setTempoBpm(tempoBpm);
-        state.setStatus(PlaybackStatus.STOPPED);
-        state.setAnchorTime(clock.millis());
-        return state;
+    @Override
+    public void stop(UUID sessionId) {
+        playbackStateRepository.findByIdForUpdate(sessionId).ifPresent(state -> {
+            PlaybackStates.stopAt(state, clock.millis());
+            playbackStateRepository.save(state);
+        });
+    }
+
+    private void loadTab(PlaybackState state, LessonTab lesson) {
+        PlaybackStates.loadTab(state, lesson.tempoBpm(), TimeSignature.parse(lesson.timeSignature()), clock.millis());
     }
 }

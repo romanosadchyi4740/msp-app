@@ -35,13 +35,31 @@ public class PlaybackState {
     int measure;
 
     /**
-     * Beats into the measure, 0-based; fractional while paused between beats.
+     * Quarter-note beats into the measure, 0-based; fractional while paused between beats and in signatures such
+     * as 6/8, whose measure holds 3 quarter beats.
      */
     @Column(nullable = false)
     double beat;
 
+    /**
+     * Quarter notes per minute, as Guitar Pro files and alphaTab count the tempo.
+     */
     @Column(name = "tempo_bpm", nullable = false)
     int tempoBpm;
+
+    /**
+     * The upper number of the time signature.
+     */
+    @Column(name = "beats_per_measure", nullable = false)
+    @Builder.Default
+    int beatsPerMeasure = 4;
+
+    /**
+     * The lower number of the time signature, the note value of one beat.
+     */
+    @Column(name = "beat_unit", nullable = false)
+    @Builder.Default
+    int beatUnit = 4;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
