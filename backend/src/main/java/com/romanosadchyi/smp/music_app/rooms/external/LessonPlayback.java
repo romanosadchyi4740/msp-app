@@ -10,12 +10,13 @@ import java.util.UUID;
 public interface LessonPlayback {
 
     /**
-     * Creates the lesson's playback, stopped at its first measure and the tab's tempo.
+     * Creates the lesson's playback, stopped at its first measure with the tab's tempo and time signature.
      */
     void start(LessonTab lesson);
 
     /**
-     * The host put another tab on screen; playback starts over, stopped, at the new tab's tempo.
+     * The host put another tab on screen; playback starts over, stopped, with the new tab's tempo and time
+     * signature.
      */
     void changeTab(LessonTab lesson);
 

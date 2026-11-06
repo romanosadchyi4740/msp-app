@@ -99,7 +99,7 @@ class LessonLifecycleTest {
         assertThat(session.getLimitMinutes()).isEqualTo(40);
         InOrder order = inOrder(lessonRepository, lessonPlayback, lessonNotifier);
         order.verify(lessonRepository).save(session);
-        order.verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 120));
+        order.verify(lessonPlayback).start(new LessonTab(sessionId, roomId, tabId, 120, "4/4"));
         order.verify(lessonNotifier).publish(eq(roomId), any());
         assertThat(publishedEvent().type()).isEqualTo(LessonEventType.LESSON_STARTED);
     }
@@ -128,7 +128,7 @@ class LessonLifecycleTest {
         lessonLifecycle.changeTab(lesson, new TabSummary(newTabId, "Etude", 70, "3/4"));
 
         assertThat(lesson.getTabId()).isEqualTo(newTabId);
-        verify(lessonPlayback).changeTab(new LessonTab(sessionId, roomId, newTabId, 70));
+        verify(lessonPlayback).changeTab(new LessonTab(sessionId, roomId, newTabId, 70, "3/4"));
         assertThat(publishedEvent().type()).isEqualTo(LessonEventType.TAB_CHANGED);
     }
 

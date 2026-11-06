@@ -42,8 +42,8 @@ class LessonPlaybackServiceTest {
     }
 
     @Test
-    void start_CreatesAStoppedStateAtTheFirstMeasureAndTheTabsTempo() {
-        lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96));
+    void start_CreatesAStoppedStateAtTheFirstMeasureWithTheTabsTempoAndTimeSignature() {
+        lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96, "6/8"));
 
         ArgumentCaptor<PlaybackState> saved = ArgumentCaptor.forClass(PlaybackState.class);
         verify(playbackStateRepository).save(saved.capture());
@@ -52,10 +52,22 @@ class LessonPlaybackServiceTest {
         assertThat(state.getMeasure()).isEqualTo(1);
         assertThat(state.getBeat()).isZero();
         assertThat(state.getTempoBpm()).isEqualTo(96);
+        assertThat(state.getBeatsPerMeasure()).isEqualTo(6);
+        assertThat(state.getBeatUnit()).isEqualTo(8);
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
         assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli());
         assertThat(state.isMetronomeOn()).isFalse();
         assertThat(state.getVersion()).isNull();
+    }
+
+    @Test
+    void start_TabWithoutTimeSignature_UsesFourFour() {
+        lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96, null));
+
+        ArgumentCaptor<PlaybackState> saved = ArgumentCaptor.forClass(PlaybackState.class);
+        verify(playbackStateRepository).save(saved.capture());
+        assertThat(saved.getValue().getBeatsPerMeasure()).isEqualTo(4);
+        assertThat(saved.getValue().getBeatUnit()).isEqualTo(4);
     }
 
     @Test
@@ -70,44 +82,68 @@ class LessonPlaybackServiceTest {
                 .metronomeOn(true)
                 .version(4L)
                 .build();
-        when(playbackStateRepository.findById(sessionId)).thenReturn(Optional.of(state));
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
 
-        lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70));
+        lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70, "3/4"));
 
         verify(playbackStateRepository).save(state);
         assertThat(state.getMeasure()).isEqualTo(1);
         assertThat(state.getBeat()).isZero();
         assertThat(state.getTempoBpm()).isEqualTo(70);
+        assertThat(state.getBeatsPerMeasure()).isEqualTo(3);
+        assertThat(state.getBeatUnit()).isEqualTo(4);
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
         assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli());
         assertThat(state.isMetronomeOn()).isTrue();
     }
 
     @Test
-    void stop_StopsWhereItIs() {
+    void stop_PlayingState_StopsWhereItIsNow() {
+        // 120 BPM: 2 quarter beats per second, so 3 s after the anchor at measure 9 beat 1 it is at measure 10 beat 3
         PlaybackState state = PlaybackState.builder()
                 .sessionId(sessionId)
                 .measure(9)
                 .beat(1)
-                .tempoBpm(100)
+                .tempoBpm(120)
                 .status(PlaybackStatus.PLAYING)
-                .anchorTime(0)
+                .anchorTime(NOW.toEpochMilli() - 3000)
                 .build();
-        when(playbackStateRepository.findById(sessionId)).thenReturn(Optional.of(state));
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
 
         lessonPlayback.stop(sessionId);
 
         verify(playbackStateRepository).save(state);
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
-        assertThat(state.getMeasure()).isEqualTo(9);
+        assertThat(state.getMeasure()).isEqualTo(10);
+        assertThat(state.getBeat()).isEqualTo(3.0);
         assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli());
     }
 
     @Test
-    void withoutState_ChangesNothing() {
-        when(playbackStateRepository.findById(sessionId)).thenReturn(Optional.empty());
+    void stop_PausedState_KeepsItsPosition() {
+        PlaybackState state = PlaybackState.builder()
+                .sessionId(sessionId)
+                .measure(9)
+                .beat(1)
+                .tempoBpm(100)
+                .status(PlaybackStatus.PAUSED)
+                .anchorTime(0)
+                .build();
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
 
-        lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70));
+        lessonPlayback.stop(sessionId);
+
+        assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
+        assertThat(state.getMeasure()).isEqualTo(9);
+        assertThat(state.getBeat()).isEqualTo(1.0);
+        assertThat(state.getAnchorTime()).isZero();
+    }
+
+    @Test
+    void withoutState_ChangesNothing() {
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.empty());
+
+        lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70, "4/4"));
         lessonPlayback.stop(sessionId);
 
         verify(playbackStateRepository, never()).save(any());
