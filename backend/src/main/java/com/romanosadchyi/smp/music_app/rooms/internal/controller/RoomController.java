@@ -6,9 +6,10 @@ import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateReques
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomResponse;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.HostTransferService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomClosingService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomInviteService;
-import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomMembershipService;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomLeavingService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomService;
 import com.romanosadchyi.smp.music_app.shared.security.CurrentUser;
 import lombok.AccessLevel;
@@ -35,7 +36,8 @@ public class RoomController implements RoomsApi {
     RoomService roomService;
     RoomInviteService roomInviteService;
     RoomClosingService roomClosingService;
-    RoomMembershipService roomMembershipService;
+    HostTransferService hostTransferService;
+    RoomLeavingService roomLeavingService;
 
     @Override
     public ResponseEntity<RoomResponse> createRoom(RoomCreateRequest request) {
@@ -89,14 +91,14 @@ public class RoomController implements RoomsApi {
     public ResponseEntity<RoomResponse> transferHost(UUID id, HostTransferRequest request) {
         UUID userId = CurrentUser.get().id();
         log.info("User {} handing over room {}", userId, id);
-        return ResponseEntity.ok(roomMembershipService.transferHost(userId, id, request));
+        return ResponseEntity.ok(hostTransferService.transferHost(userId, id, request));
     }
 
     @Override
     public ResponseEntity<Void> leaveRoom(UUID id) {
         UUID userId = CurrentUser.get().id();
         log.info("User {} leaving room {}", userId, id);
-        roomMembershipService.leave(userId, id);
+        roomLeavingService.leave(userId, id);
         return ResponseEntity.noContent().build();
     }
 }

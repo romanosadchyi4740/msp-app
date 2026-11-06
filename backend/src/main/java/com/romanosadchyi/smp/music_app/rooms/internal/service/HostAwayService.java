@@ -35,7 +35,7 @@ public class HostAwayService {
 
     RoomRepository roomRepository;
     RoomParticipantRepository participantRepository;
-    HostHandover hostHandover;
+    HostSuccession hostSuccession;
     Clock clock;
 
     /**
@@ -63,7 +63,7 @@ public class HostAwayService {
         }
         participantRepository.findFirstByRoomIdAndUserIdNotAndOnlineTrueOrderByJoinedAtAsc(roomId, host.getUserId())
                 .ifPresent(successor -> {
-                    hostHandover.transfer(room, host, successor, true);
+                    hostSuccession.handOver(room, host, successor);
                     log.info("Host {} of room {} was away; the room passed to user {}", host.getUserId(), roomId,
                             successor.getUserId());
                 });

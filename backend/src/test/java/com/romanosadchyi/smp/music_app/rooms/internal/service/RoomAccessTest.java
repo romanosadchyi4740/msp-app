@@ -79,6 +79,15 @@ class RoomAccessTest {
     }
 
     @Test
+    void lock_ExistingRoom_ReturnsItLocked_OrIsNotFound() {
+        when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room), Optional.empty());
+
+        assertThat(roomAccess.lock(roomId)).isSameAs(room);
+        assertThatThrownBy(() -> roomAccess.lock(roomId)).isInstanceOf(RoomNotFoundException.class);
+        verifyNoInteractions(participantRepository);
+    }
+
+    @Test
     void lockAsHost_Host_LocksBeforeCheckingTheRole() {
         when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
         when(participantRepository.findByRoomIdAndUserId(roomId, userId))

@@ -78,6 +78,14 @@ public class LessonLifecycle {
     }
 
     /**
+     * Pauses the playback of the room's active lesson if it is playing; without a lesson, does nothing.
+     */
+    public void pauseActive(UUID roomId) {
+        lessonRepository.findByRoomIdAndEndedAtIsNull(roomId)
+                .ifPresent(session -> lessonPlayback.pause(roomId, session.getId()));
+    }
+
+    /**
      * Tells the room the limit is near, once per lesson.
      */
     public void warnLimitNear(LessonSession session) {

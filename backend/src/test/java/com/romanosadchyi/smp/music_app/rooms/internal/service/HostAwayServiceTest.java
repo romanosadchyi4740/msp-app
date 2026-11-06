@@ -37,7 +37,7 @@ class HostAwayServiceTest {
     RoomParticipantRepository participantRepository;
 
     @Mock
-    HostHandover hostHandover;
+    HostSuccession hostSuccession;
 
     HostAwayService hostAwayService;
 
@@ -51,7 +51,7 @@ class HostAwayServiceTest {
 
     @BeforeEach
     void setUp() {
-        hostAwayService = new HostAwayService(roomRepository, participantRepository, hostHandover,
+        hostAwayService = new HostAwayService(roomRepository, participantRepository, hostSuccession,
                 Clock.fixed(NOW, ZoneOffset.UTC));
         lenient().when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.of(room));
         lenient().when(participantRepository.findByRoomIdAndRole(roomId, RoomRole.HOST)).thenReturn(Optional.of(host));
@@ -73,7 +73,7 @@ class HostAwayServiceTest {
 
         hostAwayService.handOver(roomId);
 
-        verify(hostHandover).transfer(room, host, student, true);
+        verify(hostSuccession).handOver(room, host, student);
     }
 
     @Test
@@ -82,7 +82,7 @@ class HostAwayServiceTest {
 
         hostAwayService.handOver(roomId);
 
-        verify(hostHandover).transfer(room, host, student, true);
+        verify(hostSuccession).handOver(room, host, student);
     }
 
     @Test
@@ -91,7 +91,7 @@ class HostAwayServiceTest {
 
         hostAwayService.handOver(roomId);
 
-        verifyNoInteractions(hostHandover);
+        verifyNoInteractions(hostSuccession);
     }
 
     @Test
@@ -100,14 +100,14 @@ class HostAwayServiceTest {
 
         hostAwayService.handOver(roomId);
 
-        verifyNoInteractions(hostHandover);
+        verifyNoInteractions(hostSuccession);
     }
 
     @Test
     void handOver_HostNeverSeenOnline_KeepsTheRole() {
         hostAwayService.handOver(roomId);
 
-        verifyNoInteractions(hostHandover);
+        verifyNoInteractions(hostSuccession);
     }
 
     @Test
@@ -118,7 +118,7 @@ class HostAwayServiceTest {
 
         hostAwayService.handOver(roomId);
 
-        verifyNoInteractions(hostHandover);
+        verifyNoInteractions(hostSuccession);
     }
 
     @Test
@@ -129,6 +129,6 @@ class HostAwayServiceTest {
         when(roomRepository.findByIdForUpdate(roomId)).thenReturn(Optional.empty());
         hostAwayService.handOver(roomId);
 
-        verifyNoInteractions(hostHandover);
+        verifyNoInteractions(hostSuccession);
     }
 }
