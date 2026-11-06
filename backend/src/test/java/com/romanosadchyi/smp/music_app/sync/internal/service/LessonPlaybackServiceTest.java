@@ -1,8 +1,10 @@
 package com.romanosadchyi.smp.music_app.sync.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.external.LessonTab;
+import com.romanosadchyi.smp.music_app.sync.internal.dto.PlaybackStateDto;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackState;
 import com.romanosadchyi.smp.music_app.sync.internal.entity.PlaybackStatus;
+import com.romanosadchyi.smp.music_app.sync.internal.mapping.PlaybackStateMappingService;
 import com.romanosadchyi.smp.music_app.sync.internal.repository.PlaybackStateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +35,9 @@ class LessonPlaybackServiceTest {
     @Mock
     PlaybackStateRepository playbackStateRepository;
 
+    @Mock
+    PlaybackNotifier playbackNotifier;
+
     LessonPlaybackService lessonPlayback;
 
     UUID sessionId = UUID.randomUUID();
@@ -38,7 +45,9 @@ class LessonPlaybackServiceTest {
 
     @BeforeEach
     void setUp() {
-        lessonPlayback = new LessonPlaybackService(playbackStateRepository, Clock.fixed(NOW, ZoneOffset.UTC));
+        lessonPlayback = new LessonPlaybackService(playbackStateRepository, new PlaybackStateMappingService(),
+                playbackNotifier, Clock.fixed(NOW, ZoneOffset.UTC));
+        lenient().when(playbackStateRepository.saveAndFlush(any())).thenAnswer(call -> call.getArgument(0));
     }
 
     @Test
@@ -46,7 +55,7 @@ class LessonPlaybackServiceTest {
         lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96, "6/8"));
 
         ArgumentCaptor<PlaybackState> saved = ArgumentCaptor.forClass(PlaybackState.class);
-        verify(playbackStateRepository).save(saved.capture());
+        verify(playbackStateRepository).saveAndFlush(saved.capture());
         PlaybackState state = saved.getValue();
         assertThat(state.getSessionId()).isEqualTo(sessionId);
         assertThat(state.getMeasure()).isEqualTo(1);
@@ -65,7 +74,7 @@ class LessonPlaybackServiceTest {
         lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96, null));
 
         ArgumentCaptor<PlaybackState> saved = ArgumentCaptor.forClass(PlaybackState.class);
-        verify(playbackStateRepository).save(saved.capture());
+        verify(playbackStateRepository).saveAndFlush(saved.capture());
         assertThat(saved.getValue().getBeatsPerMeasure()).isEqualTo(4);
         assertThat(saved.getValue().getBeatUnit()).isEqualTo(4);
     }
@@ -86,7 +95,7 @@ class LessonPlaybackServiceTest {
 
         lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70, "3/4"));
 
-        verify(playbackStateRepository).save(state);
+        verify(playbackStateRepository).saveAndFlush(state);
         assertThat(state.getMeasure()).isEqualTo(1);
         assertThat(state.getBeat()).isZero();
         assertThat(state.getTempoBpm()).isEqualTo(70);
@@ -110,9 +119,9 @@ class LessonPlaybackServiceTest {
                 .build();
         when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
 
-        lessonPlayback.stop(sessionId);
+        lessonPlayback.stop(roomId, sessionId);
 
-        verify(playbackStateRepository).save(state);
+        verify(playbackStateRepository).saveAndFlush(state);
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
         assertThat(state.getMeasure()).isEqualTo(10);
         assertThat(state.getBeat()).isEqualTo(3.0);
@@ -131,7 +140,7 @@ class LessonPlaybackServiceTest {
                 .build();
         when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
 
-        lessonPlayback.stop(sessionId);
+        lessonPlayback.stop(roomId, sessionId);
 
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
         assertThat(state.getMeasure()).isEqualTo(9);
@@ -140,12 +149,49 @@ class LessonPlaybackServiceTest {
     }
 
     @Test
+    void changes_PublishTheSavedStateToTheRoom() {
+        PlaybackState state = PlaybackState.builder()
+                .sessionId(sessionId)
+                .measure(3)
+                .tempoBpm(100)
+                .status(PlaybackStatus.PLAYING)
+                .anchorTime(NOW.toEpochMilli())
+                .build();
+        PlaybackState flushed = PlaybackState.builder()
+                .sessionId(sessionId)
+                .measure(3)
+                .tempoBpm(100)
+                .status(PlaybackStatus.STOPPED)
+                .anchorTime(NOW.toEpochMilli())
+                .version(5L)
+                .build();
+        when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
+        when(playbackStateRepository.saveAndFlush(state)).thenReturn(flushed);
+
+        lessonPlayback.stop(roomId, sessionId);
+
+        ArgumentCaptor<PlaybackStateDto> published = ArgumentCaptor.forClass(PlaybackStateDto.class);
+        verify(playbackNotifier).publishState(eq(roomId), published.capture());
+        assertThat(published.getValue().version()).isEqualTo(5L);
+        assertThat(published.getValue().status()).isEqualTo(PlaybackStatus.STOPPED);
+        assertThat(published.getValue().serverTime()).isEqualTo(NOW.toEpochMilli());
+    }
+
+    @Test
+    void start_PublishesToTheLessonsRoom() {
+        lessonPlayback.start(new LessonTab(sessionId, roomId, UUID.randomUUID(), 96, "4/4"));
+
+        verify(playbackNotifier).publishState(eq(roomId), any());
+    }
+
+    @Test
     void withoutState_ChangesNothing() {
         when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.empty());
 
         lessonPlayback.changeTab(new LessonTab(sessionId, roomId, UUID.randomUUID(), 70, "4/4"));
-        lessonPlayback.stop(sessionId);
+        lessonPlayback.stop(roomId, sessionId);
 
-        verify(playbackStateRepository, never()).save(any());
+        verify(playbackStateRepository, never()).saveAndFlush(any());
+        verify(playbackNotifier, never()).publishState(any(), any());
     }
 }

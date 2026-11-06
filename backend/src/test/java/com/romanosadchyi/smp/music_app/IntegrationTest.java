@@ -14,11 +14,13 @@ import java.lang.annotation.Target;
 /**
  * Full application context on Testcontainers (Postgres + S3) with the {@code test} profile, never the local
  * docker-compose services. Needs only a Docker daemon. Every integration test uses exactly this annotation, so
- * they all share one cached context. Excluded from the unit-test run with {@code -DexcludedGroups=integration}.
+ * they all share one cached context. The server listens on a random port ({@code @LocalServerPort}), so STOMP
+ * tests can connect a real WebSocket client; MockMvc works as before. Excluded from the unit-test run with
+ * {@code -DexcludedGroups=integration}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)

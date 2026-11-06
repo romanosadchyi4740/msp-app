@@ -23,5 +23,5 @@ public interface LessonPlayback {
     /**
      * The lesson ended; playback stops where it is.
      */
-    void stop(UUID sessionId);
+    void stop(UUID roomId, UUID sessionId);
 }

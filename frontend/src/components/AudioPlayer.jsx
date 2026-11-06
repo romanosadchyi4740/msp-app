@@ -27,6 +27,7 @@ const AudioPlayer = () => {
     toggleLoopMode,
     broadcastStatus,
     activeBroadcastId,
+    activeBroadcastChatId,
     leaveBroadcast,
     playTrack
   } = usePlayerStore();
@@ -37,32 +38,36 @@ const AudioPlayer = () => {
   const { openShareModal } = useChatStore();
   const { openPlaylistModal } = usePlaylistStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
+  // A broadcast is addressed by its chat and its id, so the server opens it only to the chat's members
+  const broadcastPath = activeBroadcastId && activeBroadcastChatId
+    ? `${activeBroadcastChatId}/${activeBroadcastId}`
+    : null;
 
   // Master Broadcast Effect (LOAD_TRACK)
   useEffect(() => {
-    if (broadcastStatus === 'MASTER' && activeBroadcastId && currentTrack) {
-      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+    if (broadcastStatus === 'MASTER' && broadcastPath && currentTrack) {
+      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
         command: 'LOAD_TRACK',
         trackId: currentTrack.id,
         timestamp: audioRef.current ? audioRef.current.currentTime : 0
       });
     }
-  }, [currentTrack?.id, broadcastStatus, activeBroadcastId]);
+  }, [currentTrack?.id, broadcastStatus, broadcastPath]);
 
   // Broadcast Subscription (Master & Sync)
   useEffect(() => {
-    if (activeBroadcastId) {
-      const sub = socketClient.subscribe(`/topic/broadcast/${activeBroadcastId}`, async (msg) => {
+    if (broadcastPath) {
+      const sub = socketClient.subscribe(`/topic/broadcast/${broadcastPath}`, async (msg) => {
         try {
           if (msg.command === 'REQUEST_SYNC' && broadcastStatus === 'MASTER') {
             const state = usePlayerStore.getState();
             if (state.currentTrack) {
-              socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+              socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
                 command: 'LOAD_TRACK',
                 trackId: state.currentTrack.id,
                 timestamp: audioRef.current ? audioRef.current.currentTime : 0
               });
-              socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+              socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
                 command: state.isPlaying ? 'PLAY' : 'PAUSE',
                 timestamp: audioRef.current ? audioRef.current.currentTime : 0
               });
@@ -98,7 +103,7 @@ const AudioPlayer = () => {
       });
 
       if (broadcastStatus === 'SYNC') {
-        socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+        socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
           command: 'REQUEST_SYNC',
           timestamp: 0
         });
@@ -108,7 +113,7 @@ const AudioPlayer = () => {
         if (sub) sub.unsubscribe();
       };
     }
-  }, [broadcastStatus, activeBroadcastId, playTrack, setIsPlaying, leaveBroadcast]);
+  }, [broadcastStatus, broadcastPath, playTrack, setIsPlaying, leaveBroadcast]);
 
   // Sync isPlaying with audio element
   useEffect(() => {
@@ -185,8 +190,8 @@ const AudioPlayer = () => {
 
   // Master Broadcast Events Hook
   const onPlayEvent = () => {
-    if (broadcastStatus === 'MASTER' && activeBroadcastId) {
-      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+    if (broadcastStatus === 'MASTER' && broadcastPath) {
+      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
         command: 'PLAY',
         timestamp: audioRef.current ? audioRef.current.currentTime : 0
       });
@@ -194,8 +199,8 @@ const AudioPlayer = () => {
   };
 
   const onPauseEvent = () => {
-    if (broadcastStatus === 'MASTER' && activeBroadcastId) {
-      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+    if (broadcastStatus === 'MASTER' && broadcastPath) {
+      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
         command: 'PAUSE',
         timestamp: audioRef.current ? audioRef.current.currentTime : 0
       });
@@ -203,8 +208,8 @@ const AudioPlayer = () => {
   };
 
   const onSeekedEvent = () => {
-    if (broadcastStatus === 'MASTER' && activeBroadcastId) {
-      socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+    if (broadcastStatus === 'MASTER' && broadcastPath) {
+      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
         command: 'SEEK',
         timestamp: audioRef.current ? audioRef.current.currentTime : 0
       });
@@ -260,8 +265,8 @@ const AudioPlayer = () => {
           </div>
           <button 
             onClick={() => {
-              if (broadcastStatus === 'MASTER' && activeBroadcastId) {
-                socketClient.sendMessage(`/broadcast/${activeBroadcastId}/sync`, {
+              if (broadcastStatus === 'MASTER' && broadcastPath) {
+                socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
                   command: 'TERMINATE',
                   timestamp: 0
                 });

@@ -16,7 +16,7 @@ const usePlayerStore = create((set, get) => ({
   activeBroadcastChatId: null,
 
   initiateBroadcast: (broadcastId, chatId) => set({ broadcastStatus: 'MASTER', activeBroadcastId: broadcastId, activeBroadcastChatId: chatId }),
-  joinBroadcast: (broadcastId) => set({ broadcastStatus: 'SYNC', activeBroadcastId: broadcastId, activeBroadcastChatId: null }),
+  joinBroadcast: (broadcastId, chatId) => set({ broadcastStatus: 'SYNC', activeBroadcastId: broadcastId, activeBroadcastChatId: chatId }),
   leaveBroadcast: () => {
     const { broadcastStatus, activeBroadcastId, activeBroadcastChatId } = get();
     if (broadcastStatus === 'MASTER' && activeBroadcastId && activeBroadcastChatId) {

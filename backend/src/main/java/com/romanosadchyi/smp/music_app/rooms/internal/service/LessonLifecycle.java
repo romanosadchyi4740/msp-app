@@ -66,7 +66,7 @@ public class LessonLifecycle {
         session.setEndedAt(clock.instant());
         session.setEndReason(reason);
         lessonRepository.save(session);
-        lessonPlayback.stop(session.getId());
+        lessonPlayback.stop(session.getRoom().getId(), session.getId());
         publish(session, LessonEventType.LESSON_ENDED);
     }
 

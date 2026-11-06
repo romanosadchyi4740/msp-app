@@ -88,7 +88,7 @@ class LessonLifecycleTest {
 
         assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.ROOM_CLOSED);
         assertThat(lesson.getEndedAt()).isEqualTo(NOW);
-        verify(lessonPlayback).stop(sessionId);
+        verify(lessonPlayback).stop(roomId, sessionId);
     }
 
     @Test

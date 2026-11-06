@@ -123,7 +123,7 @@ class LessonLimitServiceTest {
 
         assertThat(lesson.getEndedAt()).isEqualTo(NOW);
         assertThat(lesson.getEndReason()).isEqualTo(LessonEndReason.LIMIT_REACHED);
-        verify(lessonPlayback).stop(sessionId);
+        verify(lessonPlayback).stop(roomId, sessionId);
         assertThat(publishedEvent().reason()).isEqualTo(LessonEndReason.LIMIT_REACHED);
     }
 

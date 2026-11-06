@@ -61,6 +61,23 @@ class JwtStompChannelInterceptorTest {
     }
 
     @Test
+    void stompFrameWithValidToken_SetsSessionUser() {
+        AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "a@b.c", "ROLE_USER");
+        when(jwtService.parseToken("good")).thenReturn(user);
+        when(accountStatus.isActive(user.id())).thenReturn(true);
+
+        Message<?> result = interceptor.preSend(frame(StompCommand.STOMP, "Bearer good"), channel);
+
+        assertThat(StompHeaderAccessor.wrap(result).getUser()).isNotNull();
+    }
+
+    @Test
+    void stompFrameWithoutToken_IsRefused() {
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.STOMP, null), channel))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
     void connectWithADeletedAccountsToken_IsRefused() {
         AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "deleted@system.local", "ROLE_USER");
         when(jwtService.parseToken("old")).thenReturn(user);
@@ -91,37 +108,46 @@ class JwtStompChannelInterceptorTest {
     }
 
     @Test
-    void sendFromAnAnonymousSession_PassesWithoutStatusCheck() {
-        Message<byte[]> frame = frame(StompCommand.SEND, null);
-
-        assertThat(interceptor.preSend(frame, channel)).isSameAs(frame);
+    void sendOrSubscribeFromASessionWithoutUser_IsRejected() {
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.SEND, null), channel))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.SUBSCRIBE, null), channel))
+                .isInstanceOf(AccessDeniedException.class);
         verifyNoInteractions(accountStatus);
     }
 
     @Test
-    void connectWhenTheStatusCheckFails_LeavesSessionAnonymous() {
+    void connectWhenTheStatusCheckFails_IsRefused() {
         AuthenticatedUser user = new AuthenticatedUser(UUID.randomUUID(), "a@b.c", "ROLE_USER");
         when(jwtService.parseToken("good")).thenReturn(user);
         when(accountStatus.isActive(user.id())).thenThrow(new IllegalStateException("database down"));
 
-        Message<?> result = interceptor.preSend(frame(StompCommand.CONNECT, "Bearer good"), channel);
-
-        assertThat(StompHeaderAccessor.wrap(result).getUser()).isNull();
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.CONNECT, "Bearer good"), channel))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
-    void connectWithInvalidToken_LeavesSessionAnonymous() {
+    void connectWithInvalidToken_IsRefused() {
         when(jwtService.parseToken("expired")).thenThrow(new ExpiredJwtException(null, null, "expired"));
 
-        Message<?> result = interceptor.preSend(frame(StompCommand.CONNECT, "Bearer expired"), channel);
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.CONNECT, "Bearer expired"), channel))
+                .isInstanceOf(AccessDeniedException.class);
+    }
 
-        assertThat(StompHeaderAccessor.wrap(result).getUser()).isNull();
+    @Test
+    void connectWithoutToken_IsRefused() {
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.CONNECT, null), channel))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> interceptor.preSend(frame(StompCommand.CONNECT, "Basic abc"), channel))
+                .isInstanceOf(AccessDeniedException.class);
+        verifyNoInteractions(jwtService);
     }
 
     @Test
     void otherCommands_AreNotAuthenticated() {
-        interceptor.preSend(frame(StompCommand.SEND, "Bearer good"), channel);
+        Message<byte[]> frame = frame(StompCommand.DISCONNECT, "Bearer good");
 
+        assertThat(interceptor.preSend(frame, channel)).isSameAs(frame);
         verifyNoInteractions(jwtService);
     }
 

@@ -335,7 +335,7 @@ const ChatPage = () => {
                               </div>
                             ) : (
                               <button 
-                                onClick={() => joinBroadcast(broadcastId)}
+                                onClick={() => joinBroadcast(broadcastId, activeChat.id)}
                                 disabled={broadcastStatus === 'SYNC' && activeBroadcastId === broadcastId}
                                 className={`px-4 py-2 border border-current text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity ${broadcastStatus === 'SYNC' && activeBroadcastId === broadcastId ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-70'}`}
                               >
