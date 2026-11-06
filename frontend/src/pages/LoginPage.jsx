@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Music, Mail, Lock, Loader2 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../store/authStore';
+import { authPath, safeNextPath } from '../api/authRedirect';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, loginWithGoogle, loading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = safeNextPath(searchParams.get('next'));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const success = await login(email, password);
     if (success) {
-      navigate('/');
+      navigate(next, { replace: true });
     }
   };
 
@@ -22,7 +25,7 @@ const LoginPage = () => {
     if (credentialResponse.credential) {
       const success = await loginWithGoogle(credentialResponse.credential);
       if (success) {
-        navigate('/');
+        navigate(next, { replace: true });
       }
     }
   };
@@ -107,7 +110,7 @@ const LoginPage = () => {
 
         <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
           New User?{' '}
-          <Link to="/register" className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
+          <Link to={authPath('/register', next)} className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
             Create Identity
           </Link>
         </p>

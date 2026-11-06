@@ -27,7 +27,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, signedOut: false, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -47,7 +47,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, signedOut: false, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -67,7 +67,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, signedOut: false, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -143,7 +143,8 @@ const useAuthStore = create((set) => ({
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    set({ user: null, token: null, isAuthenticated: false });
+    // Signed out on purpose: the sign-in page does not lead back to the page they were on
+    set({ user: null, token: null, isAuthenticated: false, signedOut: true });
   },
 }));
 

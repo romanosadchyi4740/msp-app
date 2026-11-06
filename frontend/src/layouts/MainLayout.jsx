@@ -14,6 +14,7 @@ import {
   Settings,
   Star,
   Terminal,
+  Users,
   Sun,
   Moon
 } from 'lucide-react';
@@ -77,6 +78,7 @@ const MainLayout = () => {
     { icon: Radar, label: 'Network Radar', path: '/explore' },
     { icon: Activity, label: 'Telemetry', path: '/telemetry' },
     { icon: Guitar, label: 'Tabs', path: '/tabs' },
+    { icon: Users, label: 'Rooms', path: '/rooms' },
     { icon: Layers, label: 'Collections', path: '/playlists' },
     { icon: Star, label: 'Saved Transmissions', path: '/collection/tracks' },
     { icon: RadioReceiver, label: 'Comms Link', path: '/chat' },

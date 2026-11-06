@@ -1,6 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { API_URL } from '../config';
+import { authPath } from './authRedirect';
 
 const axiosClient = axios.create({
   baseURL: API_URL,
@@ -34,7 +35,9 @@ axiosClient.interceptors.response.use(
       // Genuine Auth Failure - Only logout on 401
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (!['/login', '/register'].includes(window.location.pathname)) {
+        window.location.href = authPath('/login', window.location.pathname + window.location.search);
+      }
     } else if (error.config?.suppressErrorToast) {
       // The caller shows the error itself (e.g. a live preview while typing)
     } else if (status === 403) {
