@@ -18,6 +18,7 @@ import org.springframework.web.socket.config.annotation.WebSocketTransportRegist
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     JwtStompChannelInterceptor jwtStompChannelInterceptor;
+    StompAuthorizationInterceptor stompAuthorizationInterceptor;
     WebSocketSessionRegistry webSocketSessionRegistry;
 
     @Override
@@ -45,6 +46,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(jwtStompChannelInterceptor);
+        // Authentication first: the authorization checks need the session user it sets
+        registration.interceptors(jwtStompChannelInterceptor, stompAuthorizationInterceptor);
     }
 }

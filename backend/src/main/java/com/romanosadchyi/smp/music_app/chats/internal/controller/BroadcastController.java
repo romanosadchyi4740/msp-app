@@ -8,12 +8,17 @@ import org.springframework.stereotype.Controller;
 
 import java.util.UUID;
 
+/**
+ * Relays listening-broadcast messages to everyone listening. The chat id in the destination lets the STOMP guard
+ * open a broadcast only to the members of the chat it was announced in.
+ */
 @Controller
 public class BroadcastController {
 
-    @MessageMapping("/broadcast/{broadcastId}/sync")
-    @SendTo("/topic/broadcast/{broadcastId}")
+    @MessageMapping("/broadcast/{chatId}/{broadcastId}/sync")
+    @SendTo("/topic/broadcast/{chatId}/{broadcastId}")
     public BroadcastSyncMessage syncBroadcast(
+            @DestinationVariable UUID chatId,
             @DestinationVariable UUID broadcastId,
             BroadcastSyncMessage message
     ) {
