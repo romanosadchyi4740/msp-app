@@ -52,7 +52,13 @@ class SocketClient {
           this.onMessageReceived(JSON.parse(message.body));
         }
       });
-      this.connectListeners.forEach((listener) => listener());
+      this.connectListeners.forEach((listener) => {
+        try {
+          listener();
+        } catch (error) {
+          console.error('A connect listener failed:', error);
+        }
+      });
     };
 
     this.client.onStompError = (frame) => {

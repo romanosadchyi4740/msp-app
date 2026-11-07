@@ -21,6 +21,8 @@ let history = [];
 let offset = 0;
 let rtt = null;
 let roundRunning = false;
+// Bumped by every new round and by stopping; a round whose number is no longer current ends at its next step
+let round = 0;
 let pending = null;
 let timeSubscription = null;
 let stopListening = null;
@@ -58,11 +60,12 @@ export function startClockSync() {
   stopListening = socketClient.onConnect(() => {
     // A new connection has no subscriptions; the old one went with the previous connection
     timeSubscription = socketClient.subscribe('/user/queue/time', receive);
-    runRound();
+    // A round still waiting on the old connection would only wait out its timeouts: start afresh
+    runRound(true);
   });
-  resampleTimer = setInterval(runRound, RESAMPLE_INTERVAL_MS);
+  resampleTimer = setInterval(resample, RESAMPLE_INTERVAL_MS);
   document.addEventListener('visibilitychange', resampleWhenVisible);
-  window.addEventListener('focus', runRound);
+  window.addEventListener('focus', resample);
 }
 
 export function stopClockSync() {
@@ -80,31 +83,45 @@ export function stopClockSync() {
   clearInterval(resampleTimer);
   resampleTimer = null;
   document.removeEventListener('visibilitychange', resampleWhenVisible);
-  window.removeEventListener('focus', runRound);
+  window.removeEventListener('focus', resample);
+  round += 1;
+  roundRunning = false;
   pending?.resolve(null);
+}
+
+function resample() {
+  runRound(false);
 }
 
 function resampleWhenVisible() {
   if (document.visibilityState === 'visible') {
-    runRound();
+    resample();
   }
 }
 
-async function runRound() {
-  if (roundRunning || !timeSubscription || !socketClient.isConnected()) {
+/**
+ * Runs a round unless one is running already; with restart, ends the running one and starts anew.
+ */
+async function runRound(restart) {
+  if ((roundRunning && !restart) || !timeSubscription || !socketClient.isConnected()) {
     return;
   }
+  round += 1;
+  const current = round;
+  const isCurrent = () => current === round && users > 0;
   roundRunning = true;
+  // Ends the wait of the round this one replaces at once
+  pending?.resolve(null);
   try {
     const samples = [];
-    for (let i = 0; i < SAMPLES_PER_ROUND && users > 0; i += 1) {
+    for (let i = 0; i < SAMPLES_PER_ROUND && isCurrent(); i += 1) {
       const sample = await requestSample();
       if (sample) {
         samples.push(sample);
       }
     }
     const best = bestSample(samples);
-    if (best && users > 0) {
+    if (best && isCurrent()) {
       history = addEstimate(history, best);
       offset = Math.round(averageOffset(history));
       rtt = best.rtt;
@@ -112,7 +129,9 @@ async function runRound() {
       listeners.forEach((listener) => listener(getClockSync()));
     }
   } finally {
-    roundRunning = false;
+    if (current === round) {
+      roundRunning = false;
+    }
   }
 }
 

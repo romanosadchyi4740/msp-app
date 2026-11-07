@@ -93,11 +93,15 @@ describe('moving average', () => {
     assert.deepEqual(history, [{ offset: 2_100, rtt: 10 }]);
   });
 
-  test('keeps a noisy estimate whose error bound still overlaps the average', () => {
+  test('keeps a noisy estimate whose error bound still overlaps the average, at a small weight', () => {
     // 60 ms away from the average, but a 120 ms round trip allows that much error
     const history = addEstimate([{ offset: 100, rtt: 10 }], { offset: 160, rtt: 120 });
 
     assert.equal(history.length, 2);
-    assert.equal(averageOffset(history), 130);
+    assert.ok(Math.abs(averageOffset(history) - 100) < 1, `average ${averageOffset(history)}`);
+  });
+
+  test('a zero round trip does not divide by zero', () => {
+    assert.equal(averageOffset([{ offset: 5, rtt: 0 }, { offset: 7, rtt: 1 }]), 6);
   });
 });

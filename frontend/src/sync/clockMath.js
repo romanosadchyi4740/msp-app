@@ -36,13 +36,22 @@ export function bestSample(samples) {
 }
 
 /**
- * The offset of the moving average over the history of round estimates; 0 for an empty history.
+ * The offset of the moving average over the history of round estimates; 0 for an empty history. An estimate's
+ * error is anywhere within rtt / 2, so its variance grows with rtt squared; weighting by 1 / rtt² keeps one jittery
+ * round from pulling a precise average away, while estimates of similar quality count alike.
  */
 export function averageOffset(history) {
   if (history.length === 0) {
     return 0;
   }
-  return history.reduce((sum, estimate) => sum + estimate.offset, 0) / history.length;
+  let weighted = 0;
+  let totalWeight = 0;
+  for (const estimate of history) {
+    const weight = 1 / Math.max(estimate.rtt, 1) ** 2;
+    weighted += estimate.offset * weight;
+    totalWeight += weight;
+  }
+  return weighted / totalWeight;
 }
 
 /**
