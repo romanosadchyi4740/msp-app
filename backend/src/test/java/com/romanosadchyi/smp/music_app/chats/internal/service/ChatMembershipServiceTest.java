@@ -43,6 +43,9 @@ class ChatMembershipServiceTest {
     @Mock
     ChatMappingService chatMappingService;
 
+    @Mock
+    BroadcastSubscriptionTracker broadcastSubscriptionTracker;
+
     @InjectMocks
     ChatMembershipService chatService;
 
@@ -123,6 +126,34 @@ class ChatMembershipServiceTest {
 
         assertEquals(ChatStatus.REJECTED, membership.getStatus());
         verify(chatMembershipRepository).save(membership);
+    }
+
+    @Test
+    void rejectChat_Group_EndsTheMembersBroadcastSubscriptions() {
+        UUID userId = UUID.randomUUID();
+        Chat group = Chat.builder().id(UUID.randomUUID()).isGroup(true).build();
+        ChatMemberships.add(group, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(group, userId, ChatStatus.ACCEPTED, false);
+        when(chatRepository.findById(group.getId())).thenReturn(Optional.of(group));
+
+        chatService.rejectChat(group.getId(), userId);
+
+        // Outside a transaction AfterCommit runs at once
+        verify(broadcastSubscriptionTracker).revoke(group.getId(), userId);
+    }
+
+    @Test
+    void rejectChat_DirectChat_KeepsTheSubscriptions() {
+        UUID userId = UUID.randomUUID();
+        Chat direct = Chat.builder().id(UUID.randomUUID()).isGroup(false).build();
+        ChatMemberships.add(direct, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(direct, userId, ChatStatus.PENDING, false);
+        when(chatRepository.findById(direct.getId())).thenReturn(Optional.of(direct));
+
+        chatService.rejectChat(direct.getId(), userId);
+
+        // A rejected direct chat stays readable, so its broadcasts stay open
+        verifyNoInteractions(broadcastSubscriptionTracker);
     }
 
     @Test
