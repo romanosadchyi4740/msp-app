@@ -29,10 +29,17 @@ The owner reviews and merges every PR. Move the Jira ticket with the work, never
 ## 2. While working
 - Follow CLAUDE.md. Before each commit run, from `backend/`: `./mvnw test` (Docker must be running for the
   Testcontainers integration tests), and from the repo root:
-  `python .claude/scripts/java/java_style.py $(git diff --name-only --diff-filter=AMR development -- '*.java')`.
-- Test totals for the PR come from the surefire reports, not from scrolling the log (PowerShell, from `backend/`):
+  `python .claude/scripts/java/java_style.py $(git diff --name-only --diff-filter=AMR development -- '*.java') $(git ls-files --others --exclude-standard -- '*.java')`
+  (the second list adds new files not committed yet).
+- Test totals for the PR come from the surefire reports, not from scrolling the log. `./mvnw test` without `clean`
+  leaves the reports of earlier runs in `target/surefire-reports`, including those of test classes that were since
+  deleted or renamed, so remove the folder before the run you count (PowerShell, from `backend/`):
+  `Remove-Item target/surefire-reports -Recurse -Force -ErrorAction SilentlyContinue; .\mvnw.cmd -q test`, then
   `$t=0;$f=0;$e=0;$s=0; Get-ChildItem target/surefire-reports/TEST-*.xml | % { [xml]$x = Get-Content $_; $n=$x.testsuite; $t+=[int]$n.tests; $f+=[int]$n.failures; $e+=[int]$n.errors; $s+=[int]$n.skipped }; "$t run, $f failures, $e errors, $s skipped"`.
-- Frontend changes: from `frontend/`, `npm run build`, and `npx eslint <changed files>` must be clean.
+  (Totals in PRs #42-#45 were about 19 too high because of such stale reports.)
+- Frontend changes: from `frontend/`, `npm test` (node:test unit tests), `npm run build`, and
+  `npx eslint <changed files>` must be clean. Changes to the sync engine, clock sync or metronome also run
+  `npm run test:e2e` (Playwright drift test; needs the backend running) and report its p95.
   `npm run lint` on the whole tree already fails on `development` (23 problems before KAN-92); report its total and
   make sure it did not grow. Visible changes are checked in the browser with the `browser-check` skill; new REST
   endpoints follow the `contract-first-api` skill.
