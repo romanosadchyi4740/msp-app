@@ -134,16 +134,20 @@ public class PlaybackStates {
     }
 
     /**
-     * While playing, the position reached so far becomes the new anchor, so it does not jump; a count-in that is
-     * still running keeps its end.
+     * While playing, the position reached so far becomes the new anchor, so it does not jump. A count-in that is
+     * still running starts again at the new tempo, as one counted partly at each tempo would be irregular.
      */
     private void setTempo(PlaybackState state, int tempoBpm, long serverNow) {
+        if (state.getStatus() == PlaybackStatus.PLAYING && state.getAnchorTime() > serverNow) {
+            state.setTempoBpm(tempoBpm);
+            state.setAnchorTime(serverNow + COUNT_IN_LEAD_MS + countInMillis(state));
+            return;
+        }
         if (state.getStatus() == PlaybackStatus.PLAYING) {
-            long anchorTime = Math.max(serverNow, state.getAnchorTime());
             Position position = positionAt(state, serverNow);
             state.setMeasure(position.measure());
             state.setBeat(position.beat());
-            state.setAnchorTime(anchorTime);
+            state.setAnchorTime(serverNow);
         }
         state.setTempoBpm(tempoBpm);
     }

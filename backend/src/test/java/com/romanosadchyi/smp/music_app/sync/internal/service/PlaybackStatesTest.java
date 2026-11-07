@@ -220,15 +220,17 @@ class PlaybackStatesTest {
     }
 
     @Test
-    void setTempo_DuringTheCountIn_KeepsItsEnd() {
+    void setTempo_DuringTheCountIn_StartsTheCountInAgainAtTheNewTempo() {
         PlaybackState state = playing(3, 0, 120, 4, 4, T0 + 2000);
 
-        PlaybackStates.apply(state, command(SyncCommandType.SET_TEMPO, "90"), T0 + 500);
+        PlaybackStates.apply(state, command(SyncCommandType.SET_TEMPO, "60"), T0 + 500);
 
-        assertThat(state.getAnchorTime()).isEqualTo(T0 + 2000);
+        // The lead, then one 4/4 measure at 60 BPM
+        assertThat(state.getAnchorTime()).isEqualTo(T0 + 500 + 250 + 4000);
         assertThat(state.getMeasure()).isEqualTo(3);
         assertThat(state.getBeat()).isZero();
-        assertThat(state.getTempoBpm()).isEqualTo(90);
+        assertThat(state.getTempoBpm()).isEqualTo(60);
+        assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PLAYING);
     }
 
     @Test

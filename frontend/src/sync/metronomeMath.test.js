@@ -69,6 +69,17 @@ describe('clicksBetween', () => {
     assert.deepEqual(times(clicks), [-2_000, -1_500, -1_000, -500]);
   });
 
+  test('resumed mid-beat, counts in on the beat grid continued backwards, so the pulse runs on', () => {
+    // Paused half a beat into the measure: the count-in keeps the beats of the measure, not of the anchor
+    const clicks = clicksBetween(state({ beat: 0.5 }), ANCHOR - 2_500, ANCHOR + 800);
+
+    assert.deepEqual(times(clicks), [-1_750, -1_250, -750, -250, 250, 750]);
+    assert.deepEqual(clicks.map((click) => click.countIn), [true, true, true, true, false, false]);
+    assert.equal(clicks[0].accent, true);
+    // Within the measure counted in, which starts at the end of the lead
+    assert.ok(clicks[0].time >= ANCHOR - 2_000);
+  });
+
   test('a 6/8 measure clicks six eighth notes, accenting the first', () => {
     const clicks = clicksBetween(state({ beatsPerMeasure: 6, beatUnit: 8 }), ANCHOR - 1, ANCHOR + 1_499);
 
@@ -135,6 +146,15 @@ describe('withoutPlayed', () => {
     const clicks = [{ time: ANCHOR }, { time: ANCHOR + 500 }];
 
     assert.deepEqual(withoutPlayed(clicks, [ANCHOR + SAME_CLICK_MS - 1]), [{ time: ANCHOR + 500 }]);
+  });
+
+  test('drops a late click close to one heard, as after a tempo change, but keeps it when it is on time', () => {
+    // The old state clicked at ANCHOR + 5; the new grid has a click at ANCHOR + 30, planned at ANCHOR + 40
+    const clicks = [{ time: ANCHOR + 30 }];
+
+    assert.deepEqual(withoutPlayed(clicks, [ANCHOR + 5], ANCHOR + 40), []);
+    assert.deepEqual(withoutPlayed(clicks, [ANCHOR + 5], ANCHOR + 20), clicks);
+    assert.deepEqual(withoutPlayed(clicks, [ANCHOR + 5]), clicks);
   });
 
   test('keeps clicks further away than a click from any played', () => {

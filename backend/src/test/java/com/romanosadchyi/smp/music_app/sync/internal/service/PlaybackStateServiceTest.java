@@ -51,7 +51,7 @@ class PlaybackStateServiceTest {
         PlaybackState state = stopped();
         PlaybackState saved = stopped();
         saved.setStatus(PlaybackStatus.PLAYING);
-        saved.setAnchorTime(NOW.toEpochMilli() + 1500);
+        saved.setAnchorTime(NOW.toEpochMilli() + 250 + 1500);
         saved.setVersion(3L);
         when(playbackStateRepository.findByIdForUpdate(sessionId)).thenReturn(Optional.of(state));
         when(playbackStateRepository.saveAndFlush(state)).thenReturn(saved);
@@ -63,7 +63,7 @@ class PlaybackStateServiceTest {
         // The lead before the count-in, then one 6/8 measure (3 quarter beats) at 120 BPM
         assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli() + 250 + 1500);
         assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
-        assertThat(result.anchorTime()).isEqualTo(NOW.toEpochMilli() + 1500);
+        assertThat(result.anchorTime()).isEqualTo(NOW.toEpochMilli() + 250 + 1500);
         assertThat(result.version()).isEqualTo(3L);
         assertThat(result.serverTime()).isEqualTo(NOW.toEpochMilli());
         assertThat(result.sessionId()).isEqualTo(sessionId);

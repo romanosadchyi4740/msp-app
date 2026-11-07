@@ -17,14 +17,14 @@ export default function MetronomeControls() {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className={badgeClass}>Metronome {metronomeOn ? 'on' : 'off'}</span>
-      {audioState === 'suspended' ? (
+      {/* Suspended until a user gesture; Safari also reports 'interrupted', e.g. after a phone call */}
+      {audioState && audioState !== 'running' ? (
         <button type="button" onClick={() => enableMetronomeSound()} className={secondaryButtonClass}>
           <Volume2 size={14} /> Enable sound
         </button>
       ) : (
         <label className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
           {volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          <span className="sr-only">Metronome volume</span>
           <input
             type="range"
             min="0"
