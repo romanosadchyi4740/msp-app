@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.tabs.internal.service;
 
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
+import com.romanosadchyi.smp.music_app.tabs.external.TabReadGrant;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabCreateRequest;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreview;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreviewRequest;
@@ -34,7 +35,8 @@ import java.util.UUID;
 
 /**
  * A user's own tabs and the public tab library. A tab is visible to its owner, and to others only while it is public
- * and not hidden; to everyone else it answers as not found, so private tabs do not reveal that they exist. Only the
+ * and not hidden, or while a {@link TabReadGrant} lets them read it (the tab of an active lesson in a room they are
+ * in, KAN-94); to everyone else it answers as not found, so private tabs do not reveal that they exist. Only the
  * owner changes or deletes a tab.
  */
 @Slf4j
@@ -51,6 +53,7 @@ public class TabService {
     AsciiTabParser asciiTabParser;
     AlphaTexWriter alphaTexWriter;
     FileStorage fileStorage;
+    List<TabReadGrant> tabReadGrants;
 
     /**
      * Saves the tab first, so the database checks it before the file is stored; a failed upload rolls the row back.
@@ -217,7 +220,14 @@ public class TabService {
 
     private Tab getReadableTab(UUID userId, UUID tabId) {
         return tabRepository.findById(tabId)
-                .filter(tab -> TabVisibility.isReadableBy(tab, userId))
+                .filter(tab -> TabVisibility.isReadableBy(tab, userId) || isGranted(tab, userId))
                 .orElseThrow(() -> new TabNotFoundException("Tab not found"));
+    }
+
+    /**
+     * Whether another module lets the user read the tab; never for a hidden one.
+     */
+    private boolean isGranted(Tab tab, UUID userId) {
+        return !tab.isHidden() && tabReadGrants.stream().anyMatch(grant -> grant.allowsRead(tab.getId(), userId));
     }
 }
