@@ -34,7 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * subscription that was on its way may reach the broker after the unsubscribe, and one that arrives after the member
  * lost access is checked again. The same approach as the rooms' {@code RoomSubscriptionTracker}.
  * <p>
- * The state lives in memory, which suits the single instance the in-memory broker allows.
+ * The state lives in memory, which suits the single instance the in-memory broker allows. The lock map keeps one
+ * small entry per chat and user that ever listened, as the rooms' tracker does; fine for the MVP's single instance.
  */
 @Slf4j
 @Component
@@ -70,6 +71,8 @@ class BroadcastSubscriptionTracker implements StompDeliveryFilter {
         ChatUser chatUser = new ChatUser(chatId.get(), userId.get());
         ChatSession chatSession = new ChatSession(key.sessionId(), chatId.get());
         synchronized (lockOf(chatUser)) {
+            // The guard checked on SUBSCRIBE already; checking again under the lock that revoke takes closes the
+            // window in which the member lost access between the guard and this event
             if (!broadcastStompGuard.mayAccess(chatUser.userId(), destination)) {
                 // Lost access to the chat after the guard let this subscription through
                 revoked.add(chatSession);
