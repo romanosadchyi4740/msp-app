@@ -7,6 +7,23 @@ class SocketClient {
   constructor() {
     this.client = null;
     this.onMessageReceived = null;
+    this.connectListeners = new Set();
+  }
+
+  /**
+   * Calls the listener on every connect, including reconnects, and at once if connected now; subscriptions have to
+   * be made again on each, since a new connection starts without them. Returns the function that removes it.
+   */
+  onConnect(listener) {
+    this.connectListeners.add(listener);
+    if (this.isConnected()) {
+      listener();
+    }
+    return () => this.connectListeners.delete(listener);
+  }
+
+  isConnected() {
+    return Boolean(this.client && this.client.connected);
   }
 
   connect(token, onMessageReceived) {
@@ -35,6 +52,7 @@ class SocketClient {
           this.onMessageReceived(JSON.parse(message.body));
         }
       });
+      this.connectListeners.forEach((listener) => listener());
     };
 
     this.client.onStompError = (frame) => {
@@ -60,9 +78,10 @@ class SocketClient {
         destination: `/app${destination}`,
         body: JSON.stringify(body),
       });
-    } else {
-      console.error('Cannot send message: not connected');
+      return true;
     }
+    console.error('Cannot send message: not connected');
+    return false;
   }
 
   subscribe(destination, callback) {

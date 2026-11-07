@@ -6,6 +6,7 @@ import useAuthStore from '../store/authStore';
 import InviteLink from '../components/rooms/InviteLink';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
 import { badgeClass, errorMessage, secondaryButtonClass, sectionTitleClass } from '../components/rooms/roomStyles';
+import { startClockSync, stopClockSync } from '../sync/clockSync';
 
 /**
  * A room the user is in: who is in it, the invite link for the host, the tab picked for the lesson, and leaving.
@@ -22,6 +23,12 @@ export default function RoomPage() {
   const [loaded, setLoaded] = useState({ id: null, room: null, error: null });
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
+
+  // The lesson's positions and the metronome are computed on the server clock, so it is synced while in a room
+  useEffect(() => {
+    startClockSync();
+    return stopClockSync;
+  }, []);
 
   useEffect(() => {
     let current = true;
