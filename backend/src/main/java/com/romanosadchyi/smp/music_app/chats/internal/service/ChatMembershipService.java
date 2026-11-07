@@ -10,6 +10,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.mapping.ChatMappingService
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatMembershipRepository;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.shared.util.AfterCommit;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import com.romanosadchyi.smp.music_app.users.external.UserSummary;
 import lombok.AccessLevel;
@@ -34,6 +35,7 @@ public class ChatMembershipService {
     ChatMembershipRepository chatMembershipRepository;
     UserLookup userLookup;
     ChatMappingService chatMappingService;
+    BroadcastSubscriptionTracker broadcastSubscriptionTracker;
 
     @Transactional
     public ChatResponseDto acceptChat(UUID chatId, UUID userId) {
@@ -49,11 +51,19 @@ public class ChatMembershipService {
         return chatMappingService.map(chat, userId);
     }
 
+    /**
+     * Rejects or declines the chat. A member who rejects a group may no longer read it, so once that commits, their
+     * open subscriptions to the chat's listening broadcasts end too (KAN-93); a direct chat stays readable.
+     */
     @Transactional
     public void rejectChat(UUID chatId, UUID userId) {
-        ChatMembership membership = participantMembership(findChat(chatId), userId);
+        Chat chat = findChat(chatId);
+        ChatMembership membership = participantMembership(chat, userId);
         membership.setStatus(ChatStatus.REJECTED);
         chatMembershipRepository.save(membership);
+        if (!ChatMemberships.mayRead(chat, userId)) {
+            AfterCommit.run(() -> broadcastSubscriptionTracker.revoke(chatId, userId));
+        }
     }
 
     @Transactional(readOnly = true)
