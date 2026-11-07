@@ -8,6 +8,7 @@ import ConfirmDialog from '../components/modals/ConfirmDialog';
 import { badgeClass, errorMessage, secondaryButtonClass, sectionTitleClass } from '../components/rooms/roomStyles';
 import LessonCanvas from '../components/rooms/LessonCanvas';
 import { startSyncEngine } from '../sync/syncEngine';
+import { startMetronome } from '../sync/metronome';
 
 /**
  * A room the user is in: who is in it, the invite link for the host, the tab picked for the lesson, and leaving.
@@ -48,8 +49,16 @@ export default function RoomPage() {
   // connection on a room topic of anyone else, or of an id in another spelling
   const roomId = room?.id;
 
-  // The shared lesson playback, on the synced server clock, while the room is open
-  useEffect(() => (roomId ? startSyncEngine(roomId) : undefined), [roomId]);
+  // The shared lesson playback and its metronome, on the synced server clock, while the room is open
+  useEffect(() => {
+    if (!roomId) return undefined;
+    const stopEngine = startSyncEngine(roomId);
+    const stopMetronome = startMetronome();
+    return () => {
+      stopMetronome();
+      stopEngine();
+    };
+  }, [roomId]);
 
   const leave = async () => {
     setConfirmLeave(false);

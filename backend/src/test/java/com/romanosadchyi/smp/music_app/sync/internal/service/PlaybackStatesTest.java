@@ -85,13 +85,13 @@ class PlaybackStatesTest {
     // PLAY
 
     @Test
-    void play_StartsAfterAOneMeasureCountIn() {
+    void play_StartsAfterTheLeadAndAOneMeasureCountIn() {
         PlaybackState state = state(3, 1, 120, 4, 4, PlaybackStatus.PAUSED, 0);
 
         PlaybackStates.apply(state, command(SyncCommandType.PLAY, null), T0);
 
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PLAYING);
-        assertThat(state.getAnchorTime()).isEqualTo(T0 + 2000);
+        assertThat(state.getAnchorTime()).isEqualTo(T0 + 250 + 2000);
         assertThat(state.getMeasure()).isEqualTo(3);
         assertThat(state.getBeat()).isEqualTo(1.0);
     }
@@ -104,8 +104,8 @@ class PlaybackStatesTest {
         PlaybackStates.apply(threeFour, command(SyncCommandType.PLAY, null), T0);
         PlaybackStates.apply(sixEight, command(SyncCommandType.PLAY, null), T0);
 
-        assertThat(threeFour.getAnchorTime()).isEqualTo(T0 + 1500);
-        assertThat(sixEight.getAnchorTime()).isEqualTo(T0 + 1500);
+        assertThat(threeFour.getAnchorTime()).isEqualTo(T0 + 250 + 1500);
+        assertThat(sixEight.getAnchorTime()).isEqualTo(T0 + 250 + 1500);
     }
 
     @Test
@@ -220,15 +220,17 @@ class PlaybackStatesTest {
     }
 
     @Test
-    void setTempo_DuringTheCountIn_KeepsItsEnd() {
+    void setTempo_DuringTheCountIn_StartsTheCountInAgainAtTheNewTempo() {
         PlaybackState state = playing(3, 0, 120, 4, 4, T0 + 2000);
 
-        PlaybackStates.apply(state, command(SyncCommandType.SET_TEMPO, "90"), T0 + 500);
+        PlaybackStates.apply(state, command(SyncCommandType.SET_TEMPO, "60"), T0 + 500);
 
-        assertThat(state.getAnchorTime()).isEqualTo(T0 + 2000);
+        // The lead, then one 4/4 measure at 60 BPM
+        assertThat(state.getAnchorTime()).isEqualTo(T0 + 500 + 250 + 4000);
         assertThat(state.getMeasure()).isEqualTo(3);
         assertThat(state.getBeat()).isZero();
-        assertThat(state.getTempoBpm()).isEqualTo(90);
+        assertThat(state.getTempoBpm()).isEqualTo(60);
+        assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PLAYING);
     }
 
     @Test
