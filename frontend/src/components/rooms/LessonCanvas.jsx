@@ -19,6 +19,7 @@ export default function LessonCanvas({ roomId }) {
   const fetchTab = useTabStore((state) => state.fetchTab);
   const fetchFileUrl = useTabStore((state) => state.fetchFileUrl);
   const lessonEvent = usePlaybackStore((state) => state.lessonEvent);
+  const snapshotCount = usePlaybackStore((state) => state.snapshotCount);
   const status = usePlaybackStore((state) => state.playback?.status ?? null);
   const canvasRef = useRef(null);
   // The lesson of the room it was loaded for, so another room never shows this one's lesson
@@ -26,7 +27,8 @@ export default function LessonCanvas({ roomId }) {
   // The tab content of the tab id it was loaded for
   const [tab, setTab] = useState({ tabId: null, source: null, error: null });
 
-  // The lesson changes with every lesson event; the event itself carries too little to show it
+  // The lesson changes with every lesson event; the event itself carries too little to show it. Events sent while the
+  // connection was down are not replayed, so every snapshot (each reconnect) loads it again too
   useEffect(() => {
     let current = true;
     fetchCurrentLesson(roomId)
@@ -39,7 +41,7 @@ export default function LessonCanvas({ roomId }) {
     return () => {
       current = false;
     };
-  }, [roomId, lessonEvent, fetchCurrentLesson]);
+  }, [roomId, lessonEvent, snapshotCount, fetchCurrentLesson]);
 
   const activeLesson = lesson.roomId === roomId ? lesson.value : null;
   const tabId = activeLesson?.tabId ?? null;

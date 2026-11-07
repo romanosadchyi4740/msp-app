@@ -102,7 +102,15 @@ describe('isNewerState', () => {
   });
 
   test('takes a state of another lesson, whose versions count afresh', () => {
-    assert.equal(isNewerState(state({ version: 9 }), state({ sessionId: 'lesson-2', version: 0 })), true);
+    assert.equal(isNewerState(state({ version: 9 }), state({ sessionId: 'lesson-2', version: 0, serverTime: ANCHOR + 1 })),
+      true);
+  });
+
+  test('drops a late state of an older lesson, whatever its version', () => {
+    const applied = state({ sessionId: 'lesson-2', version: 0, serverTime: ANCHOR + 5_000 });
+
+    assert.equal(isNewerState(applied, state({ sessionId: 'lesson-1', version: 9, serverTime: ANCHOR + 4_000 })),
+      false);
   });
 
   test('drops nothing at all', () => {

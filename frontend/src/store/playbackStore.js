@@ -10,17 +10,20 @@ import { isNewerState } from '../sync/playbackMath.js';
  * - `lessonEvent`: the last lesson change (LESSON_STARTED, TAB_CHANGED, LIMIT_WARNING, LESSON_ENDED) of the room.
  * - `endedSessions`: lessons that ended while the page was open; their states are dropped, since the final state
  *   of a lesson can arrive after the event that ended it.
+ * - `snapshotCount`: grows with every snapshot of the room. Lesson events sent while the connection was down are not
+ *   replayed, so whoever shows the lesson itself (its tab) loads it again on each snapshot.
  */
 const usePlaybackStore = create((set, get) => ({
   roomId: null,
   playback: null,
   lessonEvent: null,
   endedSessions: [],
+  snapshotCount: 0,
 
   /**
    * Starts afresh for a room: nothing applied yet.
    */
-  reset: (roomId) => set({ roomId, playback: null, lessonEvent: null, endedSessions: [] }),
+  reset: (roomId) => set({ roomId, playback: null, lessonEvent: null, endedSessions: [], snapshotCount: 0 }),
 
   /**
    * A state from the room's topic; returns whether it was applied. Already applied versions are dropped.
@@ -33,12 +36,15 @@ const usePlaybackStore = create((set, get) => ({
 
   /**
    * A snapshot (on joining, reconnecting and REQUEST_SYNC); returns whether it changed the playback. A snapshot of
-   * a room without a lesson clears it; snapshots of another room are ignored.
+   * a room without a lesson clears it, unless it was taken before the applied state (a lesson started while it was
+   * on its way); snapshots of another room are ignored.
    */
   applySnapshot: (snapshot) => {
     if (!snapshot || snapshot.roomId !== get().roomId) return false;
+    set({ snapshotCount: get().snapshotCount + 1 });
     if (!snapshot.playback) {
-      if (get().playback === null) return false;
+      const { playback } = get();
+      if (playback === null || snapshot.serverTime < playback.serverTime) return false;
       set({ playback: null });
       return true;
     }

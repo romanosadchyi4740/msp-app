@@ -26,9 +26,6 @@ export default function RoomPage() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
-  // The shared lesson playback, on the synced server clock, while the room is open
-  useEffect(() => startSyncEngine(id), [id]);
-
   useEffect(() => {
     let current = true;
     fetchRoom(id)
@@ -47,6 +44,12 @@ export default function RoomPage() {
 
   const room = loaded.id === id ? loaded.room : null;
   const error = loaded.id === id ? loaded.error : null;
+  // The room's id as the server spells it, once it confirmed the user is in the room: the STOMP guard closes the
+  // connection on a room topic of anyone else, or of an id in another spelling
+  const roomId = room?.id;
+
+  // The shared lesson playback, on the synced server clock, while the room is open
+  useEffect(() => (roomId ? startSyncEngine(roomId) : undefined), [roomId]);
 
   const leave = async () => {
     setConfirmLeave(false);
@@ -115,7 +118,7 @@ export default function RoomPage() {
         </section>
       )}
 
-      <LessonCanvas roomId={id} />
+      <LessonCanvas roomId={room.id} />
 
       <section className="space-y-3">
         <h2 className={sectionTitleClass}>Participants</h2>

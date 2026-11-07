@@ -44,23 +44,26 @@ export function toCanvasPosition(position, state) {
 }
 
 /**
- * Whether a received state is newer than the applied one. Versions count per lesson, so a state of another lesson
- * (a new one has started) is always taken; within a lesson, one whose version was already applied is dropped, as
- * messages can arrive after a newer snapshot.
+ * Whether a received state is newer than the applied one. Within a lesson, one whose version was already applied is
+ * dropped, as messages can arrive after a newer snapshot. Versions count afresh in each lesson, so between lessons
+ * the server time it was sent at decides: a state of another lesson is taken unless it is older than the applied
+ * one (a late state of a lesson that ended while its end was missed).
  */
 export function isNewerState(applied, incoming) {
   if (!incoming) return false;
-  if (!applied || applied.sessionId !== incoming.sessionId) return true;
+  if (!applied) return true;
+  if (applied.sessionId !== incoming.sessionId) return incoming.serverTime >= applied.serverTime;
   return incoming.version > applied.version;
 }
 
 /**
- * Whether the position computed now differs from the expected one by more than MAX_DRIFT_MS, so a snapshot is worth
- * asking for. `previous` and `current` are frames as `{ serverTime, localTime }`, where `localTime` is a monotonic
- * clock (performance.now()). Between two frames the server clock should move on exactly as far as the monotonic one,
+ * Whether the position jumped by more than MAX_DRIFT_MS between two frames, which playback alone never does.
+ * `previous` and `current` are frames as `{ serverTime, localTime }`, where `localTime` is a monotonic clock
+ * (performance.now()). Between two frames the server clock should move on exactly as far as the monotonic one,
  * however long the frame took; when it does not, the wall clock or the clock offset jumped (a changed system time, a
- * laptop waking up) and positions computed on either side of the jump disagree. A slow frame alone is no drift: every
- * frame computes the position afresh from the state.
+ * laptop waking up, the first clock sync of a badly set clock). The position is computed afresh from the state on
+ * every frame, so it is right again at once; asking for a snapshot as well is cheap insurance that the state itself
+ * is current after such an event. Missed states are caught by snapshots on reconnect and when the page comes back.
  */
 export function needsResync(previous, current) {
   if (!previous) return false;

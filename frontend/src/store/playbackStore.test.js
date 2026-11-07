@@ -4,8 +4,11 @@ import usePlaybackStore from './playbackStore.js';
 
 const ROOM = 'room-1';
 
+const T0 = 1_700_000_000_000;
+
 function state(version, overrides = {}) {
-  return { sessionId: 'lesson-1', measure: 1, beat: 0, status: 'PLAYING', version, ...overrides };
+  return { sessionId: 'lesson-1', measure: 1, beat: 0, status: 'PLAYING', version, serverTime: T0 + version,
+    ...overrides };
 }
 
 const store = () => usePlaybackStore.getState();
@@ -38,8 +41,25 @@ describe('playbackStore', () => {
   test('a snapshot of a room without a lesson clears the playback', () => {
     store().applyState(state(1));
 
-    assert.equal(store().applySnapshot({ roomId: ROOM, sessionId: null, playback: null }), true);
+    assert.equal(store().applySnapshot({ roomId: ROOM, sessionId: null, playback: null, serverTime: T0 + 10 }), true);
     assert.equal(store().playback, null);
+  });
+
+  test('a snapshot without a lesson taken before a lesson started keeps the lesson', () => {
+    // The lesson started (and its state arrived) while the snapshot was on its way
+    store().applyState(state(0, { serverTime: T0 + 500 }));
+
+    assert.equal(store().applySnapshot({ roomId: ROOM, sessionId: null, playback: null, serverTime: T0 + 400 }), false);
+    assert.equal(store().playback.version, 0);
+  });
+
+  test('counts every snapshot of the room, so the lesson itself is loaded again', () => {
+    store().applyState(state(5));
+    store().applySnapshot({ roomId: ROOM, playback: state(5) });
+    store().applySnapshot({ roomId: ROOM, playback: null, serverTime: T0 });
+    store().applySnapshot({ roomId: 'room-2', playback: null, serverTime: T0 });
+
+    assert.equal(store().snapshotCount, 2);
   });
 
   test('ignores a snapshot of another room', () => {
@@ -50,7 +70,14 @@ describe('playbackStore', () => {
   test('a new lesson starts its versions afresh', () => {
     store().applyState(state(12));
 
-    assert.equal(store().applyState(state(0, { sessionId: 'lesson-2' })), true);
+    assert.equal(store().applyState(state(0, { sessionId: 'lesson-2', serverTime: T0 + 100 })), true);
+    assert.equal(store().playback.sessionId, 'lesson-2');
+  });
+
+  test('a late state of an earlier lesson does not replace the new one', () => {
+    store().applyState(state(0, { sessionId: 'lesson-2', serverTime: T0 + 100 }));
+
+    assert.equal(store().applyState(state(12, { serverTime: T0 + 50 })), false);
     assert.equal(store().playback.sessionId, 'lesson-2');
   });
 
@@ -78,8 +105,8 @@ describe('playbackStore', () => {
     store().reset('room-2');
     assert.deepEqual(
       { roomId: store().roomId, playback: store().playback, lessonEvent: store().lessonEvent,
-        endedSessions: store().endedSessions },
-      { roomId: 'room-2', playback: null, lessonEvent: null, endedSessions: [] },
+        endedSessions: store().endedSessions, snapshotCount: store().snapshotCount },
+      { roomId: 'room-2', playback: null, lessonEvent: null, endedSessions: [], snapshotCount: 0 },
     );
   });
 });
