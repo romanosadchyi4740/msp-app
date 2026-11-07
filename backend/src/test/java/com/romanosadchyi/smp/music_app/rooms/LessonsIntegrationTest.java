@@ -182,13 +182,18 @@ class LessonsIntegrationTest {
     }
 
     @Test
-    void deleteRoom_CascadesToLessonsAndPlaybackState() throws Exception {
+    void deleteRoom_CascadesToParticipantsLessonsAndPlaybackState() throws Exception {
         Registered host = register();
         Room room = createRoom(host);
+        join(register(), room);
         UUID sessionId = startLesson(host, room, insertTab(host.id(), 90, false));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM room_participants WHERE room_id = ?", Long.class,
+                room.id())).isEqualTo(2);
 
         jdbcTemplate.update("DELETE FROM rooms WHERE id = ?", room.id());
 
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM room_participants WHERE room_id = ?", Long.class,
+                room.id())).isZero();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM lesson_sessions WHERE id = ?", Long.class,
                 sessionId)).isZero();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM playback_states WHERE session_id = ?", Long.class,
