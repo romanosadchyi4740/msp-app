@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.tabs.internal.service;
 
 import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
 import com.romanosadchyi.smp.music_app.storage.external.FileStorage;
+import com.romanosadchyi.smp.music_app.tabs.external.TabReadGrant;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabCreateRequest;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreview;
 import com.romanosadchyi.smp.music_app.tabs.internal.api.model.AsciiTabPreviewRequest;
@@ -18,12 +19,14 @@ import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiMeasure;
 import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiTabParser;
 import com.romanosadchyi.smp.music_app.tabs.internal.parsing.AsciiTabScore;
 import com.romanosadchyi.smp.music_app.tabs.internal.repository.TabRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -32,6 +35,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,12 +73,23 @@ class TabServiceTest {
     @Mock
     FileStorage fileStorage;
 
+    @Mock
+    TabReadGrant tabReadGrant;
+
+    @Spy
+    List<TabReadGrant> tabReadGrants = new ArrayList<>();
+
     @InjectMocks
     TabService tabService;
 
     UUID ownerId = UUID.randomUUID();
     UUID otherId = UUID.randomUUID();
     UUID tabId = UUID.randomUUID();
+
+    @BeforeEach
+    void addTheGrant() {
+        tabReadGrants.add(tabReadGrant);
+    }
 
     @Test
     void uploadGuitarPro_Valid_SavesTheTabBeforeStoringTheFile() {
@@ -289,6 +304,56 @@ class TabServiceTest {
         when(tabRepository.findById(tabId)).thenReturn(Optional.of(hidden));
         assertThatThrownBy(() -> tabService.getTab(otherId, tabId)).isInstanceOf(TabNotFoundException.class);
         verifyNoInteractions(tabMappingService);
+    }
+
+    @Test
+    void getTab_OthersPrivateTab_IsReturnedWhenAGrantAllowsIt() {
+        AsciiTab lessonTab = asciiTab(ownerId, false);
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(lessonTab));
+        when(tabReadGrant.allowsRead(tabId, otherId)).thenReturn(true);
+
+        tabService.getTab(otherId, tabId);
+
+        verify(tabMappingService).map(lessonTab);
+    }
+
+    @Test
+    void getTab_OthersPrivateTab_IsNotFoundWhenNoGrantAllowsIt() {
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(asciiTab(ownerId, false)));
+        when(tabReadGrant.allowsRead(tabId, otherId)).thenReturn(false);
+
+        assertThatThrownBy(() -> tabService.getTab(otherId, tabId)).isInstanceOf(TabNotFoundException.class);
+        verify(tabReadGrant).allowsRead(tabId, otherId);
+        verifyNoInteractions(tabMappingService);
+    }
+
+    @Test
+    void getTab_OthersHiddenTab_StaysHiddenWhateverTheGrants() {
+        AsciiTab hidden = asciiTab(ownerId, false);
+        hidden.setHidden(true);
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(hidden));
+
+        assertThatThrownBy(() -> tabService.getTab(otherId, tabId)).isInstanceOf(TabNotFoundException.class);
+        verifyNoInteractions(tabReadGrant);
+    }
+
+    @Test
+    void getTab_OwnOrPublicTab_DoesNotAskTheGrants() {
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(asciiTab(ownerId, true)));
+
+        tabService.getTab(otherId, tabId);
+        tabService.getTab(ownerId, tabId);
+
+        verifyNoInteractions(tabReadGrant);
+    }
+
+    @Test
+    void getFileUrl_OthersPrivateGuitarProTab_IsSignedWhenAGrantAllowsIt() {
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(guitarProTab(ownerId, false)));
+        when(tabReadGrant.allowsRead(tabId, otherId)).thenReturn(true);
+        when(fileStorage.presignedGetUrl("tabs/song.gp5")).thenReturn("https://storage/signed");
+
+        assertThat(tabService.getFileUrl(otherId, tabId)).isEqualTo("https://storage/signed");
     }
 
     @Test

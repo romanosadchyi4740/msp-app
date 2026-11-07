@@ -27,4 +27,14 @@ public interface LessonSessionRepository extends JpaRepository<LessonSession, UU
             WHERE s.endedAt IS NULL AND s.limitMinutes IS NOT NULL AND s.startedAt <= :cutoff
             """)
     List<LessonSession> findActiveLimitedStartedBy(@Param("cutoff") Instant cutoff);
+
+    /**
+     * Whether the tab is the tab of an active lesson in a room the user takes part in; uses the indexes on
+     * {@code lesson_sessions.tab_id} and {@code room_participants(room_id, user_id)}.
+     */
+    @Query("""
+            SELECT COUNT(s) > 0 FROM LessonSession s, RoomParticipant p
+            WHERE s.tabId = :tabId AND s.endedAt IS NULL AND p.room = s.room AND p.userId = :userId
+            """)
+    boolean isActiveLessonTabOfParticipant(@Param("tabId") UUID tabId, @Param("userId") UUID userId);
 }
