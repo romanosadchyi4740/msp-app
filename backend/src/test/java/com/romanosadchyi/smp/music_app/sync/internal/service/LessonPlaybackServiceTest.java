@@ -108,7 +108,8 @@ class LessonPlaybackServiceTest {
 
     @Test
     void stop_PlayingState_StopsWhereItIsNow() {
-        // 120 BPM: 2 quarter beats per second, so 3 s after the anchor at measure 9 beat 1 it is at measure 10 beat 3
+        // 120 BPM: 2 quarter beats per second, so 3 s after the anchor at measure 9 beat 1 it is 7 quarter beats into
+        // measure 9 (positions are not wrapped on the server, KAN-95)
         PlaybackState state = PlaybackState.builder()
                 .sessionId(sessionId)
                 .measure(9)
@@ -123,8 +124,8 @@ class LessonPlaybackServiceTest {
 
         verify(playbackStateRepository).saveAndFlush(state);
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
-        assertThat(state.getMeasure()).isEqualTo(10);
-        assertThat(state.getBeat()).isEqualTo(3.0);
+        assertThat(state.getMeasure()).isEqualTo(9);
+        assertThat(state.getBeat()).isEqualTo(7.0);
         assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli());
     }
 

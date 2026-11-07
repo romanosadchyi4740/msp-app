@@ -71,7 +71,9 @@ cd backend && ./mvnw -Dtest=ArchitectureTest test   # module boundaries (Spring 
 cd backend && ./mvnw -Dtest=ChatServiceTest test
 cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
-cd frontend && npm run lint; npm run build  # no frontend test runner yet; lint has 23 pre-existing problems
+cd frontend && npm run lint; npm run build  # lint has 23 pre-existing problems
+cd frontend && npm test                      # unit tests (node:test, src/**/*.test.js)
+cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running; uses the installed Chrome)
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
@@ -261,7 +263,8 @@ It stores `{measure, beat, tempoBpm, status, anchorTime, version}`; every client
 
 ```
 beatsElapsed = (serverNow - anchorTime) * tempoBpm / 60000      (only if status == PLAYING)
-position     = (measure, beat) + beatsElapsed   (wrap beats by the time signature)
+position     = (measure, beat) + beatsElapsed   (clients wrap into measures with the tab's measure lengths;
+                                                  the server does not wrap, it cannot read Guitar Pro bars)
 serverNow    = Date.now() + clockOffset
 ```
 

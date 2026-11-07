@@ -35,8 +35,8 @@ public class PlaybackState {
     int measure;
 
     /**
-     * Quarter-note beats into the measure, 0-based; fractional while paused between beats and in signatures such
-     * as 6/8, whose measure holds 3 quarter beats.
+     * Quarter-note beats since the start of the measure, 0-based; may run past its end, as only the clients know
+     * how long each measure of the tab is (KAN-95).
      */
     @Column(nullable = false)
     double beat;

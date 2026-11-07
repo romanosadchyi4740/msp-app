@@ -29,41 +29,28 @@ class PlaybackStatesTest {
     }
 
     @Test
-    void positionAt_CrossesTheMeasureBoundary() {
+    void positionAt_RunsOnPastTheMeasureEnd_WithoutWrapping() {
+        // The clients wrap with the measure lengths of the tab they render (KAN-95)
         PlaybackState state = playing(1, 3.5, 120, 4, 4, T0);
 
-        assertThat(PlaybackStates.positionAt(state, T0 + 500)).isEqualTo(new Position(2, 0.5));
+        assertThat(PlaybackStates.positionAt(state, T0 + 500)).isEqualTo(new Position(1, 4.5));
     }
 
     @Test
-    void positionAt_ExactlyOnTheBoundary_IsTheNextMeasuresFirstBeat() {
-        PlaybackState state = playing(1, 0, 120, 4, 4, T0);
-
-        assertThat(PlaybackStates.positionAt(state, T0 + 2000)).isEqualTo(new Position(2, 0.0));
-    }
-
-    @Test
-    void positionAt_SeveralMeasures() {
+    void positionAt_SeveralMeasures_CountsQuarterBeatsFromTheStoredMeasure() {
         PlaybackState state = playing(7, 0, 120, 4, 4, T0);
 
-        assertThat(PlaybackStates.positionAt(state, T0 + 10_000)).isEqualTo(new Position(12, 0.0));
+        assertThat(PlaybackStates.positionAt(state, T0 + 10_000)).isEqualTo(new Position(7, 20.0));
     }
 
     @Test
-    void positionAt_ThreeFour_WrapsAfterThreeBeats() {
-        PlaybackState state = playing(1, 0, 120, 3, 4, T0);
+    void positionAt_DoesNotDependOnTheTimeSignature() {
+        // At 90 BPM 4 s are 6 quarter beats, in 6/8 as in 3/4 or 4/4
+        PlaybackState sixEight = playing(1, 0, 90, 6, 8, T0);
+        PlaybackState fourFour = playing(1, 0, 90, 4, 4, T0);
 
-        assertThat(PlaybackStates.positionAt(state, T0 + 2000)).isEqualTo(new Position(2, 1.0));
-        assertThat(PlaybackStates.positionAt(state, T0 + 3000)).isEqualTo(new Position(3, 0.0));
-    }
-
-    @Test
-    void positionAt_SixEight_WrapsAfterThreeQuarterBeats() {
-        // A 6/8 measure holds six eighths, three quarter beats; at 90 BPM 4 s are 6 quarter beats, two measures
-        PlaybackState state = playing(1, 0, 90, 6, 8, T0);
-
-        assertThat(PlaybackStates.positionAt(state, T0 + 4000)).isEqualTo(new Position(3, 0.0));
-        assertThat(PlaybackStates.positionAt(state, T0 + 1000)).isEqualTo(new Position(1, 1.5));
+        assertThat(PlaybackStates.positionAt(sixEight, T0 + 4000)).isEqualTo(new Position(1, 6.0));
+        assertThat(PlaybackStates.positionAt(fourFour, T0 + 4000)).isEqualTo(new Position(1, 6.0));
     }
 
     @Test
@@ -128,8 +115,8 @@ class PlaybackStatesTest {
         PlaybackStates.apply(state, command(SyncCommandType.PAUSE, null), T0 + 500);
 
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PAUSED);
-        assertThat(state.getMeasure()).isEqualTo(2);
-        assertThat(state.getBeat()).isEqualTo(0.5);
+        assertThat(state.getMeasure()).isEqualTo(1);
+        assertThat(state.getBeat()).isEqualTo(4.5);
         assertThat(state.getAnchorTime()).isEqualTo(T0 + 500);
     }
 
@@ -216,7 +203,7 @@ class PlaybackStatesTest {
         assertThat(state.getAnchorTime()).isEqualTo(now);
         // From now on one quarter beat per second
         assertThat(PlaybackStates.positionAt(state, now + 1000)).isEqualTo(new Position(1, 3.0));
-        assertThat(PlaybackStates.positionAt(state, now + 2000)).isEqualTo(new Position(2, 0.0));
+        assertThat(PlaybackStates.positionAt(state, now + 2000)).isEqualTo(new Position(1, 4.0));
     }
 
     @Test
@@ -332,25 +319,14 @@ class PlaybackStatesTest {
     }
 
     @Test
-    void positionAt_NeverReturnsABeatOfAFullMeasure() {
-        // 7/8 holds 3.5 quarter beats, a length that rounding can leave just below the boundary
-        for (int tempoBpm = 20; tempoBpm <= 400; tempoBpm += 7) {
-            PlaybackState state = playing(1, 0.1, tempoBpm, 7, 8, T0);
-            for (long elapsed = 0; elapsed <= 20_000; elapsed += 37) {
-                assertThat(PlaybackStates.positionAt(state, T0 + elapsed).beat()).isLessThan(3.5);
-            }
-        }
-    }
-
-    @Test
     void stopAt_Playing_StopsWhereItIsNow() {
         PlaybackState state = playing(1, 0, 120, 3, 4, T0);
 
         PlaybackStates.stopAt(state, T0 + 2000);
 
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
-        assertThat(state.getMeasure()).isEqualTo(2);
-        assertThat(state.getBeat()).isEqualTo(1.0);
+        assertThat(state.getMeasure()).isEqualTo(1);
+        assertThat(state.getBeat()).isEqualTo(4.0);
         assertThat(state.getAnchorTime()).isEqualTo(T0 + 2000);
     }
 

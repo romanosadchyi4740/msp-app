@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { audioTimeFor, clickIntervalMs, clicksBetween, SAME_CLICK_MS, withoutPlayed } from './metronomeMath.js';
-import { positionAt } from './playbackMath.js';
+import { measureTable, positionAt } from './playbackMath.js';
 
 const ANCHOR = 1_700_000_000_000;
 
@@ -174,5 +174,40 @@ describe('audioTimeFor', () => {
     assert.equal(audioTimeFor(ANCHOR, timestamp, serverMinusPerformance), 10);
     assert.equal(audioTimeFor(ANCHOR + 250, timestamp, serverMinusPerformance), 10.25);
     assert.equal(audioTimeFor(ANCHOR - 1_000, timestamp, serverMinusPerformance), 9);
+  });
+});
+
+describe('clicksBetween over measures of different lengths (KAN-95)', () => {
+  // 4/4, 3/4, 6/8, 4/4 at 120 BPM: quarter beats last 500 ms, eighths 250 ms
+  const table = measureTable(state(), [
+    { beatsPerMeasure: 4, beatUnit: 4 },
+    { beatsPerMeasure: 3, beatUnit: 4 },
+    { beatsPerMeasure: 6, beatUnit: 8 },
+    { beatsPerMeasure: 4, beatUnit: 4 },
+  ]);
+
+  test('each measure clicks its own beats, with the downbeat accented', () => {
+    const clicks = clicksBetween(state(), ANCHOR - 1, ANCHOR + 5_000, table);
+
+    assert.deepEqual(times(clicks), [0, 500, 1_000, 1_500, 2_000, 2_500, 3_000, 3_500, 3_750, 4_000, 4_250, 4_500,
+      4_750, 5_000]);
+    assert.deepEqual(clicks.map((click) => (click.accent ? 'A' : '.')).join(''), 'A...A..A.....A');
+  });
+
+  test('counts in with the beats of the measure playback starts in, within the count-in of the tab', () => {
+    // Resumed at the 6/8 measure: eighth-note clicks over the last 1.5 s of the 2 s count-in (one 4/4 measure)
+    const clicks = clicksBetween(state({ measure: 3 }), ANCHOR - 2_500, ANCHOR - 1, table);
+
+    assert.deepEqual(times(clicks), [-1_500, -1_250, -1_000, -750, -500, -250]);
+    assert.equal(clicks[0].accent, true);
+    assert.ok(clicks.every((click) => click.countIn));
+  });
+
+  test('a state the server did not wrap clicks on the measures it lies in', () => {
+    // 5 quarter beats into measure 1 is beat 1 of the 3/4 measure; its next beat is 500 ms on
+    const clicks = clicksBetween(state({ beat: 5 }), ANCHOR - 1, ANCHOR + 1_600, table);
+
+    assert.deepEqual(times(clicks), [0, 500, 1_000, 1_250, 1_500]);
+    assert.deepEqual(clicks.map((click) => click.accent), [false, false, true, false, false]);
   });
 });

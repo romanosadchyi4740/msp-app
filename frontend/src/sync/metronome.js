@@ -1,4 +1,4 @@
-import usePlaybackStore from '../store/playbackStore';
+import usePlaybackStore, { measureTableOf } from '../store/playbackStore';
 import useMetronomeStore from '../store/metronomeStore';
 import { serverNow } from './clockSync';
 import { audioTimeFor, clicksBetween, withoutPlayed } from './metronomeMath';
@@ -59,7 +59,7 @@ export function startMetronome() {
 
   unsubscribers = [
     usePlaybackStore.subscribe((state, previous) => {
-      if (state.playback !== previous.playback) replan();
+      if (state.playback !== previous.playback || state.measureSignatures !== previous.measureSignatures) replan();
     }),
     useMetronomeStore.subscribe((state) => {
       if (master) master.gain.setTargetAtTime(state.volume, context.currentTime, 0.01);
@@ -114,11 +114,12 @@ function schedule() {
   const now = serverNow();
   const latencyMs = 1000 * (context.outputLatency || context.baseLatency || 0);
   const until = now + latencyMs + (document.hidden ? HIDDEN_LOOKAHEAD_MS : LOOKAHEAD_MS);
-  const { playback } = usePlaybackStore.getState();
+  const playbackState = usePlaybackStore.getState();
+  const { playback } = playbackState;
   const from = Math.max(plannedUntil, now - LATE_MS);
   if (playback && until > from) {
     const planned = scheduled.map((click) => click.time);
-    const clicks = withoutPlayed(clicksBetween(playback, from, until), planned, now);
+    const clicks = withoutPlayed(clicksBetween(playback, from, until, measureTableOf(playbackState)), planned, now);
     const timestamp = outputTimestamp();
     const serverMinusPerformance = now - performance.now();
     clicks.forEach((click) => {

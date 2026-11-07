@@ -26,8 +26,8 @@ google:
 
 app:
   cors:
-    # Comma-separated list of allowed origins
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    # Comma-separated list of allowed origins; 5174 is the dev server the end-to-end tests start (frontend/e2e)
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
 
 # Demo data (DemoDataSeeder); reference data such as genres is always seeded
 data-seeder:
