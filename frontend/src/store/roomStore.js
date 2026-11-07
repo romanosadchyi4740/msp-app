@@ -91,6 +91,20 @@ const useRoomStore = create(
         return response.data;
       },
 
+      /**
+       * The room's active lesson, or `null` if it has none (the API answers 404). Throws other request errors without
+       * a toast; the room page shows them.
+       */
+      fetchCurrentLesson: async (id) => {
+        try {
+          const response = await axiosClient.get(`/api/rooms/${id}/sessions/current`, { suppressErrorToast: true });
+          return response.data;
+        } catch (error) {
+          if (error.response?.status === 404) return null;
+          throw error;
+        }
+      },
+
       leaveRoom: async (id) => {
         try {
           await axiosClient.post(`/api/rooms/${id}/leave`);

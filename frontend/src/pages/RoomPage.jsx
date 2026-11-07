@@ -6,11 +6,13 @@ import useAuthStore from '../store/authStore';
 import InviteLink from '../components/rooms/InviteLink';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
 import { badgeClass, errorMessage, secondaryButtonClass, sectionTitleClass } from '../components/rooms/roomStyles';
-import { startClockSync, stopClockSync } from '../sync/clockSync';
+import LessonCanvas from '../components/rooms/LessonCanvas';
+import { startSyncEngine } from '../sync/syncEngine';
 
 /**
  * A room the user is in: who is in it, the invite link for the host, the tab picked for the lesson, and leaving.
- * Live presence and the lesson itself need the room's STOMP connection and come with the full room page.
+ * The active lesson's tab follows the shared position (KAN-42); live presence and the host's lesson controls come
+ * with the full room page.
  */
 export default function RoomPage() {
   const { id } = useParams();
@@ -24,11 +26,8 @@ export default function RoomPage() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
-  // The lesson's positions and the metronome are computed on the server clock, so it is synced while in a room
-  useEffect(() => {
-    startClockSync();
-    return stopClockSync;
-  }, []);
+  // The shared lesson playback, on the synced server clock, while the room is open
+  useEffect(() => startSyncEngine(id), [id]);
 
   useEffect(() => {
     let current = true;
@@ -115,6 +114,8 @@ export default function RoomPage() {
           {plannedTab.artist && <span className="text-sm text-zinc-500 dark:text-zinc-400"> · {plannedTab.artist}</span>}
         </section>
       )}
+
+      <LessonCanvas roomId={id} />
 
       <section className="space-y-3">
         <h2 className={sectionTitleClass}>Participants</h2>
