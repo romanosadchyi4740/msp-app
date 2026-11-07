@@ -36,6 +36,8 @@ export function startSyncEngine(roomId) {
   engine?.stop();
   const store = usePlaybackStore.getState();
   store.reset(roomId);
+  recentDrift = [];
+  resyncRequests = 0;
   startClockSync();
 
   let subscriptions = [];

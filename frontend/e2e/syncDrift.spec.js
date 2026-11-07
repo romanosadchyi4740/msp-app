@@ -91,6 +91,10 @@ test('participants see the same position within 150 ms (p95)', async ({ browser 
   const samples = await Promise.all(pages.map((page) => page.evaluate(() => window.__syncchord.takeSamples())));
 
   const samplesByClient = { host: samples[0], participant1: samples[1], participant2: samples[2] };
+  // Every command took effect: five new states, the last paused at the last tempo
+  const hostSamples = samplesByClient.host;
+  expect(new Set(hostSamples.map((sample) => sample.version)).size).toBeGreaterThanOrEqual(6);
+  expect(hostSamples.at(-1)).toMatchObject({ status: 'PAUSED', tempoBpm: 150 });
   const report = driftReport(samplesByClient, { commandTimes });
   const clockSync = await Promise.all(pages.map((page) => page.evaluate(() => {
     const { offset, rtt } = window.__syncchord.now();

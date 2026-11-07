@@ -8,9 +8,10 @@ const REFRESH_MS = 250;
 
 /**
  * The room's sync figures for debugging (KAN-44), shown with `?debug=1`: the clock offset and round trip, the
- * playback version and status, the position computed now, and the drift seen by the engine (the largest jump of
- * the server clock against the monotonic one between two frames in the last 5 s, and how often a snapshot was asked
- * for). Refreshed a few times a second; the numbers are this participant's only.
+ * playback version and status, the position computed now, the largest jump of the server clock against the
+ * monotonic one between two frames in the last 5 s (the engine asks for a snapshot above 150 ms) and how often it
+ * asked. Refreshed a few times a second; the numbers are this participant's own; the drift between participants
+ * is what the e2e test (e2e/syncDrift.spec.js) measures.
  */
 export default function SyncDebugOverlay() {
   const [figures, setFigures] = useState(null);
@@ -35,7 +36,7 @@ export default function SyncDebugOverlay() {
     ['version', playback ? `${playback.version}` : '–'],
     ['status', playback ? `${playback.status} @ ${playback.tempoBpm} bpm` : 'no lesson'],
     ['position', position ? `${position.measure}:${position.beat.toFixed(2)}` : '–'],
-    ['drift', `${stats.maxDriftMs.toFixed(1)} ms (5 s max)`],
+    ['clock jump', `${stats.maxDriftMs.toFixed(1)} ms (5 s max)`],
     ['resyncs', `${stats.resyncRequests}`],
   ];
 

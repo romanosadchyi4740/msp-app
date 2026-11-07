@@ -40,10 +40,12 @@ export function measureTable(state, signatures = null) {
   list.forEach((signature) => starts.push(starts[starts.length - 1] + quarterBeatsPerMeasure(signature)));
   const end = starts[list.length];
 
-  const signatureOf = (measure) => list[measure - 1] ?? last;
-  const startOf = (measure) => (measure - 1 <= list.length
-    ? starts[measure - 1]
-    : end + (measure - 1 - list.length) * lastLength);
+  // Measures count from 1; the server never sends a smaller one
+  const signatureOf = (measure) => list[Math.max(1, measure) - 1] ?? last;
+  const startOf = (measure) => {
+    const index = Math.max(1, measure) - 1;
+    return index <= list.length ? starts[index] : end + (index - list.length) * lastLength;
+  };
 
   const measureAt = (quarterBeats) => {
     const at = Math.max(0, quarterBeats);

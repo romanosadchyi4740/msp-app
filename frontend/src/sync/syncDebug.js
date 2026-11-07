@@ -8,8 +8,9 @@ import { quarterBeatsAt } from './playbackMath';
  * and the end-to-end drift test, which compare what each participant computes at the same moment.
  *
  * - `ready()`: whether the clock is synced and the playback state has arrived.
- * - `now()`: this client's view, `{ wallTime, serverTime, quarterBeats, version, status, tempoBpm, offset, rtt }`;
- *   `quarterBeats` counts from the start of the tab, so it can be compared across clients whatever the measures.
+ * - `now()`: this client's view, `{ wallTime, serverTime, quarterBeats, version, status, tempoBpm, anchorTime,
+ *   offset, rtt }`; `quarterBeats` counts from the start of the tab, so it can be compared across clients whatever
+ *   the measures.
  * - `startSampling(intervalMs)` / `takeSamples()`: records now() every interval, and hands over what was recorded.
  * - `send(type, argument)`: sends a playback command to the room, as the host's controls will (KAN-50); the server
  *   refuses it from anyone but the host.
@@ -33,6 +34,7 @@ export function installSyncDebugHook(roomId) {
       sessionId: playback?.sessionId ?? null,
       status: playback?.status ?? null,
       tempoBpm: playback?.tempoBpm ?? null,
+      anchorTime: playback?.anchorTime ?? null,
       offset,
       rtt,
     };

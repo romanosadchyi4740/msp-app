@@ -24,7 +24,8 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       VITE_API_URL: API_URL,
-      VITE_WS_URL: `http://localhost:${PROXY_PORT}/ws`,
+      // The proxy listens on IPv4 only, so the address does not depend on how localhost resolves
+      VITE_WS_URL: `http://127.0.0.1:${PROXY_PORT}/ws`,
     },
   },
 });

@@ -41,8 +41,9 @@ export function percentile(values, p) {
 
 /**
  * The drift between clients every `stepMs` while playback runs: at each moment the largest difference between any
- * two clients' positions, in milliseconds at the tempo then (the host's). `commandTimes` are the wall times of the
- * host's commands; `settleMs` after each is reported separately, as the new state is still on its way then.
+ * two clients' positions, in milliseconds at the tempo then (the host's). Moments in a count-in are left out, as
+ * every client shows the stored position then and would only flatter the figures. `commandTimes` are the wall times
+ * of the host's commands; `settleMs` after each is reported separately, as the new state is still on its way then.
  */
 export function driftReport(samplesByClient, { stepMs = 10, commandTimes = [], settleMs = 300 } = {}) {
   const clients = Object.keys(samplesByClient);
@@ -53,7 +54,7 @@ export function driftReport(samplesByClient, { stepMs = 10, commandTimes = [], s
   const steady = [];
   for (let wallTime = start; wallTime <= end; wallTime += stepMs) {
     const hostSample = latestSample(host, wallTime);
-    if (!hostSample || hostSample.status !== 'PLAYING') continue;
+    if (!hostSample || hostSample.status !== 'PLAYING' || hostSample.serverTime < hostSample.anchorTime) continue;
     const positions = clients.map((client) => positionAtWallTime(samplesByClient[client], wallTime));
     if (positions.some((position) => position === null)) continue;
     const spread = Math.max(...positions) - Math.min(...positions);
