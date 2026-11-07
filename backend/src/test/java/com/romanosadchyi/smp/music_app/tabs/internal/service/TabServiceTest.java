@@ -318,6 +318,16 @@ class TabServiceTest {
     }
 
     @Test
+    void getTab_OthersPrivateTab_IsNotFoundWhenNoGrantAllowsIt() {
+        when(tabRepository.findById(tabId)).thenReturn(Optional.of(asciiTab(ownerId, false)));
+        when(tabReadGrant.allowsRead(tabId, otherId)).thenReturn(false);
+
+        assertThatThrownBy(() -> tabService.getTab(otherId, tabId)).isInstanceOf(TabNotFoundException.class);
+        verify(tabReadGrant).allowsRead(tabId, otherId);
+        verifyNoInteractions(tabMappingService);
+    }
+
+    @Test
     void getTab_OthersHiddenTab_StaysHiddenWhateverTheGrants() {
         AsciiTab hidden = asciiTab(ownerId, false);
         hidden.setHidden(true);

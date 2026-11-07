@@ -86,6 +86,20 @@ class LessonTabAccessIntegrationTest {
     }
 
     @Test
+    void privateLessonTab_AfterTheRoomCloses_IsPrivateAgain() throws Exception {
+        Registered host = fixtures.register();
+        Registered student = fixtures.register();
+        UUID roomId = fixtures.createRoomWith(host, student);
+        UUID tabId = insertGuitarProTab(host.id());
+        startLesson(host, roomId, tabId);
+
+        mockMvc.perform(post("/api/rooms/" + roomId + "/close").header(HttpHeaders.AUTHORIZATION, host.bearer()))
+                .andExpect(status().is2xxSuccessful());
+
+        expectTab(student, tabId, status().isNotFound());
+    }
+
+    @Test
     void hiddenLessonTab_StaysHiddenFromParticipants() throws Exception {
         Registered host = fixtures.register();
         Registered student = fixtures.register();
