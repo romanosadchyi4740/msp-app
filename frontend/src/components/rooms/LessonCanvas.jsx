@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import TabCanvas from '../tabs/TabCanvas';
 import useRoomStore from '../../store/roomStore';
@@ -70,6 +70,12 @@ export default function LessonCanvas({ roomId }) {
 
   useEffect(() => onPlaybackFrame(({ measure, beat }) => canvasRef.current?.setPosition(measure, beat)), []);
 
+  // The measures of the tab shown, for wrapping positions (KAN-95); forgotten when another tab or none is shown
+  const setMeasureSignatures = usePlaybackStore((state) => state.setMeasureSignatures);
+  const handleLoaded = useCallback(({ timeSignatures }) => setMeasureSignatures(timeSignatures), [setMeasureSignatures]);
+  const shownSource = tab.tabId === tabId ? tab.source : null;
+  useEffect(() => () => setMeasureSignatures(null), [shownSource, setMeasureSignatures]);
+
   const lessonError = lesson.roomId === roomId ? lesson.error : null;
   if (lessonError) {
     return <p className="text-sm text-zinc-500 dark:text-zinc-400">{lessonError}</p>;
@@ -93,6 +99,7 @@ export default function LessonCanvas({ roomId }) {
         <TabCanvas
           ref={canvasRef}
           source={shownTab.source}
+          onLoaded={handleLoaded}
           className="h-[60vh] border border-zinc-200 dark:border-zinc-800"
         />
       )}

@@ -8,9 +8,13 @@ import lombok.experimental.UtilityClass;
 /**
  * The anchor-time model of a lesson's playback (lab 7: {@code PlaybackState.apply}, {@code positionAt}). The state
  * holds where playback was at {@code anchorTime}; while playing, the position moves on by
- * {@code (t - anchorTime) * tempoBpm / 60000} quarter beats, wrapped into measures by the time signature. Commands
- * set a new anchor instead of streaming positions. A command that changes nothing leaves every field as it was, so
- * the stored version does not grow.
+ * {@code (t - anchorTime) * tempoBpm / 60000} quarter beats. Commands set a new anchor instead of streaming positions.
+ * A command that changes nothing leaves every field as it was, so the stored version does not grow.
+ *
+ * <p>Positions are not wrapped into measures here (KAN-95): a position is a measure and the quarter beats since its
+ * start, which may run past its end. Only the clients know how long each measure is, from the tab they render (a
+ * Guitar Pro tab can change time signature anywhere); they wrap positions with those lengths. The state's time
+ * signature, the tab's, is used only for the length of the count-in.
  */
 @UtilityClass
 public class PlaybackStates {
@@ -26,23 +30,16 @@ public class PlaybackStates {
     final long COUNT_IN_LEAD_MS = 250;
 
     /**
-     * Where playback is at {@code serverTime}. Before the anchor, during the count-in, it is still at the stored
-     * position; paused and stopped playback does not move.
+     * Where playback is at {@code serverTime}: the stored measure and the quarter beats since its start, not wrapped
+     * into measures. Before the anchor, during the count-in, it is still at the stored position; paused and stopped
+     * playback does not move.
      */
     public Position positionAt(PlaybackState state, long serverTime) {
         if (state.getStatus() != PlaybackStatus.PLAYING || serverTime <= state.getAnchorTime()) {
             return new Position(state.getMeasure(), state.getBeat());
         }
-        double measureLength = timeSignatureOf(state).quarterBeatsPerMeasure();
-        double beats = state.getBeat() + (serverTime - state.getAnchorTime()) * state.getTempoBpm() / 60000.0;
-        long measures = (long) Math.floor(beats / measureLength);
-        double beat = Math.max(0, beats - measures * measureLength);
-        // Rounding can leave a full measure just below a boundary
-        if (beat >= measureLength) {
-            beat -= measureLength;
-            measures++;
-        }
-        return new Position(Math.toIntExact(state.getMeasure() + measures), beat);
+        double elapsedBeats = (serverTime - state.getAnchorTime()) * state.getTempoBpm() / 60000.0;
+        return new Position(state.getMeasure(), state.getBeat() + elapsedBeats);
     }
 
     /**

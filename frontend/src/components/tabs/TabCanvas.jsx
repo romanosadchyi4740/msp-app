@@ -33,7 +33,8 @@ const SCROLL_TOP_RATIO = 0.25;
  *
  * - `source`: `{ alphaTex }` for an ASCII tab, or `{ fileUrl }` for a Guitar Pro file (e.g. a presigned URL). A new
  *   object loads the tab again; a source with neither is shown as an error.
- * - `onLoaded({ measureCount, beatsPerMeasure })`: once per loaded source, after its first render. `beatsPerMeasure`
+ * - `onLoaded({ measureCount, beatsPerMeasure, timeSignatures })`: once per loaded source, after its first render.
+ *   `timeSignatures` lists every measure's `{ beatsPerMeasure, beatUnit }` in order; `beatsPerMeasure`
  *   is the first measure's; the cursor itself follows each measure's own time signature.
  * - `onError(error)`: when the tab cannot be loaded or rendered.
  *
@@ -113,6 +114,10 @@ export default function TabCanvas({ source, onLoaded, onError, className = '', r
         callbacksRef.current.onLoaded?.({
           measureCount: score?.masterBars.length ?? 0,
           beatsPerMeasure: score?.masterBars[0]?.timeSignatureNumerator ?? 4,
+          timeSignatures: (score?.masterBars ?? []).map((masterBar) => ({
+            beatsPerMeasure: masterBar.timeSignatureNumerator,
+            beatUnit: masterBar.timeSignatureDenominator,
+          })),
         });
       }
       drawCursor(view, scrollRef.current, barRef.current, lineRef.current);

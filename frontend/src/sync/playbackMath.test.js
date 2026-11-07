@@ -2,9 +2,11 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isNewerState,
+  measureTable,
   MAX_DRIFT_MS,
   needsResync,
   positionAt,
+  quarterBeatsAt,
   toCanvasPosition,
 } from './playbackMath.js';
 
@@ -77,12 +79,12 @@ describe('positionAt', () => {
 
 describe('toCanvasPosition', () => {
   test('counts measures from 0', () => {
-    assert.deepEqual(toCanvasPosition({ measure: 1, beat: 2.5 }, state()), { measure: 0, beat: 2.5 });
+    assert.deepEqual(toCanvasPosition({ measure: 1, beat: 2.5 }, measureTable(state())), { measure: 0, beat: 2.5 });
   });
 
   test('counts beats in the beat unit of the time signature', () => {
     // 1.5 quarter beats into a 6/8 measure is the fourth eighth-note beat
-    assert.deepEqual(toCanvasPosition({ measure: 3, beat: 1.5 }, state({ beatsPerMeasure: 6, beatUnit: 8 })),
+    assert.deepEqual(toCanvasPosition({ measure: 3, beat: 1.5 }, measureTable(state({ beatsPerMeasure: 6, beatUnit: 8 }))),
       { measure: 2, beat: 3 });
   });
 });
@@ -145,5 +147,74 @@ describe('needsResync', () => {
 
   test('when the monotonic clock stood still while the wall clock went on, as in a laptop sleep', () => {
     assert.equal(needsResync(frame(ANCHOR, 100), frame(ANCHOR + 60_000, 116)), true);
+  });
+});
+
+describe('measures of different lengths (KAN-95)', () => {
+  // 4/4, 4/4, 3/4, 6/8, then 4/4 again: 4 + 4 + 3 + 3 + 4 quarter beats; at 120 BPM a quarter beat lasts 500 ms
+  const SIGNATURES = [
+    { beatsPerMeasure: 4, beatUnit: 4 },
+    { beatsPerMeasure: 4, beatUnit: 4 },
+    { beatsPerMeasure: 3, beatUnit: 4 },
+    { beatsPerMeasure: 6, beatUnit: 8 },
+    { beatsPerMeasure: 4, beatUnit: 4 },
+  ];
+  const table = measureTable(state(), SIGNATURES);
+
+  test('measures start where the earlier ones end', () => {
+    assert.deepEqual([1, 2, 3, 4, 5, 6].map(table.startOf), [0, 4, 8, 11, 14, 18]);
+  });
+
+  test('playing over a change of time signature', () => {
+    const playing = state();
+
+    assert.deepEqual(positionAt(playing, ANCHOR + 4_000, table), { measure: 3, beat: 0 });
+    assert.deepEqual(positionAt(playing, ANCHOR + 5_000, table), { measure: 3, beat: 2 });
+    // The 3/4 measure ends after 3 beats, not 4
+    assert.deepEqual(positionAt(playing, ANCHOR + 5_500, table), { measure: 4, beat: 0 });
+    assert.deepEqual(positionAt(playing, ANCHOR + 7_250, table), { measure: 5, beat: 0.5 });
+  });
+
+  test('seeking into a measure after a change', () => {
+    const seeked = state({ measure: 4 });
+
+    assert.deepEqual(positionAt(seeked, ANCHOR + 1_000, table), { measure: 4, beat: 2 });
+    assert.deepEqual(positionAt(seeked, ANCHOR + 1_500, table), { measure: 5, beat: 0 });
+  });
+
+  test('wraps a stored position the server did not wrap', () => {
+    // Paused 10 quarter beats into measure 1: past measures 1 and 2, 2 beats into the 3/4 measure
+    const paused = state({ status: 'PAUSED', beat: 10 });
+
+    assert.deepEqual(positionAt(paused, ANCHOR + 60_000, table), { measure: 3, beat: 2 });
+  });
+
+  test('measures past the list keep its last time signature', () => {
+    assert.deepEqual(positionAt(state({ measure: 7 }), ANCHOR + 2_500, table), { measure: 8, beat: 1 });
+  });
+
+  test('without a list every measure has the state\'s time signature', () => {
+    const threeFour = state({ beatsPerMeasure: 3, beatUnit: 4 });
+
+    assert.deepEqual(positionAt(threeFour, ANCHOR + 4_000), { measure: 3, beat: 2 });
+    assert.deepEqual(positionAt(threeFour, ANCHOR + 4_000, measureTable(threeFour, [])), { measure: 3, beat: 2 });
+  });
+
+  test('a beat never reaches the length of its measure, whatever the rounding', () => {
+    for (let ms = 0; ms < 30_000; ms += 7) {
+      const { measure, beat } = positionAt(state({ tempoBpm: 97, beat: 0.1 }), ANCHOR + ms, table);
+      const length = (table.signatureOf(measure).beatsPerMeasure * 4) / table.signatureOf(measure).beatUnit;
+      assert.ok(beat >= 0 && beat < length, `beat ${beat} of measure ${measure} at ${ms} ms`);
+    }
+  });
+
+  test('the canvas counts each measure in its own beat unit', () => {
+    // 1.5 quarter beats into the 6/8 measure is its fourth eighth-note beat; in the 3/4 measure it is beat 1.5
+    assert.deepEqual(toCanvasPosition({ measure: 4, beat: 1.5 }, table), { measure: 3, beat: 3 });
+    assert.deepEqual(toCanvasPosition({ measure: 3, beat: 1.5 }, table), { measure: 2, beat: 1.5 });
+  });
+
+  test('quarter beats from the start of the tab', () => {
+    assert.equal(quarterBeatsAt(state({ measure: 4, beat: 1 }), ANCHOR + 500, table), 13);
   });
 });

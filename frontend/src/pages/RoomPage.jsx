@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Crown, Loader2, LogOut, User } from 'lucide-react';
 import useRoomStore, { plannedTabOf } from '../store/roomStore';
 import useAuthStore from '../store/authStore';
@@ -9,6 +9,8 @@ import { badgeClass, errorMessage, secondaryButtonClass, sectionTitleClass } fro
 import LessonCanvas from '../components/rooms/LessonCanvas';
 import { startSyncEngine } from '../sync/syncEngine';
 import { startMetronome } from '../sync/metronome';
+import { installSyncDebugHook } from '../sync/syncDebug';
+import SyncDebugOverlay from '../components/rooms/SyncDebugOverlay';
 
 /**
  * A room the user is in: who is in it, the invite link for the host, the tab picked for the lesson, and leaving.
@@ -17,6 +19,9 @@ import { startMetronome } from '../sync/metronome';
  */
 export default function RoomPage() {
   const { id } = useParams();
+  // ?debug=1 shows the sync figures and exposes the hook the drift test reads (KAN-44)
+  const [searchParams] = useSearchParams();
+  const debug = searchParams.get('debug') === '1';
   const navigate = useNavigate();
   const fetchRoom = useRoomStore((state) => state.fetchRoom);
   const leaveRoom = useRoomStore((state) => state.leaveRoom);
@@ -59,6 +64,8 @@ export default function RoomPage() {
       stopEngine();
     };
   }, [roomId]);
+
+  useEffect(() => (debug && roomId ? installSyncDebugHook(roomId) : undefined), [debug, roomId]);
 
   const leave = async () => {
     setConfirmLeave(false);
@@ -128,6 +135,7 @@ export default function RoomPage() {
       )}
 
       <LessonCanvas roomId={room.id} />
+      {debug && <SyncDebugOverlay />}
 
       <section className="space-y-3">
         <h2 className={sectionTitleClass}>Participants</h2>

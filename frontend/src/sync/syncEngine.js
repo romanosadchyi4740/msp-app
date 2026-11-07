@@ -1,5 +1,5 @@
 import socketClient from '../api/socketClient';
-import usePlaybackStore from '../store/playbackStore';
+import usePlaybackStore, { measureTableOf } from '../store/playbackStore';
 import { serverNow, startClockSync, stopClockSync } from './clockSync';
 import { needsResync, positionAt, toCanvasPosition } from './playbackMath';
 
@@ -20,9 +20,14 @@ import { needsResync, positionAt, toCanvasPosition } from './playbackMath';
 
 /** At most one REQUEST_SYNC per this long, so a page that keeps stalling does not flood the server. */
 const RESYNC_INTERVAL_MS = 2000;
+/** How far back the drift figure of getSyncStats reaches. */
+const DRIFT_WINDOW_MS = 5000;
 
 let engine = null;
 const frameListeners = new Set();
+// For the debug overlay: the drift of recent frames, as { localTime, driftMs }, and the snapshots asked for
+let recentDrift = [];
+let resyncRequests = 0;
 
 /**
  * Starts the engine for a room, stopping one that runs for another; returns the function that stops it.
@@ -64,6 +69,7 @@ export function startSyncEngine(roomId) {
     const { playback } = usePlaybackStore.getState();
     if (!playback || now - lastResync < RESYNC_INTERVAL_MS || !socketClient.isConnected()) return;
     lastResync = now;
+    resyncRequests += 1;
     socketClient.sendMessage(`/rooms/${roomId}/command`, { type: 'REQUEST_SYNC', clientTime: Date.now() });
   };
 
@@ -82,10 +88,18 @@ export function startSyncEngine(roomId) {
     if (needsResync(previousFrame, current)) {
       requestSync(current.localTime);
     }
+    if (previousFrame) {
+      const driftMs = Math.abs((current.serverTime - previousFrame.serverTime)
+        - (current.localTime - previousFrame.localTime));
+      recentDrift = recentDrift.filter((frameDrift) => frameDrift.localTime > current.localTime - DRIFT_WINDOW_MS);
+      recentDrift.push({ localTime: current.localTime, driftMs });
+    }
     previousFrame = current;
-    const { playback } = usePlaybackStore.getState();
+    const state = usePlaybackStore.getState();
+    const { playback } = state;
     if (!playback || frameListeners.size === 0) return;
-    const position = toCanvasPosition(positionAt(playback, current.serverTime), playback);
+    const table = measureTableOf(state);
+    const position = toCanvasPosition(positionAt(playback, current.serverTime, table), table);
     frameListeners.forEach((listener) => listener(position, playback));
   };
   frame = requestAnimationFrame(onFrame);
@@ -105,6 +119,17 @@ export function startSyncEngine(roomId) {
   };
   engine = current;
   return current.stop;
+}
+
+/**
+ * For the debug overlay (KAN-44): the largest drift between two frames in the last 5 s (how far the server clock
+ * moved against the monotonic one; the engine asks for a snapshot above 150 ms) and how many snapshots it asked for.
+ */
+export function getSyncStats() {
+  const since = performance.now() - DRIFT_WINDOW_MS;
+  const maxDriftMs = recentDrift.reduce(
+    (max, frameDrift) => (frameDrift.localTime > since ? Math.max(max, frameDrift.driftMs) : max), 0);
+  return { maxDriftMs, resyncRequests };
 }
 
 /**

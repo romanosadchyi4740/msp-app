@@ -26,3 +26,8 @@ dist-ssr
 # Copied in by the alphaTab Vite plugin (dev server and build)
 public/font/
 public/soundfont/
+
+# Playwright (npm run test:e2e)
+test-results
+playwright-report
+e2e/results

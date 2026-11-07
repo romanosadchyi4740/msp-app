@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { isNewerState } from '../sync/playbackMath.js';
+import { isNewerState, measureTable } from '../sync/playbackMath.js';
 
 /**
  * The lesson playback of the room page that is open (KAN-42), as the server last sent it; fed by the sync engine
@@ -12,6 +12,10 @@ import { isNewerState } from '../sync/playbackMath.js';
  *   of a lesson can arrive after the event that ended it.
  * - `snapshotCount`: grows with every snapshot of the room. Lesson events sent while the connection was down are not
  *   replayed, so whoever shows the lesson itself (its tab) loads it again on each snapshot.
+ * - `measureSignatures`: every measure's time signature of the lesson's tab as rendered here, `{ beatsPerMeasure,
+ *   beatUnit }` in order, or null while it is not loaded. The server does not know them (a Guitar Pro tab can change
+ *   time signature anywhere), so positions are wrapped into measures with them (KAN-95); read the measure table with
+ *   measureTableOf.
  */
 const usePlaybackStore = create((set, get) => ({
   roomId: null,
@@ -19,11 +23,16 @@ const usePlaybackStore = create((set, get) => ({
   lessonEvent: null,
   endedSessions: [],
   snapshotCount: 0,
+  measureSignatures: null,
 
   /**
    * Starts afresh for a room: nothing applied yet.
    */
-  reset: (roomId) => set({ roomId, playback: null, lessonEvent: null, endedSessions: [], snapshotCount: 0 }),
+  reset: (roomId) => set({
+    roomId, playback: null, lessonEvent: null, endedSessions: [], snapshotCount: 0, measureSignatures: null,
+  }),
+
+  setMeasureSignatures: (measureSignatures) => set({ measureSignatures: measureSignatures?.length ? measureSignatures : null }),
 
   /**
    * A state from the room's topic; returns whether it was applied. Already applied versions are dropped.
@@ -67,5 +76,21 @@ const usePlaybackStore = create((set, get) => ({
     });
   },
 }));
+
+let cachedTable = { signature: null, signatures: null, table: null };
+
+/**
+ * The measure table of the store's state (playbackMath.measureTable): the rendered tab's measures, or the playback's
+ * time signature for all while the tab is not loaded; null without playback. Built once per change, as the sync
+ * engine and the metronome read it many times a second.
+ */
+export function measureTableOf({ playback, measureSignatures }) {
+  if (!playback) return null;
+  const signature = `${playback.beatsPerMeasure}/${playback.beatUnit}`;
+  if (cachedTable.signature !== signature || cachedTable.signatures !== measureSignatures) {
+    cachedTable = { signature, signatures: measureSignatures, table: measureTable(playback, measureSignatures) };
+  }
+  return cachedTable.table;
+}
 
 export default usePlaybackStore;
