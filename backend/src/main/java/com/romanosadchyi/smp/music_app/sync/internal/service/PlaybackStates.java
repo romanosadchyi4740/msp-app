@@ -18,6 +18,12 @@ public class PlaybackStates {
     final int FIRST_MEASURE = 1;
     final int MIN_TEMPO_BPM = 20;
     final int MAX_TEMPO_BPM = 400;
+    /**
+     * How long after PLAY the count-in starts. The new state reaches the participants a network delay after the
+     * server applied it; without the lead, the first click of the count-in would be due before anyone heard of it
+     * (KAN-43).
+     */
+    final long COUNT_IN_LEAD_MS = 250;
 
     /**
      * Where playback is at {@code serverTime}. Before the anchor, during the count-in, it is still at the stored
@@ -96,14 +102,15 @@ public class PlaybackStates {
     }
 
     /**
-     * Plays on from the stored position after a one-measure count-in, so the anchor lies in the future.
+     * Plays on from the stored position after a one-measure count-in that starts {@code COUNT_IN_LEAD_MS} from now,
+     * so the anchor lies in the future.
      */
     private void play(PlaybackState state, long serverNow) {
         if (state.getStatus() == PlaybackStatus.PLAYING) {
             return;
         }
         state.setStatus(PlaybackStatus.PLAYING);
-        state.setAnchorTime(serverNow + countInMillis(state));
+        state.setAnchorTime(serverNow + COUNT_IN_LEAD_MS + countInMillis(state));
     }
 
     private void pause(PlaybackState state, long serverNow) {

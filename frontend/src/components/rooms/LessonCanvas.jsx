@@ -6,6 +6,7 @@ import useTabStore from '../../store/tabStore';
 import usePlaybackStore from '../../store/playbackStore';
 import { onPlaybackFrame } from '../../sync/syncEngine';
 import { errorMessage, sectionTitleClass } from './roomStyles';
+import MetronomeControls from './MetronomeControls';
 
 const STATUS_LABELS = { PLAYING: 'Playing', PAUSED: 'Paused', STOPPED: 'Stopped' };
 
@@ -84,6 +85,7 @@ export default function LessonCanvas({ roomId }) {
         <h2 className={sectionTitleClass}>Lesson</h2>
         {status && <span className="text-xs text-zinc-500 dark:text-zinc-400">{STATUS_LABELS[status] ?? status}</span>}
       </div>
+      <MetronomeControls />
       {!tabId && <p className="text-sm text-zinc-500 dark:text-zinc-400">No tab is open in this lesson.</p>}
       {tabId && shownTab?.error && <p className="text-sm text-zinc-500 dark:text-zinc-400">{shownTab.error}</p>}
       {tabId && !shownTab && <Loader2 size={20} className="animate-spin text-zinc-500" />}

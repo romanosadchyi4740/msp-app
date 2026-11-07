@@ -60,7 +60,8 @@ class PlaybackStateServiceTest {
                 new SyncCommand(SyncCommandType.PLAY, null, hostId, 123L));
 
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PLAYING);
-        assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli() + 1500);
+        // The lead before the count-in, then one 6/8 measure (3 quarter beats) at 120 BPM
+        assertThat(state.getAnchorTime()).isEqualTo(NOW.toEpochMilli() + 250 + 1500);
         assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
         assertThat(result.anchorTime()).isEqualTo(NOW.toEpochMilli() + 1500);
         assertThat(result.version()).isEqualTo(3L);

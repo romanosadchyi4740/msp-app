@@ -85,13 +85,13 @@ class PlaybackStatesTest {
     // PLAY
 
     @Test
-    void play_StartsAfterAOneMeasureCountIn() {
+    void play_StartsAfterTheLeadAndAOneMeasureCountIn() {
         PlaybackState state = state(3, 1, 120, 4, 4, PlaybackStatus.PAUSED, 0);
 
         PlaybackStates.apply(state, command(SyncCommandType.PLAY, null), T0);
 
         assertThat(state.getStatus()).isEqualTo(PlaybackStatus.PLAYING);
-        assertThat(state.getAnchorTime()).isEqualTo(T0 + 2000);
+        assertThat(state.getAnchorTime()).isEqualTo(T0 + 250 + 2000);
         assertThat(state.getMeasure()).isEqualTo(3);
         assertThat(state.getBeat()).isEqualTo(1.0);
     }
@@ -104,8 +104,8 @@ class PlaybackStatesTest {
         PlaybackStates.apply(threeFour, command(SyncCommandType.PLAY, null), T0);
         PlaybackStates.apply(sixEight, command(SyncCommandType.PLAY, null), T0);
 
-        assertThat(threeFour.getAnchorTime()).isEqualTo(T0 + 1500);
-        assertThat(sixEight.getAnchorTime()).isEqualTo(T0 + 1500);
+        assertThat(threeFour.getAnchorTime()).isEqualTo(T0 + 250 + 1500);
+        assertThat(sixEight.getAnchorTime()).isEqualTo(T0 + 250 + 1500);
     }
 
     @Test
