@@ -11,12 +11,27 @@ import { startSyncEngine } from '../sync/syncEngine';
 import { startMetronome } from '../sync/metronome';
 import { installSyncDebugHook } from '../sync/syncDebug';
 import SyncDebugOverlay from '../components/rooms/SyncDebugOverlay';
+import AudioPanel from '../components/rooms/AudioPanel';
+import socketClient from '../api/socketClient';
+import useRtcStore from '../store/rtcStore';
+import { setRoomParticipants, startRtcMesh } from '../rtc/rtcMesh';
+import { installRtcDebugHook } from '../rtc/rtcDebug';
 
 /**
- * A room the user is in: who is in it, the invite link for the host, the tab picked for the lesson, and leaving.
- * The active lesson's tab follows the shared position (KAN-42); live presence and the host's lesson controls come
- * with the full room page.
+ * A room the user is in: who is in it and has it open, the invite link for the host, the tab picked for the lesson,
+ * and leaving. The active lesson's tab follows the shared position (KAN-42), and the participants hear each other
+ * (KAN-47); the host's lesson controls come with the full room page.
  */
+/**
+ * What the list says about the audio connection to a participant.
+ */
+function audioLabel(participant, peer) {
+  if (peer?.state === 'connected') return 'audio connected';
+  if (!participant.online) return 'offline';
+  if (peer?.state === 'failed' || peer?.state === 'disconnected') return 'reconnecting audio';
+  return 'connecting audio';
+}
+
 export default function RoomPage() {
   const { id } = useParams();
   // ?debug=1 shows the sync figures and exposes the hook the drift test reads (KAN-44)
@@ -31,6 +46,7 @@ export default function RoomPage() {
   const [loaded, setLoaded] = useState({ id: null, room: null, error: null });
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const audioPeers = useRtcStore((state) => state.peers);
 
   useEffect(() => {
     let current = true;
@@ -66,6 +82,45 @@ export default function RoomPage() {
   }, [roomId]);
 
   useEffect(() => (debug && roomId ? installSyncDebugHook(roomId) : undefined), [debug, roomId]);
+
+  // The audio connections to the other participants. Started before the room is watched below, so this client
+  // listens for calls before the others learn that it has the room open
+  useEffect(() => {
+    if (!roomId || !userId) return undefined;
+    return startRtcMesh(roomId, userId);
+  }, [roomId, userId]);
+
+  useEffect(() => (debug && roomId ? installRtcDebugHook() : undefined), [debug, roomId]);
+
+  // Who is in the room and has it open, live. Subscribing is what makes this user online for the others; every
+  // change, and every (re)connect, reads the room again, so nothing depends on having seen each event
+  useEffect(() => {
+    if (!roomId) return undefined;
+    let current = true;
+    let subscription = null;
+    const refresh = () => fetchRoom(roomId)
+      .then((fresh) => current && setLoaded((before) => (before.id === id ? { id, room: fresh, error: null } : before)))
+      .catch((failure) => {
+        // Not in the room any more, e.g. it was left in another browser tab
+        if (current && failure.response?.status === 404) {
+          setLoaded({ id, room: null, error: 'There is no such room, or you are not in it.' });
+        }
+      });
+    const stopListening = socketClient.onConnect(() => {
+      subscription = socketClient.subscribe(`/topic/rooms/${roomId}/participants`, refresh);
+      refresh();
+    });
+    return () => {
+      current = false;
+      stopListening();
+      subscription?.unsubscribe();
+    };
+  }, [roomId, id, fetchRoom]);
+
+  const participants = room?.participants;
+  useEffect(() => {
+    if (participants) setRoomParticipants(participants);
+  }, [participants]);
 
   const leave = async () => {
     setConfirmLeave(false);
@@ -137,6 +192,8 @@ export default function RoomPage() {
       <LessonCanvas roomId={room.id} />
       {debug && <SyncDebugOverlay />}
 
+      {open && <AudioPanel />}
+
       <section className="space-y-3">
         <h2 className={sectionTitleClass}>Participants</h2>
         <ul className="space-y-2">
@@ -149,6 +206,11 @@ export default function RoomPage() {
                 {participant.displayName || 'Unknown'}
               </Link>
               {participant.userId === userId && <span className="text-xs text-zinc-500 dark:text-zinc-400">you</span>}
+              {participant.userId !== userId && (
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {audioLabel(participant, audioPeers[participant.userId])}
+                </span>
+              )}
               {participant.role === 'HOST' && <span className={badgeClass}>Host</span>}
             </li>
           ))}
