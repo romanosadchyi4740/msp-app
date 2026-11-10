@@ -4,6 +4,7 @@ import {AlertTriangle, ArrowLeft, Loader2, Save, User as UserIcon} from 'lucide-
 import useAuthStore from '../store/authStore';
 import axiosClient from '../api/axiosClient';
 import TerminateIdentityModal from '../components/modals/TerminateIdentityModal';
+import useRtcStore from '../store/rtcStore';
 
 const SettingsPage = () => {
   const { user, updateProfile, loading: isUpdating } = useAuthStore();
@@ -18,6 +19,8 @@ const SettingsPage = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [isTerminateModalOpen, setIsTerminateModalOpen] = useState(false);
+  const relayOnly = useRtcStore((state) => state.relayOnly);
+  const setRelayOnly = useRtcStore((state) => state.setRelayOnly);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -161,6 +164,26 @@ const SettingsPage = () => {
           </button>
         </div>
       </form>
+
+      {/* Room audio (SyncChord, KAN-47): plain wording, as on the room screens */}
+      <section className="pt-16 border-t border-border space-y-6">
+        <h2 className="text-xs font-black uppercase tracking-[0.3em]">Room audio</h2>
+        <label className="flex items-start gap-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={relayOnly}
+            onChange={(event) => setRelayOnly(event.target.checked)}
+            className="mt-1 h-4 w-4 accent-zinc-900 dark:accent-white"
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-bold">Relay only</span>
+            <span className="block text-xs text-zinc-500 dark:text-zinc-400 max-w-md">
+              Send and receive room audio only through the relay server, so the other participants never see your
+              IP address. The route is longer, so the delay may grow. Kept in this browser.
+            </span>
+          </span>
+        </label>
+      </section>
 
       {/* Danger Zone */}
       <section className="pt-16 border-t border-red-900/30 space-y-8">
