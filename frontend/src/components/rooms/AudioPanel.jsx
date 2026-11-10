@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Headphones, Loader2, Mic, MicOff, Volume2 } from 'lucide-react';
 import useRtcStore from '../../store/rtcStore';
 import { disableMicrophone, enableMicrophone, resumeSound } from '../../rtc/rtcMesh';
@@ -6,7 +6,8 @@ import { badgeClass, primaryButtonClass, secondaryButtonClass, sectionTitleClass
 
 /**
  * This participant's side of the room's audio (KAN-47): the microphone switch, the button browsers require before
- * they play the others, and the advice to use headphones. Listening needs no microphone.
+ * they play the others, and the advice to use headphones. Listening needs no microphone. A microphone that does not
+ * start leads to the device check (KAN-49).
  */
 export default function AudioPanel() {
   const micState = useRtcStore((state) => state.micState);
@@ -14,6 +15,8 @@ export default function AudioPanel() {
   const soundBlocked = useRtcStore((state) => state.soundBlocked);
   const relayOnly = useRtcStore((state) => state.relayOnly);
   const micOn = micState === 'on';
+  // The check brings the participant back to this room
+  const { pathname } = useLocation();
 
   return (
     <section className="space-y-3">
@@ -42,7 +45,11 @@ export default function AudioPanel() {
         )}
       </div>
       {micState === 'error' && micError && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">{micError}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          {micError} <Link to={`/device-check?next=${encodeURIComponent(pathname)}`} className="underline">
+            Open the device check
+          </Link>
+        </p>
       )}
       <p className="flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
         <Headphones size={14} className="mt-0.5 shrink-0" />

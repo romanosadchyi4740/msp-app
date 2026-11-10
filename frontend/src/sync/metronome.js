@@ -1,5 +1,6 @@
 import usePlaybackStore, { measureTableOf } from '../store/playbackStore';
 import useMetronomeStore from '../store/metronomeStore';
+import useRtcStore from '../store/rtcStore';
 import { serverNow } from './clockSync';
 import { audioTimeFor, clicksBetween, withoutPlayed } from './metronomeMath';
 
@@ -53,6 +54,9 @@ export function startMetronome() {
   master = context.createGain();
   master.gain.value = useMetronomeStore.getState().volume;
   master.connect(context.destination);
+  // The output chosen on the device check page (KAN-49), where the browser can choose one for Web Audio
+  const { outputDeviceId } = useRtcStore.getState();
+  if (outputDeviceId) context.setSinkId?.(outputDeviceId).catch(() => {});
   context.onstatechange = () => useMetronomeStore.getState().setAudioState(context?.state ?? null);
   useMetronomeStore.getState().setAudioState(context.state);
   plannedUntil = serverNow() - LATE_MS;

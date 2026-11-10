@@ -126,6 +126,11 @@ and `frontend/.env.example` lists them for builds.
   Switching the microphone on only puts a track on the existing connection. Remote descriptions are rewritten by
   `tuneOpusForMusic` (`sdp.js`). The pure parts (`sdp.js`, `meshPlan.js`, `stats.js`) have node tests;
   `e2e/audioMesh.spec.js` runs three browsers, directly and relay-only through the local coturn.
+- **Device check** (KAN-49): `pages/DeviceCheckPage.jsx` at `/device-check` (`?next=<path>` adds a Continue button),
+  linked from the invite page and from the audio panel when the microphone fails. `rtc/deviceCheck.js` holds the
+  pure parts (browser support, hints, the level meter's scale, device lists). The chosen microphone and output are
+  kept in `rtcStore` (`inputDeviceId`, `outputDeviceId`) and used by `rtcMesh.js` (`openMicrophone`, `setSinkId`)
+  and the metronome.
 - **Connection quality** (KAN-48): `rtc/qualityMonitor.js` reads every connection's `getStats()` every 2 s and grades
   it (`rtc/quality.js`: good, fair, poor by round trip, jitter and packet loss since the last reading) for the dot
   next to each participant. Every 10 s it sends the average round trip with `PUT /api/rooms/{id}/quality`;

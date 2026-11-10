@@ -1,6 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import socketClient from '../api/socketClient';
 import useRtcStore from '../store/rtcStore';
+import { MICROPHONE_STOPPED, microphoneProblem } from './deviceCheck';
 import { isInitiator, isPolite, MAX_PEERS, planConnections } from './meshPlan';
 import { sessionIdOf, tuneOpusForMusic } from './sdp';
 import { summarizeStats } from './stats';
@@ -27,6 +28,8 @@ import { summarizeStats } from './stats';
  * - An offer of another session than the one a connection knows means the peer started over (a reloaded page, a
  *   changed setting): the connection is replaced by a new one that answers it.
  *
+ * The microphone and the output are the ones chosen on the device check page (KAN-49), if any.
+ *
  * Session descriptions and candidates hold network addresses, so they are never logged.
  *
  * Limits: only the participant who starts a connection opens it anew, so the other side waits for that. And a user
@@ -48,6 +51,22 @@ const RETRY_DELAY_MS = 1500;
 const CREDENTIAL_MARGIN_MS = 60000;
 
 let mesh = null;
+
+/**
+ * The microphone chosen on the device check page, or the system's default one if none was chosen or the chosen one
+ * is gone (an unplugged headset must not keep the participant silent).
+ */
+export async function openMicrophone(deviceId) {
+  if (deviceId) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(
+        { audio: { ...MICROPHONE.audio, deviceId: { exact: deviceId } } });
+    } catch (error) {
+      if (!['OverconstrainedError', 'NotFoundError'].includes(error?.name)) throw error;
+    }
+  }
+  return navigator.mediaDevices.getUserMedia(MICROPHONE);
+}
 
 /**
  * Starts the mesh for a room as the given user, stopping one that runs for another; returns the function that
@@ -167,6 +186,9 @@ export function startRtcMesh(roomId, myId) {
         // Chrome plays remote audio only from an element in the document
         peer.audio.hidden = true;
         document.body.append(peer.audio);
+        // The output chosen on the device check page, where the browser can choose one
+        const { outputDeviceId } = store();
+        if (outputDeviceId) peer.audio.setSinkId?.(outputDeviceId).catch(() => {});
       }
       peer.audio.srcObject = new MediaStream([track]);
       play(peer);
@@ -334,7 +356,7 @@ export function startRtcMesh(roomId, myId) {
       if (localStream || store().micState === 'starting') return;
       store().setMic('starting');
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(MICROPHONE);
+        const stream = await openMicrophone(store().inputDeviceId);
         if (stopped) {
           stream.getTracks().forEach((track) => track.stop());
           return;
@@ -344,7 +366,7 @@ export function startRtcMesh(roomId, myId) {
         // The microphone was unplugged, or the permission taken back
         track.onended = () => {
           releaseMicrophone();
-          store().setMic('error', 'The microphone stopped working.');
+          store().setMic('error', MICROPHONE_STOPPED.message);
         };
         // A connection closed meanwhile refuses the track; that is no reason to refuse the microphone
         await Promise.all([...peers.values()].map((peer) => peer.sender?.replaceTrack(track).catch(() => {})));
@@ -353,7 +375,7 @@ export function startRtcMesh(roomId, myId) {
       } catch (error) {
         // Never leave a microphone running that the page shows as off
         releaseMicrophone();
-        store().setMic('error', microphoneError(error));
+        store().setMic('error', microphoneProblem(error?.name).message);
       }
     },
     disableMicrophone: () => {
@@ -409,19 +431,4 @@ export function resumeSound() {
  */
 export function getRtcStats() {
   return mesh ? mesh.stats() : Promise.resolve([]);
-}
-
-function microphoneError(error) {
-  switch (error?.name) {
-    case 'NotAllowedError':
-    case 'SecurityError':
-      return 'The browser did not allow the microphone. Allow it for this site and try again.';
-    case 'NotFoundError':
-    case 'OverconstrainedError':
-      return 'No microphone was found.';
-    case 'NotReadableError':
-      return 'The microphone is used by another application.';
-    default:
-      return 'Could not turn the microphone on.';
-  }
 }
