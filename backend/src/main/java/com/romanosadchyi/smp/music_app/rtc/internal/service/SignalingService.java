@@ -36,11 +36,14 @@ public class SignalingService {
 
     /**
      * Relays a signal from {@code senderId} to {@code /user/queue/signal} of its recipient. The sender and the room
-     * come from the session and the destination, replacing whatever the client claimed.
+     * come from the session and the destination, replacing whatever the client claimed. A recipient with no open
+     * session gets nothing and the sender is not told, so clients signal only the participants reported online on
+     * {@code /topic/rooms/{roomId}/participants}.
      *
      * @throws IllegalArgumentException    if the type, recipient or payload is missing, the payload is too long, or
      *                                     the signal is addressed to its sender
-     * @throws SignalPeerNotFoundException if the sender or the recipient is not a participant of the room
+     * @throws SignalPeerNotFoundException if the sender or the recipient is not a participant of the room, or
+     *                                     the room is closed
      */
     public void relay(UUID roomId, UUID senderId, SignalMessage received) {
         if (received == null || received.type() == null) {
@@ -60,10 +63,10 @@ public class SignalingService {
         }
         // The STOMP guard of rooms already lets only participants send here; checked again so the relay does not
         // rely on it
-        if (!roomMembership.isParticipant(roomId, senderId)) {
+        if (!roomMembership.isParticipantOfOpenRoom(roomId, senderId)) {
             throw new SignalPeerNotFoundException("Room not found");
         }
-        if (!roomMembership.isParticipant(roomId, received.toId())) {
+        if (!roomMembership.isParticipantOfOpenRoom(roomId, received.toId())) {
             throw new SignalPeerNotFoundException("The recipient is not in this room");
         }
         SignalMessage signal = new SignalMessage(received.type(), roomId, senderId, received.toId(),

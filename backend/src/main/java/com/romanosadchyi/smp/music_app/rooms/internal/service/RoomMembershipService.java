@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
 import com.romanosadchyi.smp.music_app.rooms.external.RoomMembership;
+import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomStatus;
 import com.romanosadchyi.smp.music_app.rooms.internal.repository.RoomParticipantRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ class RoomMembershipService implements RoomMembership {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean isParticipant(UUID roomId, UUID userId) {
-        return participantRepository.findByRoomIdAndUserId(roomId, userId).isPresent();
+    public boolean isParticipantOfOpenRoom(UUID roomId, UUID userId) {
+        return participantRepository.existsByRoomIdAndUserIdAndRoomStatus(roomId, userId, RoomStatus.OPEN);
     }
 }

@@ -1,6 +1,6 @@
 package com.romanosadchyi.smp.music_app.rooms.internal.service;
 
-import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomParticipant;
+import com.romanosadchyi.smp.music_app.rooms.internal.entity.RoomStatus;
 import com.romanosadchyi.smp.music_app.rooms.internal.repository.RoomParticipantRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,7 +8,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,17 +26,18 @@ class RoomMembershipServiceTest {
     UUID userId = UUID.randomUUID();
 
     @Test
-    void isParticipant_UserInTheRoom_IsTrue() {
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId))
-                .thenReturn(Optional.of(new RoomParticipant()));
+    void isParticipantOfOpenRoom_UserInAnOpenRoom_IsTrue() {
+        when(participantRepository.existsByRoomIdAndUserIdAndRoomStatus(roomId, userId, RoomStatus.OPEN))
+                .thenReturn(true);
 
-        assertThat(roomMembership.isParticipant(roomId, userId)).isTrue();
+        assertThat(roomMembership.isParticipantOfOpenRoom(roomId, userId)).isTrue();
     }
 
     @Test
-    void isParticipant_UserNotInTheRoomOrNoSuchRoom_IsFalse() {
-        when(participantRepository.findByRoomIdAndUserId(roomId, userId)).thenReturn(Optional.empty());
+    void isParticipantOfOpenRoom_NotInTheRoomOrRoomClosedOrMissing_IsFalse() {
+        when(participantRepository.existsByRoomIdAndUserIdAndRoomStatus(roomId, userId, RoomStatus.OPEN))
+                .thenReturn(false);
 
-        assertThat(roomMembership.isParticipant(roomId, userId)).isFalse();
+        assertThat(roomMembership.isParticipantOfOpenRoom(roomId, userId)).isFalse();
     }
 }

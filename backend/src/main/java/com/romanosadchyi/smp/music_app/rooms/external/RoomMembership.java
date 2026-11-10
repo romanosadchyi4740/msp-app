@@ -9,7 +9,8 @@ import java.util.UUID;
 public interface RoomMembership {
 
     /**
-     * Whether the user is a current participant of the room; false if there is no such room.
+     * Whether the user is a current participant of the room and the room is open; false if there is no such room. A
+     * closed room is over, so nothing is relayed in it any more.
      */
-    boolean isParticipant(UUID roomId, UUID userId);
+    boolean isParticipantOfOpenRoom(UUID roomId, UUID userId);
 }

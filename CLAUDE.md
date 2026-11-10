@@ -112,7 +112,7 @@ and `frontend/.env.example` lists them for builds.
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
 - **WebRTC signaling** (module `rtc`): `SignalController` `@MessageMapping("/rooms/{roomId}/signal")` →
   `SignalingService` sets `fromId` and `roomId` from the session and the destination, checks both peers with
-  `rooms.external.RoomMembership`, and relays to the recipient's `/user/queue/signal`. Payloads are opaque strings
+  `rooms.external.RoomMembership` (participants of an open room), and relays to the recipient's `/user/queue/signal`. Payloads are opaque strings
   (at most 16 000 characters), never stored or logged.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).

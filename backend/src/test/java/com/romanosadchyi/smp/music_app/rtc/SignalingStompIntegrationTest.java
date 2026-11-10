@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,6 +23,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * The WebRTC signaling relay over a real STOMP connection (KAN-45): a signal reaches only the participant it names,
@@ -124,6 +127,27 @@ class SignalingStompIntegrationTest {
                 student.id().toString(), "payload", "sdp-offer"));
 
         assertThat(outsiderClient.errors().poll(5, TimeUnit.SECONDS)).isNotNull();
+        assertThat(studentSignals.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
+    }
+
+    @Test
+    void signal_InAClosedRoom_IsRejectedAndNotDelivered() throws Exception {
+        Registered host = fixtures.register();
+        Registered student = fixtures.register();
+        UUID roomId = fixtures.createRoomWith(host, student);
+        Client hostClient = connect(host.bearer());
+        Client studentClient = connect(student.bearer());
+        BlockingQueue<Map<String, Object>> hostErrors = StompTestClient.subscribe(hostClient.session(),
+                "/user/queue/errors");
+        BlockingQueue<Map<String, Object>> studentSignals = signals(studentClient);
+        Thread.sleep(SUBSCRIBE_SETTLE_MS);
+        mockMvc.perform(post("/api/rooms/" + roomId + "/close").header(HttpHeaders.AUTHORIZATION, host.bearer()))
+                .andExpect(status().isOk());
+
+        hostClient.session().send(signalDestination(roomId), Map.of("type", "OFFER", "toId", student.id().toString(),
+                "payload", "sdp-offer"));
+
+        assertThat(StompTestClient.poll(hostErrors)).containsEntry("code", "404 NOT_FOUND");
         assertThat(studentSignals.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
     }
 

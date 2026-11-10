@@ -58,8 +58,8 @@ class SignalingServiceTest {
 
     @Test
     void relay_RecipientNotInTheRoom_IsRejected() {
-        when(roomMembership.isParticipant(roomId, senderId)).thenReturn(true);
-        when(roomMembership.isParticipant(roomId, recipientId)).thenReturn(false);
+        when(roomMembership.isParticipantOfOpenRoom(roomId, senderId)).thenReturn(true);
+        when(roomMembership.isParticipantOfOpenRoom(roomId, recipientId)).thenReturn(false);
 
         assertThatThrownBy(() -> signalingService.relay(roomId, senderId,
                 signal(SignalType.ICE_CANDIDATE, recipientId, "candidate")))
@@ -70,7 +70,7 @@ class SignalingServiceTest {
 
     @Test
     void relay_SenderNotInTheRoom_IsRejected() {
-        when(roomMembership.isParticipant(roomId, senderId)).thenReturn(false);
+        when(roomMembership.isParticipantOfOpenRoom(roomId, senderId)).thenReturn(false);
 
         assertThatThrownBy(() -> signalingService.relay(roomId, senderId,
                 signal(SignalType.OFFER, recipientId, "sdp")))
@@ -125,8 +125,8 @@ class SignalingServiceTest {
     }
 
     private void bothInTheRoom() {
-        when(roomMembership.isParticipant(roomId, senderId)).thenReturn(true);
-        when(roomMembership.isParticipant(roomId, recipientId)).thenReturn(true);
+        when(roomMembership.isParticipantOfOpenRoom(roomId, senderId)).thenReturn(true);
+        when(roomMembership.isParticipantOfOpenRoom(roomId, recipientId)).thenReturn(true);
     }
 
     private static SignalMessage signal(SignalType type, UUID toId, String payload) {
