@@ -19,6 +19,13 @@ jwt:
 encryption:
   secret-key: ${ENCRYPTION_SECRET}
 
+turn:
+  secret: ${TURN_SECRET}
+  # Comma-separated, e.g. turn:host:3478?transport=udp,turn:host:3478?transport=tcp,turns:host:443?transport=tcp
+  urls: "${TURN_URLS}"
+  # Comma-separated; may be empty
+  stun-urls: "${STUN_URLS:}"
+
 google:
   client:
     id: ${GOOGLE_CLIENT_ID}

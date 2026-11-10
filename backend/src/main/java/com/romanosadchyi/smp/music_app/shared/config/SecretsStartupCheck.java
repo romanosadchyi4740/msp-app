@@ -27,6 +27,7 @@ public class SecretsStartupCheck implements EnvironmentPostProcessor {
                     "7d2f1c9a4e8b3f6a0c5d2e9b8a7f4c1e3b6d9a2f5c8e1b4d7a0f3c6e9b2d5a8f"),
             "encryption.secret-key", Set.of("12345678901234567890123456789012", "test-encryption-key-32-chars-ok!"),
             "minio.secret-key", Set.of("minio_password", "test"),
+            "turn.secret", Set.of("local_turn_secret", "test-turn-secret"),
             "spring.datasource.password", Set.of("postgres")));
 
     @Override

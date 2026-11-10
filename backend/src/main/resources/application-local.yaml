@@ -20,6 +20,12 @@ jwt:
 encryption:
   secret-key: ${ENCRYPTION_SECRET:12345678901234567890123456789012}
 
+# coturn from docker-compose (profile turn or full); the secret is its static-auth-secret
+turn:
+  secret: ${TURN_SECRET:local_turn_secret}
+  urls: "${TURN_URLS:turn:localhost:3478?transport=udp,turn:localhost:3478?transport=tcp}"
+  stun-urls: "${STUN_URLS:stun:localhost:3478}"
+
 google:
   client:
     id: ${GOOGLE_CLIENT_ID:125635909882-acg0l3mbe76auvijfdru8oc1dbdbetjq.apps.googleusercontent.com}
