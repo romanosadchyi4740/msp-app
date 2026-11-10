@@ -98,6 +98,27 @@ export function microphoneProblem(errorName) {
   }
 }
 
+/** What to tell the user when a microphone that worked ends: it was unplugged, or the permission was taken back. */
+export const MICROPHONE_STOPPED = {
+  message: 'The microphone stopped working.',
+  hint: 'Check that it is still plugged in and allowed for this site, and check again.',
+};
+
+/**
+ * Where the device check may go on to: `next` as a path inside this app (`origin`, e.g. window.location.origin),
+ * or null. The value comes from a link, so it is parsed the way the browser will parse it instead of being matched
+ * against patterns: `//host`, a backslash, or a tab or line break inside the slashes all lead to another site.
+ */
+export function safeNextPath(next, origin) {
+  if (typeof next !== 'string' || !next.startsWith('/')) return null;
+  try {
+    const url = new URL(next, origin);
+    return url.origin === origin ? url.pathname + url.search + url.hash : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The quietest level the meter shows; anything below is silence. */
 const FLOOR_DB = -60;
 

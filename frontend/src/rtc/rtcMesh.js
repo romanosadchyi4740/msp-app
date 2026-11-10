@@ -1,7 +1,7 @@
 import axiosClient from '../api/axiosClient';
 import socketClient from '../api/socketClient';
 import useRtcStore from '../store/rtcStore';
-import { microphoneProblem } from './deviceCheck';
+import { MICROPHONE_STOPPED, microphoneProblem } from './deviceCheck';
 import { isInitiator, isPolite, MAX_PEERS, planConnections } from './meshPlan';
 import { sessionIdOf, tuneOpusForMusic } from './sdp';
 import { summarizeStats } from './stats';
@@ -366,7 +366,7 @@ export function startRtcMesh(roomId, myId) {
         // The microphone was unplugged, or the permission taken back
         track.onended = () => {
           releaseMicrophone();
-          store().setMic('error', 'The microphone stopped working.');
+          store().setMic('error', MICROPHONE_STOPPED.message);
         };
         // A connection closed meanwhile refuses the track; that is no reason to refuse the microphone
         await Promise.all([...peers.values()].map((peer) => peer.sender?.replaceTrack(track).catch(() => {})));

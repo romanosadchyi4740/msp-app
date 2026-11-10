@@ -150,6 +150,18 @@ test('a refused microphone gets a hint, and "Check again" passes once it is allo
   await expect(page.locator('[data-ready="true"]')).toBeVisible();
 });
 
+test('a link that would lead to another site gets no Continue button', async ({ browser }) => {
+  const page = await openAs(browser, users[1]);
+  // A tab between the slashes is dropped by browsers, which would make this //evil.example
+  for (const next of ['/%09/evil.example/x', '//evil.example/x', 'https://evil.example/x']) {
+    await page.goto(`/device-check?next=${next}`);
+    await expect(page.getByRole('button', { name: 'Check again' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Continue/ })).toHaveCount(0);
+  }
+  await page.goto('/device-check?next=/rooms');
+  await expect(page.getByRole('link', { name: /Continue/ })).toHaveAttribute('href', '/rooms');
+});
+
 async function register(displayName) {
   const email = `e2e-check-${randomUUID()}@example.test`;
   const response = await api.post('/auth/register', {

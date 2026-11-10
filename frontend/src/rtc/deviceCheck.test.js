@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   availableDevice, browserSupport, groupDevices, HEARD_LEVEL, isCompatible, levelOf, microphoneProblem,
-  requiredChecks,
+  requiredChecks, safeNextPath,
 } from './deviceCheck.js';
 
 function modernBrowser() {
@@ -93,6 +93,47 @@ describe('microphoneProblem', () => {
       const problem = microphoneProblem(name);
       assert.ok(problem.message && problem.hint);
     }
+  });
+});
+
+describe('safeNextPath', () => {
+  const ORIGIN = 'https://app.example';
+
+  test('keeps a path inside the app, with its query and fragment', () => {
+    assert.equal(safeNextPath('/join/Abc123', ORIGIN), '/join/Abc123');
+    assert.equal(safeNextPath('/rooms/1?debug=1#audio', ORIGIN), '/rooms/1?debug=1#audio');
+  });
+
+  test('refuses everything the browser would take to another site', () => {
+    const elsewhere = [
+      '//evil.example/x',
+      String.raw`/\evil.example/x`,
+      String.raw`\\evil.example/x`,
+      // Browsers drop tabs and line breaks from a URL, which turns these into //evil.example
+      '/\t/evil.example/x',
+      '/\n/evil.example/x',
+      '/\r\n/evil.example/x',
+      'https://evil.example/x',
+      'javascript:alert(1)',
+      'evil.example',
+    ];
+    for (const next of elsewhere) {
+      assert.equal(safeNextPath(next, ORIGIN), null, JSON.stringify(next));
+    }
+  });
+
+  test('never returns anything that leaves the origin', () => {
+    for (const next of ['/a/../../b', '/./x', '/%2F%2Fevil.example', '/@evil.example', '/?next=//evil.example']) {
+      const path = safeNextPath(next, ORIGIN);
+      assert.equal(new URL(path, ORIGIN).origin, ORIGIN, next);
+      assert.ok(path.startsWith('/') && !path.startsWith('//'), next);
+    }
+  });
+
+  test('is null without a value', () => {
+    assert.equal(safeNextPath(null, ORIGIN), null);
+    assert.equal(safeNextPath('', ORIGIN), null);
+    assert.equal(safeNextPath(undefined, ORIGIN), null);
   });
 });
 

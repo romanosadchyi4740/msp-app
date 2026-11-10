@@ -4,20 +4,13 @@ import { AlertTriangle, Check, Headphones, Loader2, Mic, RefreshCw, Volume2, X }
 import useRtcStore from '../store/rtcStore';
 import { openMicrophone } from '../rtc/rtcMesh';
 import {
-  availableDevice, browserSupport, groupDevices, HEARD_LEVEL, isCompatible, levelOf, microphoneProblem,
-  requiredChecks,
+  availableDevice, browserSupport, groupDevices, HEARD_LEVEL, isCompatible, levelOf, MICROPHONE_STOPPED,
+  microphoneProblem, requiredChecks, safeNextPath,
 } from '../rtc/deviceCheck';
 import { primaryButtonClass, secondaryButtonClass, sectionTitleClass } from '../components/rooms/roomStyles';
 
 const selectClass = 'w-full border border-zinc-300 bg-transparent p-3 text-sm dark:border-zinc-700 '
   + 'dark:bg-zinc-950';
-
-/**
- * Only a path inside this app, so a crafted link cannot send the user elsewhere.
- */
-function safeNext(next) {
-  return next && next.startsWith('/') && !next.startsWith('//') && !next.includes('\\') ? next : null;
-}
 
 /**
  * The device check before a room (KAN-49, UR-2, FR-6): whether this browser can take part in a room's audio, the
@@ -27,7 +20,7 @@ function safeNext(next) {
  */
 export default function DeviceCheckPage() {
   const [searchParams] = useSearchParams();
-  const next = safeNext(searchParams.get('next'));
+  const next = safeNextPath(searchParams.get('next'), window.location.origin);
   const inputDeviceId = useRtcStore((state) => state.inputDeviceId);
   const outputDeviceId = useRtcStore((state) => state.outputDeviceId);
   const setInputDevice = useRtcStore((state) => state.setInputDevice);
@@ -38,41 +31,58 @@ export default function DeviceCheckPage() {
   const [microphone, setMicrophone] = useState({ status: 'idle', problem: null });
   const [devices, setDevices] = useState({ inputs: [], outputs: [] });
   const [heard, setHeard] = useState(false);
-  const [tonePlayed, setTonePlayed] = useState(false);
+  // 'played' after the test sound, 'failed' if the browser could not play it
+  const [tone, setTone] = useState(null);
 
   const meter = useRef(null);
   // What has to be released: the microphone, its audio graph and the meter's animation frame
   const session = useRef({ stream: null, context: null, frame: null });
+  // Counts the releases: a microphone that arrives after the page was left, or after another start, is not kept
+  const generation = useRef(0);
 
   const release = useCallback(() => {
+    generation.current += 1;
     const { stream, context, frame } = session.current;
     cancelAnimationFrame(frame);
-    stream?.getTracks().forEach((track) => track.stop());
+    stream?.getTracks().forEach((track) => {
+      track.onended = null;
+      track.stop();
+    });
     context?.close().catch(() => {});
     session.current = { stream: null, context: null, frame: null };
   }, []);
 
+  // A saved device that is not in the list (unplugged, or not named yet before the microphone is allowed) stays
+  // saved: the selects show the system's default for it, and the room falls back to the default by itself
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     const found = groupDevices(await navigator.mediaDevices.enumerateDevices());
     setDevices(found);
-    // A saved device that is gone would leave the room silent
-    const { inputDeviceId: savedInput, outputDeviceId: savedOutput } = useRtcStore.getState();
-    if (savedInput !== availableDevice(savedInput, found.inputs)) setInputDevice('');
-    if (savedOutput !== availableDevice(savedOutput, found.outputs)) setOutputDevice('');
-  }, [setInputDevice, setOutputDevice]);
+  }, []);
 
   const startMicrophone = useCallback(async (deviceId) => {
     release();
+    const started = generation.current;
     setHeard(false);
     setMicrophone({ status: 'asking', problem: null });
     try {
       const stream = await openMicrophone(deviceId);
+      if (generation.current !== started) {
+        // The page was left, or the check started again, while the browser was asking
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const context = new AudioContextClass();
+      // Created after the permission prompt, so outside the click: some browsers start it suspended
+      context.resume().catch(() => {});
       const analyser = context.createAnalyser();
       analyser.fftSize = 1024;
       context.createMediaStreamSource(stream).connect(analyser);
+      // Through a silent output, since older Safari does not run nodes that lead nowhere
+      const silent = context.createGain();
+      silent.gain.value = 0;
+      analyser.connect(silent).connect(context.destination);
       const samples = new Float32Array(analyser.fftSize);
       const draw = () => {
         session.current.frame = requestAnimationFrame(draw);
@@ -88,15 +98,17 @@ export default function DeviceCheckPage() {
       // The microphone was unplugged, or the permission taken back
       stream.getAudioTracks()[0].onended = () => {
         release();
-        setMicrophone({ status: 'error', problem: microphoneProblem('NotFoundError') });
+        setMicrophone({ status: 'error', problem: MICROPHONE_STOPPED });
       };
       setMicrophone({ status: 'on', problem: null });
-      // Browsers name the devices only once the microphone is allowed
-      await refreshDevices();
     } catch (error) {
+      if (generation.current !== started) return;
       release();
       setMicrophone({ status: 'error', problem: microphoneProblem(error?.name) });
+      return;
     }
+    // Browsers name the devices only once the microphone is allowed; a failure here leaves the microphone on
+    await refreshDevices().catch(() => {});
   }, [release, refreshDevices]);
 
   // A returning user who already allowed the microphone is not asked to click again; nobody gets a permission
@@ -129,7 +141,7 @@ export default function DeviceCheckPage() {
   const checkAgain = () => {
     const current = browserSupport(window);
     setSupport(current);
-    setTonePlayed(false);
+    setTone(null);
     if (isCompatible(current)) startMicrophone(useRtcStore.getState().inputDeviceId);
   };
 
@@ -143,7 +155,8 @@ export default function DeviceCheckPage() {
     const context = new AudioContextClass();
     try {
       const { outputDeviceId: output } = useRtcStore.getState();
-      if (output) await context.setSinkId?.(output);
+      // A chosen output that is gone, or that the browser cannot use for this, plays on the default one
+      if (output) await context.setSinkId?.(output).catch(() => {});
       await context.resume();
       // Two short tones, an octave apart, on the audio clock
       [440, 880].forEach((frequency, index) => {
@@ -158,7 +171,9 @@ export default function DeviceCheckPage() {
         oscillator.start(start);
         oscillator.stop(start + 0.3);
       });
-      setTonePlayed(true);
+      setTone('played');
+    } catch {
+      setTone('failed');
     } finally {
       setTimeout(() => context.close().catch(() => {}), 1200);
     }
@@ -282,7 +297,7 @@ export default function DeviceCheckPage() {
             </div>
           ) : (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {support.outputSelection
+              {support.outputSelection && !micOn
                 ? 'Allow the microphone to choose where the sound plays.'
                 : 'This browser plays on the output chosen in your system\'s sound settings.'}
             </p>
@@ -290,7 +305,12 @@ export default function DeviceCheckPage() {
           <button type="button" onClick={playTestSound} className={secondaryButtonClass}>
             <Volume2 size={14} /> Play test sound
           </button>
-          {tonePlayed && (
+          {tone === 'failed' && (
+            <p role="alert" className="text-xs text-red-600 dark:text-red-500">
+              The browser could not play the test sound. Check the output in your system's sound settings.
+            </p>
+          )}
+          {tone === 'played' && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               You should have heard two short tones. If not, check the volume and the output above.
             </p>
@@ -304,7 +324,12 @@ export default function DeviceCheckPage() {
       )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-8 dark:border-zinc-800">
-        <button type="button" onClick={checkAgain} className={secondaryButtonClass}>
+        <button
+          type="button"
+          onClick={checkAgain}
+          disabled={microphone.status === 'asking'}
+          className={secondaryButtonClass}
+        >
           <RefreshCw size={14} /> Check again
         </button>
         {next && (

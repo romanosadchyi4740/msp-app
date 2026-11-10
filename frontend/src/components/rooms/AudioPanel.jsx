@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Headphones, Loader2, Mic, MicOff, Volume2 } from 'lucide-react';
 import useRtcStore from '../../store/rtcStore';
 import { disableMicrophone, enableMicrophone, resumeSound } from '../../rtc/rtcMesh';
@@ -15,6 +15,8 @@ export default function AudioPanel() {
   const soundBlocked = useRtcStore((state) => state.soundBlocked);
   const relayOnly = useRtcStore((state) => state.relayOnly);
   const micOn = micState === 'on';
+  // The check brings the participant back to this room
+  const { pathname } = useLocation();
 
   return (
     <section className="space-y-3">
@@ -44,7 +46,9 @@ export default function AudioPanel() {
       </div>
       {micState === 'error' && micError && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {micError} <Link to="/device-check" className="underline">Open the device check</Link>
+          {micError} <Link to={`/device-check?next=${encodeURIComponent(pathname)}`} className="underline">
+            Open the device check
+          </Link>
         </p>
       )}
       <p className="flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
