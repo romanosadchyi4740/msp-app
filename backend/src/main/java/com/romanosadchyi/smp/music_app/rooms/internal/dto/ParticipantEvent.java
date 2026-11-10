@@ -7,6 +7,11 @@ import java.util.UUID;
  *
  * @param userId the participant it is about; for {@link ParticipantEventType#HOST_CHANGED} the new host
  * @param hostId the room's host after the change
+ * @param rttMs  for {@link ParticipantEventType#RTT} the participant's new round-trip time; null otherwise
  */
-public record ParticipantEvent(ParticipantEventType type, UUID userId, UUID hostId) {
+public record ParticipantEvent(ParticipantEventType type, UUID userId, UUID hostId, Integer rttMs) {
+
+    public ParticipantEvent(ParticipantEventType type, UUID userId, UUID hostId) {
+        this(type, userId, hostId, null);
+    }
 }

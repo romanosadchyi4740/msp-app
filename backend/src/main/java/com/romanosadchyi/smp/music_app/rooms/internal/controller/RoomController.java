@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.rooms.internal.controller;
 
 import com.romanosadchyi.smp.music_app.rooms.internal.api.RoomsApi;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.HostTransferRequest;
+import com.romanosadchyi.smp.music_app.rooms.internal.api.model.QualityReport;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomCreateRequest;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomListItem;
 import com.romanosadchyi.smp.music_app.rooms.internal.api.model.RoomPreview;
@@ -10,6 +11,7 @@ import com.romanosadchyi.smp.music_app.rooms.internal.service.HostTransferServic
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomClosingService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomInviteService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomLeavingService;
+import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomQualityService;
 import com.romanosadchyi.smp.music_app.rooms.internal.service.RoomService;
 import com.romanosadchyi.smp.music_app.shared.security.CurrentUser;
 import lombok.AccessLevel;
@@ -38,6 +40,7 @@ public class RoomController implements RoomsApi {
     RoomClosingService roomClosingService;
     HostTransferService hostTransferService;
     RoomLeavingService roomLeavingService;
+    RoomQualityService roomQualityService;
 
     @Override
     public ResponseEntity<RoomResponse> createRoom(RoomCreateRequest request) {
@@ -99,6 +102,13 @@ public class RoomController implements RoomsApi {
         UUID userId = CurrentUser.get().id();
         log.info("User {} leaving room {}", userId, id);
         roomLeavingService.leave(userId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> reportQuality(UUID id, QualityReport report) {
+        // Not logged: every participant reports every 10 seconds
+        roomQualityService.report(CurrentUser.get().id(), id, report);
         return ResponseEntity.noContent().build();
     }
 }

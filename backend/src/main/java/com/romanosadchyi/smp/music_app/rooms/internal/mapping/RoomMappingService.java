@@ -99,6 +99,7 @@ public class RoomMappingService {
                 .avatarUrl(user != null ? user.avatarUrl() : null)
                 .role(toRole(participant.getRole()))
                 .joinedAt(participant.getJoinedAt())
+                .rttMs(participant.getRttMs())
                 .online(participant.isOnline());
     }
 
