@@ -24,6 +24,7 @@ import RoomsPage from './pages/RoomsPage';
 import RoomNewPage from './pages/RoomNewPage';
 import RoomPage from './pages/RoomPage';
 import JoinRoomPage from './pages/JoinRoomPage';
+import DeviceCheckPage from './pages/DeviceCheckPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -91,6 +92,7 @@ function App() {
           <Route path="/rooms/new" element={<RoomNewPage />} />
           <Route path="/rooms/:id" element={<RoomPage />} />
           <Route path="/join/:code" element={<JoinRoomPage />} />
+          <Route path="/device-check" element={<DeviceCheckPage />} />
           {import.meta.env.DEV && (
             <Route
               path="/dev/tab-canvas"

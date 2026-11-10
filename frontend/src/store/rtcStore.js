@@ -6,6 +6,8 @@ import { persist } from 'zustand/middleware';
  *
  * - `relayOnly`: this participant's setting, kept in this browser. Audio then goes only through the TURN relay, so
  *   the other participants never learn this participant's IP address (R15), at the price of a longer route.
+ * - `inputDeviceId`, `outputDeviceId`: the microphone and the output chosen on the device check page (KAN-49), kept
+ *   in this browser; '' is the system's default. The output is used only where the browser can choose one.
  * - `micState`: 'off', 'starting' (the browser is asking for permission), 'on' or 'error'; `micError` says why.
  * - `soundBlocked`: the browser refused to play the others' audio until the user clicks something.
  * - `peers`: per other participant's user id, `{ state }` with the RTCPeerConnection's connection state ('new',
@@ -17,12 +19,16 @@ const useRtcStore = create(
   persist(
     (set, get) => ({
       relayOnly: false,
+      inputDeviceId: '',
+      outputDeviceId: '',
       micState: 'off',
       micError: null,
       soundBlocked: false,
       peers: {},
 
       setRelayOnly: (relayOnly) => set({ relayOnly: Boolean(relayOnly) }),
+      setInputDevice: (inputDeviceId) => set({ inputDeviceId: inputDeviceId || '' }),
+      setOutputDevice: (outputDeviceId) => set({ outputDeviceId: outputDeviceId || '' }),
       setMic: (micState, micError = null) => set({ micState, micError }),
       setSoundBlocked: (soundBlocked) => set({ soundBlocked }),
       setPeer: (userId, peer) => set({ peers: { ...get().peers, [userId]: { ...get().peers[userId], ...peer } } }),
@@ -34,7 +40,7 @@ const useRtcStore = create(
     }),
     {
       name: 'audio-settings',
-      partialize: (state) => ({ relayOnly: state.relayOnly }),
+      partialize: ({ relayOnly, inputDeviceId, outputDeviceId }) => ({ relayOnly, inputDeviceId, outputDeviceId }),
     },
   ),
 );

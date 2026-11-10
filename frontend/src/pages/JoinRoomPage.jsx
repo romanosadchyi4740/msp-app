@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Users } from 'lucide-react';
 import useRoomStore from '../store/roomStore';
-import { errorMessage, primaryButtonClass } from '../components/rooms/roomStyles';
+import { errorMessage, primaryButtonClass, secondaryButtonClass } from '../components/rooms/roomStyles';
+import { browserSupport, isCompatible } from '../rtc/deviceCheck';
 
 /**
  * Opened from an invite link (`/join/:code`). A signed-out user is sent to sign in or register first and comes back
- * here; then the room is shown before joining it.
+ * here; then the room is shown before joining it, with the way to the device check (KAN-49) and a warning if this
+ * browser cannot take part in the room's audio.
  */
 export default function JoinRoomPage() {
   const { code } = useParams();
@@ -49,6 +51,8 @@ export default function JoinRoomPage() {
   };
 
   const closed = preview?.status === 'CLOSED';
+  const deviceCheck = `/device-check?next=${encodeURIComponent(`/join/${code}`)}`;
+  const compatible = isCompatible(browserSupport(window));
   const blocked = closed ? 'The room is closed.' : preview?.full ? 'The room is full.' : null;
 
   return (
@@ -82,6 +86,18 @@ export default function JoinRoomPage() {
           >
             {joining ? <Loader2 size={16} className="animate-spin" /> : 'Join room'}
           </button>
+          {!closed && (
+            <>
+              {!compatible && (
+                <p role="alert" className="text-sm font-bold text-red-600 dark:text-red-500">
+                  This browser cannot take part in the room&apos;s audio. The device check says what to do.
+                </p>
+              )}
+              <Link to={deviceCheck} className={`${secondaryButtonClass} w-full`}>
+                Check microphone and sound first
+              </Link>
+            </>
+          )}
           {preview.full && !closed && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               If you are already in this room, joining opens it.
