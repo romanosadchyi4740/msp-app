@@ -18,11 +18,6 @@ import { setRoomParticipants, startRtcMesh } from '../rtc/rtcMesh';
 import { installRtcDebugHook } from '../rtc/rtcDebug';
 
 /**
- * A room the user is in: who is in it and has it open, the invite link for the host, the tab picked for the lesson,
- * and leaving. The active lesson's tab follows the shared position (KAN-42), and the participants hear each other
- * (KAN-47); the host's lesson controls come with the full room page.
- */
-/**
  * What the list says about the audio connection to a participant.
  */
 function audioLabel(participant, peer) {
@@ -32,6 +27,11 @@ function audioLabel(participant, peer) {
   return 'connecting audio';
 }
 
+/**
+ * A room the user is in: who is in it and has it open, the invite link for the host, the tab picked for the lesson,
+ * and leaving. The active lesson's tab follows the shared position (KAN-42), and the participants hear each other
+ * (KAN-47); the host's lesson controls come with the full room page.
+ */
 export default function RoomPage() {
   const { id } = useParams();
   // ?debug=1 shows the sync figures and exposes the hook the drift test reads (KAN-44)
@@ -98,14 +98,22 @@ export default function RoomPage() {
     if (!roomId) return undefined;
     let current = true;
     let subscription = null;
-    const refresh = () => fetchRoom(roomId)
-      .then((fresh) => current && setLoaded((before) => (before.id === id ? { id, room: fresh, error: null } : before)))
-      .catch((failure) => {
-        // Not in the room any more, e.g. it was left in another browser tab
-        if (current && failure.response?.status === 404) {
-          setLoaded({ id, room: null, error: 'There is no such room, or you are not in it.' });
-        }
-      });
+    let requests = 0;
+    const refresh = () => {
+      // Events can come faster than answers; only the answer to the latest request counts
+      requests += 1;
+      const request = requests;
+      const latest = () => current && request === requests;
+      return fetchRoom(roomId)
+        .then((fresh) => latest()
+          && setLoaded((before) => (before.id === id ? { id, room: fresh, error: null } : before)))
+        .catch((failure) => {
+          // Not in the room any more, e.g. it was left in another browser tab
+          if (latest() && failure.response?.status === 404) {
+            setLoaded({ id, room: null, error: 'There is no such room, or you are not in it.' });
+          }
+        });
+    };
     const stopListening = socketClient.onConnect(() => {
       subscription = socketClient.subscribe(`/topic/rooms/${roomId}/participants`, refresh);
       refresh();

@@ -29,6 +29,9 @@ import { summarizeStats } from './stats';
  *
  * Session descriptions and candidates hold network addresses, so they are never logged.
  *
+ * Limits: only the participant who starts a connection opens it anew, so the other side waits for that. And a user
+ * with the same room open in two browser tabs gets every signal in both, which breaks their audio: one tab per room.
+ *
  * One room at a time: the room page calls startRtcMesh and the returned stop function when it leaves, and tells the
  * mesh who is in the room with setRoomParticipants.
  */
@@ -220,7 +223,9 @@ export function startRtcMesh(roomId, myId) {
     const { open, close } = planConnections(myId, participants, connections);
     close.forEach(closePeer);
     open.forEach((peerId) => call(peerId).catch((error) => {
+      // E.g. the ICE servers could not be fetched; nothing else would try again in a quiet room
       console.warn(`Could not call ${peerId}: ${error.name}`);
+      setTimeout(reconcile, RETRY_DELAY_MS);
     }));
   }
 
@@ -341,10 +346,13 @@ export function startRtcMesh(roomId, myId) {
           releaseMicrophone();
           store().setMic('error', 'The microphone stopped working.');
         };
-        await Promise.all([...peers.values()].map((peer) => peer.sender?.replaceTrack(track)));
+        // A connection closed meanwhile refuses the track; that is no reason to refuse the microphone
+        await Promise.all([...peers.values()].map((peer) => peer.sender?.replaceTrack(track).catch(() => {})));
         store().setMic('on');
         current.resumeSound();
       } catch (error) {
+        // Never leave a microphone running that the page shows as off
+        releaseMicrophone();
         store().setMic('error', microphoneError(error));
       }
     },
