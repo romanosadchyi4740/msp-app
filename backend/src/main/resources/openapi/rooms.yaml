@@ -8,8 +8,9 @@ info:
     so schemas carry no validation constraints.
 
     Presence and role changes go to `/topic/rooms/{id}/participants` (KAN-36): `JOINED`, `LEFT`, `ONLINE`, `OFFLINE`
-    and `HOST_CHANGED`. A host who stays offline for more than 60 seconds hands the role to the participant who
-    joined earliest among those online, and the lesson's playback is paused.
+    and `HOST_CHANGED`, and reported connection quality as `RTT` (KAN-48). A host who stays offline for more than
+    60 seconds hands the role to the participant who joined earliest among those online, and the lesson's playback
+    is paused.
 
     A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
     that response comes from Spring Security and has no ErrorResponse body.
@@ -210,6 +211,29 @@ paths:
       responses:
         '204':
           description: Left the room
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/quality:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    put:
+      tags: [Rooms]
+      operationId: reportQuality
+      summary: Report the current user's connection quality to the other participants (KAN-48)
+      description: |
+        Browsers send the average round-trip time of their audio connections about every 10 seconds. It is stored
+        with the participant, and a change goes to `/topic/rooms/{id}/participants` as an `RTT` event with `rttMs`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QualityReport'
+      responses:
+        '204':
+          description: Stored
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
   /api/rooms/{id}/sessions:
@@ -427,6 +451,17 @@ components:
           description: |
             Whether the participant has the room open, i.e. is subscribed to `/topic/rooms/{id}/participants`
             (KAN-36).
+        rttMs:
+          type: integer
+          description: |
+            The participant's last reported average round-trip time to the others in milliseconds (KAN-48); absent
+            until the first report.
+    QualityReport:
+      type: object
+      properties:
+        rttMs:
+          type: integer
+          description: Required, the average round-trip time in milliseconds, 0 to 60000.
     RoomPreview:
       type: object
       required: [id, name, status, participantCount, capacity, full]

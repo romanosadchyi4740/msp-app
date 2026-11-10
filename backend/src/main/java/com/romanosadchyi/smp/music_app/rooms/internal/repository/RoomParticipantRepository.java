@@ -67,6 +67,15 @@ public interface RoomParticipantRepository extends JpaRepository<RoomParticipant
     @Query("UPDATE RoomParticipant p SET p.online = false, p.offlineSince = :now WHERE p.online = true")
     int markAllOffline(@Param("now") Instant now);
 
+    /**
+     * Changes only the round-trip time, so a presence or role change stored meanwhile is not overwritten. The
+     * reverse is not protected: a presence or role change saves the whole participant, so one that read it before
+     * this update writes the older time back, until the participant's next report.
+     */
+    @Modifying
+    @Query("UPDATE RoomParticipant p SET p.rttMs = :rttMs WHERE p.id = :id")
+    int updateRttMs(@Param("id") UUID id, @Param("rttMs") int rttMs);
+
     @Query("""
             SELECT p.room.id AS roomId, COUNT(p) AS count FROM RoomParticipant p
             WHERE p.room.id IN :roomIds

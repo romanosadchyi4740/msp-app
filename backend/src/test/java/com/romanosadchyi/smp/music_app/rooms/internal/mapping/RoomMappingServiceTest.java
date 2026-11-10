@@ -68,6 +68,19 @@ class RoomMappingServiceTest {
     }
 
     @Test
+    void map_ReportedRoundTrip_IsShownAndAbsentUntilTheFirstReport() {
+        when(userLookup.findSummaries(any())).thenReturn(Map.of());
+        List<RoomParticipant> reported = List.of(
+                RoomParticipant.builder().room(room).userId(hostId).role(RoomRole.HOST).rttMs(84).build(),
+                RoomParticipant.builder().room(room).userId(studentId).role(RoomRole.PARTICIPANT).build());
+
+        RoomResponse response = mappingService.map(room, reported, hostId);
+
+        assertThat(response.getParticipants().get(0).getRttMs()).isEqualTo(84);
+        assertThat(response.getParticipants().get(1).getRttMs()).isNull();
+    }
+
+    @Test
     void map_ForAParticipant_HidesTheInviteCode() {
         when(userLookup.findSummaries(any())).thenReturn(Map.of());
 

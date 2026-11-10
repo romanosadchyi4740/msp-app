@@ -16,6 +16,8 @@ import socketClient from '../api/socketClient';
 import useRtcStore from '../store/rtcStore';
 import { setRoomParticipants, startRtcMesh } from '../rtc/rtcMesh';
 import { installRtcDebugHook } from '../rtc/rtcDebug';
+import { startQualityMonitor } from '../rtc/qualityMonitor';
+import ConnectionQuality from '../components/rooms/ConnectionQuality';
 
 /**
  * What the list says about the audio connection to a participant.
@@ -29,8 +31,8 @@ function audioLabel(participant, peer) {
 
 /**
  * A room the user is in: who is in it and has it open, the invite link for the host, the tab picked for the lesson,
- * and leaving. The active lesson's tab follows the shared position (KAN-42), and the participants hear each other
- * (KAN-47); the host's lesson controls come with the full room page.
+ * and leaving. The active lesson's tab follows the shared position (KAN-42), the participants hear each other
+ * (KAN-47) and see how good their connections are (KAN-48); the host's lesson controls come with the full room page.
  */
 export default function RoomPage() {
   const { id } = useParams();
@@ -87,7 +89,12 @@ export default function RoomPage() {
   // listens for calls before the others learn that it has the room open
   useEffect(() => {
     if (!roomId || !userId) return undefined;
-    return startRtcMesh(roomId, userId);
+    const stopMesh = startRtcMesh(roomId, userId);
+    const stopMonitor = startQualityMonitor(roomId);
+    return () => {
+      stopMonitor();
+      stopMesh();
+    };
   }, [roomId, userId]);
 
   useEffect(() => (debug && roomId ? installRtcDebugHook() : undefined), [debug, roomId]);
@@ -115,7 +122,21 @@ export default function RoomPage() {
         });
     };
     const stopListening = socketClient.onConnect(() => {
-      subscription = socketClient.subscribe(`/topic/rooms/${roomId}/participants`, refresh);
+      subscription = socketClient.subscribe(`/topic/rooms/${roomId}/participants`, (event) => {
+        if (event.type !== 'RTT') {
+          refresh();
+          return;
+        }
+        // A reported round trip comes with the event, every 10 seconds from everyone: no need to read the room
+        setLoaded((before) => (before.id === id && before.room ? {
+          ...before,
+          room: {
+            ...before.room,
+            participants: before.room.participants.map((participant) => (
+              participant.userId === event.userId ? { ...participant, rttMs: event.rttMs } : participant)),
+          },
+        } : before));
+      });
       refresh();
     });
     return () => {
@@ -217,6 +238,16 @@ export default function RoomPage() {
               {participant.userId !== userId && (
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {audioLabel(participant, audioPeers[participant.userId])}
+                </span>
+              )}
+              {participant.userId !== userId && <ConnectionQuality peer={audioPeers[participant.userId]} />}
+              {/* The last report of someone who closed the room says nothing about now */}
+              {participant.online && typeof participant.rttMs === 'number' && (
+                <span
+                  className="text-xs text-zinc-500 dark:text-zinc-400"
+                  title="This participant's average round trip to the others, as their browser reported it"
+                >
+                  avg {participant.rttMs} ms
                 </span>
               )}
               {participant.role === 'HOST' && <span className={badgeClass}>Host</span>}

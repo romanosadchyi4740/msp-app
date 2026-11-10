@@ -126,6 +126,12 @@ and `frontend/.env.example` lists them for builds.
   Switching the microphone on only puts a track on the existing connection. Remote descriptions are rewritten by
   `tuneOpusForMusic` (`sdp.js`). The pure parts (`sdp.js`, `meshPlan.js`, `stats.js`) have node tests;
   `e2e/audioMesh.spec.js` runs three browsers, directly and relay-only through the local coturn.
+- **Connection quality** (KAN-48): `rtc/qualityMonitor.js` reads every connection's `getStats()` every 2 s and grades
+  it (`rtc/quality.js`: good, fair, poor by round trip, jitter and packet loss since the last reading) for the dot
+  next to each participant. Every 10 s it sends the average round trip with `PUT /api/rooms/{id}/quality`;
+  `RoomQualityService` stores it in `RoomParticipant.rttMs` and publishes an `RTT` participant event, which the room
+  page applies without reading the room again. `e2e/connectionQuality.spec.js` loses real packets with
+  `e2e/lossyUdpProxy.js` in front of coturn.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`

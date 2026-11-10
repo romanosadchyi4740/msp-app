@@ -11,5 +11,9 @@ public enum ParticipantEventType {
      * The participant's last session in the room unsubscribed or disconnected.
      */
     OFFLINE,
-    HOST_CHANGED
+    HOST_CHANGED,
+    /**
+     * The participant reported a new round-trip time to the others (KAN-48).
+     */
+    RTT
 }
