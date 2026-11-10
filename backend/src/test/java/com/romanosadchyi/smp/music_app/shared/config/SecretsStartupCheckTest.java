@@ -42,6 +42,31 @@ class SecretsStartupCheckTest {
     }
 
     @Test
+    void prodProfile_CommittedTurnSecret_Fails() {
+        for (String committed : new String[]{"local_turn_secret", "test-turn-secret"}) {
+            MockEnvironment environment = withSecrets("abcdefghijabcdefghijabcdefghij12", "a-real-db-password");
+            environment.setProperty("turn.secret", committed);
+            environment.setActiveProfiles("prod");
+
+            assertThatThrownBy(() -> check.postProcessEnvironment(environment, null))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("committed to the repository: turn.secret")
+                    .hasMessageNotContaining(committed);
+        }
+    }
+
+    @Test
+    void prodProfile_UnresolvedTurnSecret_CountsAsMissing() {
+        MockEnvironment environment = withSecrets("abcdefghijabcdefghijabcdefghij12", "a-real-db-password");
+        environment.setProperty("turn.secret", "${TURN_SECRET}");
+        environment.setActiveProfiles("prod");
+
+        assertThatThrownBy(() -> check.postProcessEnvironment(environment, null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Missing: turn.secret;");
+    }
+
+    @Test
     void prodProfile_UnresolvedPlaceholder_CountsAsMissing() {
         MockEnvironment environment = withSecrets("abcdefghijabcdefghijabcdefghij12", "a-real-db-password");
         environment.setProperty("jwt.secret", "${JWT_SECRET}");

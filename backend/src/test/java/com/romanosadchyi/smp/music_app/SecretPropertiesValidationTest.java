@@ -5,6 +5,7 @@ import com.romanosadchyi.smp.music_app.shared.security.JwtProperties;
 import com.romanosadchyi.smp.music_app.shared.util.EncryptionProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 
@@ -70,6 +71,23 @@ class SecretPropertiesValidationTest {
     }
 
     @Test
+    void turnUrlWithoutItsScheme_FailsStartup() {
+        // One malformed entry would make every RTCPeerConnection in the browsers throw
+        assertFailsOn("turn.urls=turn.example.com:3478", "turn");
+        assertFailsOn("turn.urls=stun:turn.example.com:3478", "turn");
+        assertFailsOn("turn.stun-urls=turn:turn.example.com:3478", "turn");
+    }
+
+    @Test
+    void turnWithoutStunUrls_BindsAnEmptyList() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(TurnOnly.class)
+                .withPropertyValues("turn.secret=a-real-turn-secret", "turn.urls=turns:turn.example.com:443",
+                        "turn.credential-ttl-seconds=3600")
+                .run(context -> assertThat(context.getBean(TurnProperties.class).stunUrls()).isEmpty());
+    }
+
+    @Test
     void turnCredentialLifetimeOutsideOneToSixHours_FailsStartup() {
         assertFailsOn("turn.credential-ttl-seconds=600", "turn");
         assertFailsOn("turn.credential-ttl-seconds=86400", "turn");
@@ -85,5 +103,10 @@ class SecretPropertiesValidationTest {
     @Configuration(proxyBeanMethods = false)
     @ConfigurationPropertiesScan
     static class PropertiesScan {
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties(TurnProperties.class)
+    static class TurnOnly {
     }
 }
