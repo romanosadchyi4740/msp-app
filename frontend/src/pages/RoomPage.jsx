@@ -241,7 +241,8 @@ export default function RoomPage() {
                 </span>
               )}
               {participant.userId !== userId && <ConnectionQuality peer={audioPeers[participant.userId]} />}
-              {typeof participant.rttMs === 'number' && (
+              {/* The last report of someone who closed the room says nothing about now */}
+              {participant.online && typeof participant.rttMs === 'number' && (
                 <span
                   className="text-xs text-zinc-500 dark:text-zinc-400"
                   title="This participant's average round trip to the others, as their browser reported it"

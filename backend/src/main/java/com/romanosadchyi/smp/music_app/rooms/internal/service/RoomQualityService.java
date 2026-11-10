@@ -35,7 +35,8 @@ public class RoomQualityService {
 
     /**
      * Stores the participant's round-trip time and, if it changed, tells the room. The room's row is not locked:
-     * only this one column is written, so presence and role changes are neither held up nor overwritten.
+     * only this one column is written, so presence and role changes are neither held up nor overwritten. The
+     * event's host is therefore the host as read without the lock.
      *
      * @throws IllegalArgumentException if the time is missing or outside 0 to {@value #MAX_RTT_MS} ms
      * @throws RoomNotFoundException    if there is no such room or the user is not in it

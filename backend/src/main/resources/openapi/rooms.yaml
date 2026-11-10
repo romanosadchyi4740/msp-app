@@ -8,8 +8,9 @@ info:
     so schemas carry no validation constraints.
 
     Presence and role changes go to `/topic/rooms/{id}/participants` (KAN-36): `JOINED`, `LEFT`, `ONLINE`, `OFFLINE`
-    and `HOST_CHANGED`, and reported connection quality as `RTT` (KAN-48). A host who stays offline for more than 60 seconds hands the role to the participant who
-    joined earliest among those online, and the lesson's playback is paused.
+    and `HOST_CHANGED`, and reported connection quality as `RTT` (KAN-48). A host who stays offline for more than
+    60 seconds hands the role to the participant who joined earliest among those online, and the lesson's playback
+    is paused.
 
     A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
     that response comes from Spring Security and has no ErrorResponse body.

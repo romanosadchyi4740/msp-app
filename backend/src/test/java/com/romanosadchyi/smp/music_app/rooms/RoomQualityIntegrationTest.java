@@ -76,6 +76,13 @@ class RoomQualityIntegrationTest {
                 "/topic/rooms/" + roomId + "/participants");
         Thread.sleep(SUBSCRIBE_SETTLE_MS);
 
+        // Events about anything else carry no round-trip time
+        Client studentClient = StompTestClient.connect(port, student.bearer());
+        sessions.add(studentClient.session());
+        StompTestClient.subscribe(studentClient.session(), "/topic/rooms/" + roomId + "/participants");
+        assertThat(StompTestClient.pollUntil(events, StompTestClient.participantEvent("ONLINE", student.id())))
+                .doesNotContainKey("rttMs");
+
         // Nothing reported yet
         assertThat(participantOf(host, roomId, student)).doesNotContainKey("rttMs");
 
