@@ -49,7 +49,7 @@ class ArchitectureTest {
     void modulesAreTheKnownOnes() {
         assertThat(MODULES.stream().map(ApplicationModule::getIdentifier).map(Object::toString))
                 .containsExactlyInAnyOrder("shared", "users", "storage", "music", "playlists", "chats", "telemetry",
-                        "search", "tabs", "rooms", "sync", "billing");
+                        "search", "tabs", "rooms", "sync", "billing", "rtc");
     }
 
     /**
@@ -58,7 +58,7 @@ class ArchitectureTest {
      */
     @ParameterizedTest
     @ValueSource(strings = {"users", "storage", "music", "playlists", "chats", "telemetry", "search", "tabs", "rooms",
-            "sync", "billing"})
+            "sync", "billing", "rtc"})
     void moduleHasOnlyInternalAndExternalPackages(String module) {
         String modulePackage = BASE_PACKAGE + "." + module;
         classes().that().resideInAPackage(modulePackage + "..")
@@ -98,7 +98,8 @@ class ArchitectureTest {
                 Arguments.of("tabs", List.of("users", "storage")),
                 Arguments.of("rooms", List.of("users", "tabs", "billing")),
                 Arguments.of("sync", List.of("rooms")),
-                Arguments.of("billing", List.of()));
+                Arguments.of("billing", List.of()),
+                Arguments.of("rtc", List.of("rooms")));
     }
 
     @Test

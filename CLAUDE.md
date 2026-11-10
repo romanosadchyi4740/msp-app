@@ -110,6 +110,10 @@ and `frontend/.env.example` lists them for builds.
   play/pause/seek/track events, and SYNC clients send `REQUEST_SYNC` that the MASTER answers. SyncChord rooms
   must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
   section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
+- **WebRTC signaling** (module `rtc`): `SignalController` `@MessageMapping("/rooms/{roomId}/signal")` →
+  `SignalingService` sets `fromId` and `roomId` from the session and the destination, checks both peers with
+  `rooms.external.RoomMembership` (participants of an open room), and relays to the recipient's `/user/queue/signal`. Payloads are opaque strings
+  (at most 16 000 characters), never stored or logged.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`
