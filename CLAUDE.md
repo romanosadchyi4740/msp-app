@@ -73,7 +73,7 @@ cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
 cd frontend && npm run lint; npm run build  # lint has 23 pre-existing problems
 cd frontend && npm test                      # unit tests (node:test, src/**/*.test.js)
-cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running; uses the installed Chrome)
+cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running, and coturn for the audio test; uses the installed Chrome)
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
@@ -82,7 +82,8 @@ Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO AP
 with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTIVE=prod`; no defaults, fails to
 start if a variable is missing). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
 refuses to start while a secret is missing or has a value committed to the repo; settings are bound to
-`@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`).
+`@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`,
+`TurnProperties`).
 Frontend config comes from Vite env vars (`VITE_API_URL`, `VITE_WS_URL`, `VITE_GOOGLE_CLIENT_ID`) read in
 `src/config.js`; dev defaults are in the committed `frontend/.env.development`,
 and `frontend/.env.example` lists them for builds.
@@ -114,6 +115,23 @@ and `frontend/.env.example` lists them for builds.
   `SignalingService` sets `fromId` and `roomId` from the session and the destination, checks both peers with
   `rooms.external.RoomMembership` (participants of an open room), and relays to the recipient's `/user/queue/signal`. Payloads are opaque strings
   (at most 16 000 characters), never stored or logged.
+- **ICE servers** (module `rtc`, contract-first `openapi/rtc.yaml`): `GET /api/rtc/ice-servers` → `IceServerService`
+  returns STUN plus TURN with a coturn `use-auth-secret` credential for the current user. Settings are
+  `rtc.internal.config.TurnProperties` (`turn.secret`, `turn.urls`, `turn.stun-urls`, `turn.credential-ttl-seconds`
+  of 1 to 6 hours; env `TURN_SECRET`, `TURN_URLS`, `STUN_URLS`); the local defaults match the docker-compose coturn.
+- **Room audio in the browser** (`frontend/src/rtc`): `rtcMesh.js` keeps one `RTCPeerConnection` per other
+  participant, opened as soon as both have the room open (the room page subscribes to
+  `/topic/rooms/{id}/participants`, which is what makes a participant online, and reads the room again on every
+  event). The participant with the smaller user id starts a connection; after that both follow perfect negotiation.
+  Switching the microphone on only puts a track on the existing connection. Remote descriptions are rewritten by
+  `tuneOpusForMusic` (`sdp.js`). The pure parts (`sdp.js`, `meshPlan.js`, `stats.js`) have node tests;
+  `e2e/audioMesh.spec.js` runs three browsers, directly and relay-only through the local coturn.
+- **Connection quality** (KAN-48): `rtc/qualityMonitor.js` reads every connection's `getStats()` every 2 s and grades
+  it (`rtc/quality.js`: good, fair, poor by round trip, jitter and packet loss since the last reading) for the dot
+  next to each participant. Every 10 s it sends the average round trip with `PUT /api/rooms/{id}/quality`;
+  `RoomQualityService` stores it in `RoomParticipant.rttMs` and publishes an `RTT` participant event, which the room
+  page applies without reading the room again. `e2e/connectionQuality.spec.js` loses real packets with
+  `e2e/lossyUdpProxy.js` in front of coturn.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`
@@ -227,7 +245,8 @@ Follow the existing style:
   Testcontainers shared per run; never the local docker-compose services) and use no other test annotations,
   so they share one cached context.
 - Frontend: pages in `src/pages`, components in `src/components/<area>`, global state in Zustand stores
-  in `src/store`, HTTP through `src/api/axiosClient.js`, STOMP through `src/api/socketClient.js`.
+  in `src/store`, HTTP through `src/api/axiosClient.js`, STOMP through `src/api/socketClient.js`; the room's
+  real-time engines are plain modules in `src/sync` (playback, clock, metronome) and `src/rtc` (audio).
 - The msp-app UI uses sci-fi wording (Nodes, Clusters, Transmissions); SyncChord screens use plain
   musical wording (room, host, participant, tab, measure, beat).
 
