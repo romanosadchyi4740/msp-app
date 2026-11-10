@@ -82,7 +82,8 @@ Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO AP
 with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTIVE=prod`; no defaults, fails to
 start if a variable is missing). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
 refuses to start while a secret is missing or has a value committed to the repo; settings are bound to
-`@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`).
+`@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`,
+`TurnProperties`).
 Frontend config comes from Vite env vars (`VITE_API_URL`, `VITE_WS_URL`, `VITE_GOOGLE_CLIENT_ID`) read in
 `src/config.js`; dev defaults are in the committed `frontend/.env.development`,
 and `frontend/.env.example` lists them for builds.
@@ -114,6 +115,10 @@ and `frontend/.env.example` lists them for builds.
   `SignalingService` sets `fromId` and `roomId` from the session and the destination, checks both peers with
   `rooms.external.RoomMembership` (participants of an open room), and relays to the recipient's `/user/queue/signal`. Payloads are opaque strings
   (at most 16 000 characters), never stored or logged.
+- **ICE servers** (module `rtc`, contract-first `openapi/rtc.yaml`): `GET /api/rtc/ice-servers` → `IceServerService`
+  returns STUN plus TURN with a coturn `use-auth-secret` credential for the current user. Settings are
+  `rtc.internal.config.TurnProperties` (`turn.secret`, `turn.urls`, `turn.stun-urls`, `turn.credential-ttl-seconds`
+  of 1 to 6 hours; env `TURN_SECRET`, `TURN_URLS`, `STUN_URLS`); the local defaults match the docker-compose coturn.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`

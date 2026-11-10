@@ -1,5 +1,6 @@
 package com.romanosadchyi.smp.music_app;
 
+import com.romanosadchyi.smp.music_app.rtc.internal.config.TurnProperties;
 import com.romanosadchyi.smp.music_app.shared.security.JwtProperties;
 import com.romanosadchyi.smp.music_app.shared.util.EncryptionProperties;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,11 @@ class SecretPropertiesValidationTest {
                     "minio.access-key=access",
                     "minio.secret-key=secret",
                     "minio.bucket-name=music-files",
-                    "minio.presigned-url-expiry-seconds=3600");
+                    "minio.presigned-url-expiry-seconds=3600",
+                    "turn.secret=a-real-turn-secret",
+                    "turn.urls=turn:turn.example.com:3478?transport=udp,turns:turn.example.com:443?transport=tcp",
+                    "turn.stun-urls=",
+                    "turn.credential-ttl-seconds=3600");
 
     @Test
     void allSet_Binds() {
@@ -34,6 +39,8 @@ class SecretPropertiesValidationTest {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(JwtProperties.class).expiration()).isEqualTo(60_000);
             assertThat(context.getBean(EncryptionProperties.class).secretKey()).hasSize(32);
+            assertThat(context.getBean(TurnProperties.class).urls()).hasSize(2);
+            assertThat(context.getBean(TurnProperties.class).stunUrls()).isEmpty();
         });
     }
 
@@ -50,6 +57,22 @@ class SecretPropertiesValidationTest {
     @Test
     void blankMinioSecret_FailsStartup() {
         assertFailsOn("minio.secret-key=", "minio");
+    }
+
+    @Test
+    void blankTurnSecret_FailsStartup() {
+        assertFailsOn("turn.secret=", "turn");
+    }
+
+    @Test
+    void noTurnUrls_FailsStartup() {
+        assertFailsOn("turn.urls=", "turn");
+    }
+
+    @Test
+    void turnCredentialLifetimeOutsideOneToSixHours_FailsStartup() {
+        assertFailsOn("turn.credential-ttl-seconds=600", "turn");
+        assertFailsOn("turn.credential-ttl-seconds=86400", "turn");
     }
 
     private void assertFailsOn(String blankProperty, String prefix) {

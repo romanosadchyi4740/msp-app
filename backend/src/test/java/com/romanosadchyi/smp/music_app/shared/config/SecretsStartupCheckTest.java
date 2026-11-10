@@ -68,6 +68,7 @@ class SecretsStartupCheckTest {
                 .withProperty("jwt.secret", "0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9")
                 .withProperty("encryption.secret-key", encryptionKey)
                 .withProperty("minio.secret-key", "a-real-minio-secret")
+                .withProperty("turn.secret", "a-real-turn-secret")
                 .withProperty("spring.datasource.password", databasePassword);
     }
 }
