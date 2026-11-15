@@ -6,9 +6,10 @@ import { badgeClass, secondaryButtonClass } from './roomStyles';
 
 /**
  * This participant's side of the shared metronome: whether the host has it on, the button browsers require before
- * any sound, and the local volume. The host switches the metronome itself on and off.
+ * any sound, and the local volume. The host switches the metronome itself on and off, with a button that already
+ * shows whether it is on (`showState` false).
  */
-export default function MetronomeControls() {
+export default function MetronomeControls({ showState = true }) {
   const metronomeOn = usePlaybackStore((state) => Boolean(state.playback?.metronomeOn));
   const audioState = useMetronomeStore((state) => state.audioState);
   const volume = useMetronomeStore((state) => state.volume);
@@ -16,7 +17,7 @@ export default function MetronomeControls() {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <span className={badgeClass}>Metronome {metronomeOn ? 'on' : 'off'}</span>
+      {showState && <span className={badgeClass}>Metronome {metronomeOn ? 'on' : 'off'}</span>}
       {/* Suspended until a user gesture; Safari also reports 'interrupted', e.g. after a phone call */}
       {audioState && audioState !== 'running' ? (
         <button type="button" onClick={() => enableMetronomeSound()} className={secondaryButtonClass}>

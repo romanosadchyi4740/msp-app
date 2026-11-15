@@ -1,51 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import TabCanvas from '../tabs/TabCanvas';
-import useRoomStore from '../../store/roomStore';
 import useTabStore from '../../store/tabStore';
 import usePlaybackStore from '../../store/playbackStore';
 import { onPlaybackFrame } from '../../sync/syncEngine';
-import { errorMessage, sectionTitleClass } from './roomStyles';
-import MetronomeControls from './MetronomeControls';
+import { errorMessage } from './roomStyles';
 
-const STATUS_LABELS = { PLAYING: 'Playing', PAUSED: 'Paused', STOPPED: 'Stopped' };
+const placeholderClass = 'flex h-[60vh] items-center justify-center border border-dashed border-zinc-300 p-6 '
+  + 'text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400';
 
 /**
- * The tab of the room's active lesson, scrolled to the shared position by the sync engine, which the room page runs.
- * Read-only: the host's controls come with the full room page. Shows nothing while the room has no lesson; follows
- * lessons starting, ending and changing their tab without a reload.
+ * The tab of the room's active lesson (`lesson`, from useCurrentLesson), scrolled to the shared position by the sync
+ * engine, which the room page runs. Follows the lesson changing its tab without a reload; `placeholder` is shown
+ * while the room has no lesson.
  */
-export default function LessonCanvas({ roomId }) {
-  const fetchCurrentLesson = useRoomStore((state) => state.fetchCurrentLesson);
+export default function LessonCanvas({ lesson, placeholder }) {
   const fetchTab = useTabStore((state) => state.fetchTab);
   const fetchFileUrl = useTabStore((state) => state.fetchFileUrl);
-  const lessonEvent = usePlaybackStore((state) => state.lessonEvent);
-  const snapshotCount = usePlaybackStore((state) => state.snapshotCount);
-  const status = usePlaybackStore((state) => state.playback?.status ?? null);
   const canvasRef = useRef(null);
-  // The lesson of the room it was loaded for, so another room never shows this one's lesson
-  const [lesson, setLesson] = useState({ roomId: null, value: null, error: null });
   // The tab content of the tab id it was loaded for
   const [tab, setTab] = useState({ tabId: null, source: null, error: null });
-
-  // The lesson changes with every lesson event; the event itself carries too little to show it. Events sent while the
-  // connection was down are not replayed, so every snapshot (each reconnect) loads it again too
-  useEffect(() => {
-    let current = true;
-    fetchCurrentLesson(roomId)
-      .then((value) => current && setLesson({ roomId, value, error: null }))
-      .catch((failure) => current && setLesson({
-        roomId,
-        value: null,
-        error: errorMessage(failure, 'Could not load the lesson.'),
-      }));
-    return () => {
-      current = false;
-    };
-  }, [roomId, lessonEvent, snapshotCount, fetchCurrentLesson]);
-
-  const activeLesson = lesson.roomId === roomId ? lesson.value : null;
-  const tabId = activeLesson?.tabId ?? null;
+  const tabId = lesson?.tabId ?? null;
 
   useEffect(() => {
     if (!tabId) return undefined;
@@ -73,36 +48,28 @@ export default function LessonCanvas({ roomId }) {
   // The measures of the tab shown, for wrapping positions (KAN-95); forgotten when another tab or none is shown
   const setMeasureSignatures = usePlaybackStore((state) => state.setMeasureSignatures);
   const handleLoaded = useCallback(({ timeSignatures }) => setMeasureSignatures(timeSignatures), [setMeasureSignatures]);
-  const shownSource = tab.tabId === tabId ? tab.source : null;
+  const shownTab = tabId && tab.tabId === tabId ? tab : null;
+  const shownSource = shownTab?.source ?? null;
   useEffect(() => () => setMeasureSignatures(null), [shownSource, setMeasureSignatures]);
 
-  const lessonError = lesson.roomId === roomId ? lesson.error : null;
-  if (lessonError) {
-    return <p className="text-sm text-zinc-500 dark:text-zinc-400">{lessonError}</p>;
+  if (!lesson) {
+    return <div className={placeholderClass}>{placeholder}</div>;
   }
-  if (!activeLesson) {
-    return null;
+  if (!tabId) {
+    return <div className={placeholderClass}>No tab is open in this lesson.</div>;
   }
-  const shownTab = tab.tabId === tabId ? tab : null;
-
+  if (shownTab?.error) {
+    return <div className={placeholderClass}>{shownTab.error}</div>;
+  }
+  if (!shownSource) {
+    return <div className={placeholderClass}><Loader2 size={20} className="animate-spin" /></div>;
+  }
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className={sectionTitleClass}>Lesson</h2>
-        {status && <span className="text-xs text-zinc-500 dark:text-zinc-400">{STATUS_LABELS[status] ?? status}</span>}
-      </div>
-      <MetronomeControls />
-      {!tabId && <p className="text-sm text-zinc-500 dark:text-zinc-400">No tab is open in this lesson.</p>}
-      {tabId && shownTab?.error && <p className="text-sm text-zinc-500 dark:text-zinc-400">{shownTab.error}</p>}
-      {tabId && !shownTab && <Loader2 size={20} className="animate-spin text-zinc-500" />}
-      {shownTab?.source && (
-        <TabCanvas
-          ref={canvasRef}
-          source={shownTab.source}
-          onLoaded={handleLoaded}
-          className="h-[60vh] border border-zinc-200 dark:border-zinc-800"
-        />
-      )}
-    </section>
+    <TabCanvas
+      ref={canvasRef}
+      source={shownSource}
+      onLoaded={handleLoaded}
+      className="h-[60vh] border border-zinc-200 lg:h-[calc(100vh-16rem)] dark:border-zinc-800"
+    />
   );
 }

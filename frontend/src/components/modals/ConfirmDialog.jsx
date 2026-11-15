@@ -4,7 +4,7 @@ const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmTex
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
       <div 
         className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-sm" 
         onClick={onCancel}
