@@ -7,7 +7,8 @@ import { startLatencyProxy } from './latencyProxy.js';
  * The room page's lesson flow (KAN-50; UR-1, UR-3, FR-8): a host and a participant each open the room. The host
  * picks a tab and starts the lesson, plays and pauses, goes to a measure, changes the tempo and switches the
  * metronome, with the buttons and with the keyboard, changes the tab and ends the lesson; the participant sees every
- * change without a reload and has no controls that work.
+ * change without a reload and has no controls that work. Then both chat in the room (KAN-51): messages arrive live,
+ * stay after a reload, and someone outside the room cannot read them.
  */
 
 // 32 measures of 4/4
@@ -127,6 +128,52 @@ test('the host runs a lesson and the participant follows it without a reload', a
   await expect(participantPage.getByText('The host ended the lesson.')).toBeVisible();
   await expect(participantPage.getByText('Waiting for the host to start the lesson.')).toBeVisible();
   await expect(hostPage.getByRole('button', { name: 'Pick a tab and start' })).toBeVisible();
+});
+
+test('participants chat in the room, live and from the history (KAN-51)', async ({ browser }) => {
+  const [hostPage, participantPage] = await Promise.all(users.map(async (user) => {
+    const context = await browser.newContext();
+    await context.addInitScript(({ token, profile }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(profile));
+    }, { token: user.token, profile: user.profile });
+    const page = await context.newPage();
+    await page.goto(`/rooms/${roomId}`);
+    return page;
+  }));
+  const chatOf = (page) => page.getByRole('log');
+  const textBox = (page) => page.getByLabel('Message', { exact: true });
+  // The history is read once the STOMP connection is up, so both are connected and listening after this
+  for (const page of [hostPage, participantPage]) {
+    await expect(chatOf(page).getByText('No messages yet.')).toBeVisible();
+  }
+
+  // Enter sends; the text arrives live on the other page, with the author's name
+  await textBox(participantPage).fill('Can we slow down at bar 12?');
+  await textBox(participantPage).press('Enter');
+  await expect(chatOf(hostPage).getByText('Can we slow down at bar 12?')).toBeVisible();
+  await expect(chatOf(hostPage).getByText('Room page participant')).toBeVisible();
+  await expect(chatOf(participantPage).getByText('You')).toBeVisible();
+  await expect(textBox(participantPage)).toHaveValue('');
+
+  // Shift+Enter is a new line; the button sends too
+  await textBox(hostPage).fill('Sure.');
+  await textBox(hostPage).press('Shift+Enter');
+  await textBox(hostPage).pressSequentially('From the top');
+  await hostPage.getByRole('button', { name: 'Send' }).click();
+  await expect(chatOf(participantPage).getByText(/Sure\.\s+From the top/)).toBeVisible();
+
+  // The history is there after a reload
+  await participantPage.reload();
+  await expect(chatOf(participantPage).getByText('Can we slow down at bar 12?')).toBeVisible();
+  await expect(chatOf(participantPage).getByText(/Sure\.\s+From the top/)).toBeVisible();
+
+  // A non-participant cannot read the history (that only ciphertext is stored is checked in RoomChatIntegrationTest)
+  const outsider = await register('Room page outsider');
+  users.push(outsider);
+  const response = await api.get(`/api/rooms/${roomId}/messages`,
+    { headers: { Authorization: `Bearer ${outsider.token}` } });
+  expect(response.status()).toBe(404);
 });
 
 async function register(displayName) {

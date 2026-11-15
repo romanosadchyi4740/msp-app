@@ -12,6 +12,11 @@ info:
     60 seconds hands the role to the participant who joined earliest among those online, and the lesson's playback
     is paused.
 
+    Room chat (KAN-51, FR-12): a participant sends `SEND /app/rooms/{id}/chat` with `{"content": "..."}` (1 to 2000
+    characters after trimming) while the room is open; the stored message goes to `/topic/rooms/{id}/chat` as a
+    `RoomMessageResponse`. A refused message is answered on the sender's `/user/queue/rooms/{id}/chat-errors` with an
+    `ErrorResponse`. Message content is stored encrypted (AES-256-GCM).
+
     A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
     that response comes from Spring Security and has no ErrorResponse body.
   version: 1.0.0
@@ -22,6 +27,7 @@ security:
 tags:
   - name: Rooms
   - name: Lessons
+  - name: RoomChat
 paths:
   /api/rooms:
     post:
@@ -232,6 +238,40 @@ paths:
       responses:
         '204':
           description: Stored
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/messages:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [RoomChat]
+      operationId: getRoomMessages
+      summary: A page of the room's chat history, newest first; participants only (KAN-51)
+      description: |
+        Readable by the room's current participants, also after the room closed. Messages of participants who left
+        stay; those of deleted accounts are removed with the account.
+      parameters:
+        - name: pageNo
+          in: query
+          description: From 0.
+          schema:
+            type: integer
+            default: 0
+        - name: pageSize
+          in: query
+          description: 1 to 100.
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: The page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomMessagePage'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -553,6 +593,55 @@ components:
           description: When the limit ends the lesson; missing for no limit.
         endReason:
           $ref: '#/components/schemas/LessonEndReason'
+    RoomMessageResponse:
+      type: object
+      description: A chat message, as the history and `/topic/rooms/{id}/chat` send it.
+      required: [id, roomId, authorId, content, sentAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        authorAvatarUrl:
+          type: string
+        content:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+    RoomMessagePage:
+      type: object
+      properties:
+        content:
+          type: array
+          description: Newest first.
+          items:
+            $ref: '#/components/schemas/RoomMessageResponse'
+        number:
+          type: integer
+          description: The page number, from 0.
+        size:
+          type: integer
+        numberOfElements:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
     ErrorResponse:
       type: object
       description: The error body of every endpoint, from GlobalExceptionHandler.

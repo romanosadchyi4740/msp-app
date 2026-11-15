@@ -147,6 +147,16 @@ const useRoomStore = create(
         }
       },
 
+      /**
+       * A page of the room's chat (KAN-51), newest first (`RoomMessagePage`). Throws the request error without a
+       * toast; the chat panel shows it.
+       */
+      fetchRoomMessages: async (id, pageNo = 0, pageSize = 50) => {
+        const response = await axiosClient.get(`/api/rooms/${id}/messages`,
+          { params: { pageNo, pageSize }, suppressErrorToast: true });
+        return response.data;
+      },
+
       leaveRoom: async (id) => {
         try {
           await axiosClient.post(`/api/rooms/${id}/leave`);

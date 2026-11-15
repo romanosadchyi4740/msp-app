@@ -102,7 +102,7 @@ and `frontend/.env.example` lists them for builds.
   frontend) and `/ws-raw` (plain WebSocket, for Postman). The broker is the simple in-memory broker on
   `/topic` and `/queue`, with app prefix `/app` and user prefix `/user`.
 - **Chat** (module `chats`): `MessageController` `@MessageMapping("/chat")` → `ChatMessageService` persists the message
-  (content is encrypted transparently by the JPA `MessageEncryptionConverter` → the `EncryptionUtil` bean: AES-256-GCM,
+  (content is encrypted transparently by the JPA `shared.util.EncryptedTextConverter` → the `EncryptionUtil` bean: AES-256-GCM,
   random 12-byte IV per value, stored as `v2:` + base64; anything else throws `EncryptionException`, KAN-21) and
   `ChatMessageNotifier` fans out with `convertAndSendToUser(..., "/queue/messages")` to each member. The `socketClient` singleton subscribes to `/user/queue/messages` in `onConnect`. Its
   `subscribe()` returns `null` when not connected, so callers must subscribe after connect.
@@ -138,6 +138,12 @@ and `frontend/.env.example` lists them for builds.
   `RoomQualityService` stores it in `RoomParticipant.rttMs` and publishes an `RTT` participant event, which the room
   page applies without reading the room again. `e2e/connectionQuality.spec.js` loses real packets with
   `e2e/lossyUdpProxy.js` in front of coturn.
+- **Room chat** (KAN-51, module `rooms`): `RoomChatStompController` `/app/rooms/{id}/chat` → `RoomChatService` (participant
+  of an open room, 1 to 2000 characters) stores a `RoomMessage` (content through `shared.util.EncryptedTextConverter`,
+  author = user id, kept after the author leaves, deleted with their account) and `RoomChatNotifier` sends it to
+  `/topic/rooms/{id}/chat`. Refusals go to the sender's `/user/queue/rooms/{id}/chat-errors`, not the shared
+  `/user/queue/errors`. History: `GET /api/rooms/{id}/messages` (newest first, participants only).
+  `components/rooms/RoomChat.jsx` reads the latest page on every (re)connect and merges by id.
 - **Files**: stored through `storage.external.FileStorage` (implemented by `storage.internal.MinioFileStorage`;
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`
@@ -262,7 +268,8 @@ The lab class model (lab 7) uses `Long`/BIGSERIAL ids, `Instant`, and `USER/ADMI
 - user roles stay `ROLE_USER / ROLE_ARTIST / ROLE_ADMIN`; HOST/PARTICIPANT is a **room** role;
 - lab `Session` → entity `LessonSession`, table `lesson_sessions` (avoids clashing with Hibernate `Session`);
 - lab `ChatMessage` → entity `RoomMessage`, table `room_messages` (the msp-app already has `messages`
-  and `ChatMessage*Dto`).
+  and `ChatMessage*Dto`); its author is the user (`author_id`), not the participant row, because leaving a room
+  deletes that row while the messages stay (KAN-51).
 
 ## 5. Target domain model (lab 7)
 
@@ -277,7 +284,7 @@ The lab class model (lab 7) uses `Long`/BIGSERIAL ids, `Instant`, and `USER/ADMI
 | `RoomParticipant` (`room_participants`) | room (cascade), user, role HOST/PARTICIPANT, joinedAt, rttMs, online | unique (room, user); analogue of `ChatMembership` |
 | `LessonSession` (`lesson_sessions`) | room (cascade), tab (nullable), startedAt, endedAt, limitMinutes | `start`, `selectTab`, `end`, `isExpired` |
 | `PlaybackState` (`playback_states`, PK = session_id) | measure, beat, tempoBpm, status PLAYING/PAUSED/STOPPED, anchorTime (server epoch ms), metronomeOn, `@Version version` | `apply`, `positionAt`, `snapshot` |
-| `RoomMessage` (`room_messages`) | room (cascade), author participant, content (encrypted), sentAt | index (room_id, sent_at) |
+| `RoomMessage` (`room_messages`) | room (cascade), author (user id, kept after leaving), content (encrypted), sentAt | index (room_id, sent_at) |
 | `SyncCommand` (transient DTO) | type PLAY/PAUSE/SEEK/SET_TEMPO/METRONOME/LOAD_TAB/REQUEST_SYNC, argument, senderId, clientTime | never stored |
 | `SignalMessage` (transient DTO) | type OFFER/ANSWER/ICE_CANDIDATE, fromId, toId, payload (SDP/ICE) | relayed only |
 
@@ -319,7 +326,8 @@ serverNow    = Date.now() + clockOffset
 | server → user | `/user/queue/signal` | `SignalMessage` |
 | client → server / user | `/app/time` → `/user/queue/time` | `{clientTime}` → `{clientTime, serverTime}` |
 | server → user | `/user/queue/rooms/{roomId}/snapshot` | snapshot on join / `REQUEST_SYNC` |
-| room chat | `/app/rooms/{roomId}/chat` → `/topic/rooms/{roomId}/chat` | `RoomMessage` DTO |
+| room chat | `/app/rooms/{roomId}/chat` → `/topic/rooms/{roomId}/chat` | `{content}` → `RoomMessageResponse` |
+| server → user | `/user/queue/rooms/{roomId}/chat-errors` | `ErrorResponse` for a refused chat message |
 
 A `ChannelInterceptor` must reject `SUBSCRIBE` to `/topic/rooms/{id}/**` and `SEND` to `/app/rooms/{id}/**`
 unless the principal is a current participant of that room.
