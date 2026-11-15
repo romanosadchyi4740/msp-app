@@ -102,7 +102,8 @@ and `frontend/.env.example` lists them for builds.
   frontend) and `/ws-raw` (plain WebSocket, for Postman). The broker is the simple in-memory broker on
   `/topic` and `/queue`, with app prefix `/app` and user prefix `/user`.
 - **Chat** (module `chats`): `MessageController` `@MessageMapping("/chat")` → `ChatMessageService` persists the message
-  (content is encrypted transparently by the JPA `MessageEncryptionConverter` → `EncryptionUtil`) and
+  (content is encrypted transparently by the JPA `MessageEncryptionConverter` → the `EncryptionUtil` bean: AES-256-GCM,
+  random 12-byte IV per value, stored as `v2:` + base64; anything else throws `EncryptionException`, KAN-21) and
   `ChatMessageNotifier` fans out with `convertAndSendToUser(..., "/queue/messages")` to each member. The `socketClient` singleton subscribes to `/user/queue/messages` in `onConnect`. Its
   `subscribe()` returns `null` when not connected, so callers must subscribe after connect.
 - **Broadcast rooms (the existing sync feature)**: `BroadcastController` is a **stateless relay**
@@ -334,8 +335,6 @@ and `RoomParticipant.rttMs`.
 ## 7. Known issues in the base project (fix before production; see Jira epic KAN-5)
 
 - The local and test secrets are committed and public; they are only accepted in those profiles (KAN-20).
-- `EncryptionUtil`: AES-CBC with a fixed IV and silent decrypt fallback. Target AES-GCM, random 12-byte
-  IV per message, versioned ciphertext prefix, data migration for existing `messages` (KAN-21, postponed).
 - `setAllowedOriginPatterns("*")` on WebSocket endpoints.
 - Simple in-memory STOMP broker → one backend instance only (fine for MVP; later RabbitMQ STOMP relay or
   Redis pub/sub).
