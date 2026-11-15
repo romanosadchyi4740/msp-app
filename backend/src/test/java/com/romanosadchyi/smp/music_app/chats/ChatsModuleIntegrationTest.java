@@ -86,7 +86,25 @@ class ChatsModuleIntegrationTest {
                 .andExpect(jsonPath("$[0].lastMessage.sharedTrack.id").value(track.getId().toString()))
                 .andExpect(jsonPath("$[0].participants[?(@.id == '%s')].followingCount".formatted(bob.id())).value(1));
         assertThat(jdbcTemplate.queryForObject("SELECT content FROM messages WHERE chat_id = ? AND shared_track_id = ?",
-                String.class, chatId, track.getId())).isNotEqualTo("listen");
+                String.class, chatId, track.getId())).startsWith("v2:").doesNotContain("listen");
+    }
+
+    @Test
+    void messages_AreStoredEncryptedWithAFreshIvEach() throws Exception {
+        Registered alice = register("Alice");
+        Registered bob = register("Bob");
+        UUID chatId = openChat(alice, bob);
+
+        send(alice, chatId, "same words", null);
+        send(alice, chatId, "same words", null);
+
+        assertThat(jdbcTemplate.queryForList("SELECT content FROM messages WHERE chat_id = ?", String.class, chatId))
+                .hasSize(2)
+                .allSatisfy(stored -> assertThat(stored).startsWith("v2:").doesNotContain("same words"))
+                .doesNotHaveDuplicates();
+        mockMvc.perform(get("/api/chats/" + chatId + "/messages").header(HttpHeaders.AUTHORIZATION, bob.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].content").value(contains("same words", "same words")));
     }
 
     @Test

@@ -5,8 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Validates the key at startup. {@code EncryptionUtil} still reads it through {@code @Value} until it becomes a
- * regular bean (KAN-21).
+ * Validates the key at startup; {@link EncryptionUtil} also refuses a key of another length than 32 bytes.
  *
  * @param secretKey the AES-256 key, 32 bytes as UTF-8 ({@code ENCRYPTION_SECRET})
  */
