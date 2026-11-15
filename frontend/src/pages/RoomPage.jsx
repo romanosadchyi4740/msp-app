@@ -12,6 +12,7 @@ import LessonCanvas from '../components/rooms/LessonCanvas';
 import LessonPanel from '../components/rooms/LessonPanel';
 import LessonTabDialog from '../components/rooms/LessonTabDialog';
 import ParticipantList from '../components/rooms/ParticipantList';
+import RoomChat from '../components/rooms/RoomChat';
 import useCurrentLesson from '../components/rooms/useCurrentLesson';
 import { startSyncEngine } from '../sync/syncEngine';
 import { startMetronome } from '../sync/metronome';
@@ -305,6 +306,8 @@ function RoomPage({ id }) {
           {open && <AudioPanel />}
 
           <ParticipantList participants={room.participants} capacity={room.capacity} userId={userId} />
+
+          <RoomChat roomId={room.id} userId={userId} open={open} />
         </aside>
       </div>
 
