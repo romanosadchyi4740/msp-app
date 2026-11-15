@@ -105,6 +105,48 @@ const useRoomStore = create(
         }
       },
 
+      /**
+       * Starts the room's lesson with a tab (host only); returns the lesson, or `null` on failure. The picked tab is
+       * forgotten once a lesson runs with it.
+       */
+      startLesson: async (id, tabId) => {
+        try {
+          const response = await axiosClient.post(`/api/rooms/${id}/sessions`, { tabId });
+          const { [plannedKey(id)]: _started, ...plannedTabs } = get().plannedTabs;
+          set({ plannedTabs });
+          return response.data;
+        } catch (error) {
+          console.error('Failed to start lesson:', error);
+          return null;
+        }
+      },
+
+      /**
+       * Puts another tab on screen in the active lesson (host only); returns the lesson, or `null` on failure.
+       */
+      changeLessonTab: async (id, tabId) => {
+        try {
+          const response = await axiosClient.put(`/api/rooms/${id}/sessions/current/tab`, { tabId });
+          return response.data;
+        } catch (error) {
+          console.error('Failed to change the lesson tab:', error);
+          return null;
+        }
+      },
+
+      /**
+       * Ends the active lesson (host only); returns the ended lesson, or `null` on failure.
+       */
+      endLesson: async (id) => {
+        try {
+          const response = await axiosClient.post(`/api/rooms/${id}/sessions/current/end`);
+          return response.data;
+        } catch (error) {
+          console.error('Failed to end lesson:', error);
+          return null;
+        }
+      },
+
       leaveRoom: async (id) => {
         try {
           await axiosClient.post(`/api/rooms/${id}/leave`);

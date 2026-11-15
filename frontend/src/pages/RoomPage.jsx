@@ -1,54 +1,62 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Crown, Loader2, LogOut, User } from 'lucide-react';
+import { Loader2, LogOut, Play } from 'lucide-react';
 import useRoomStore, { plannedTabOf } from '../store/roomStore';
 import useAuthStore from '../store/authStore';
 import InviteLink from '../components/rooms/InviteLink';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
-import { badgeClass, errorMessage, secondaryButtonClass, sectionTitleClass } from '../components/rooms/roomStyles';
+import {
+  badgeClass, errorMessage, primaryButtonClass, secondaryButtonClass, sectionTitleClass,
+} from '../components/rooms/roomStyles';
 import LessonCanvas from '../components/rooms/LessonCanvas';
+import LessonPanel from '../components/rooms/LessonPanel';
+import LessonTabDialog from '../components/rooms/LessonTabDialog';
+import ParticipantList from '../components/rooms/ParticipantList';
+import useCurrentLesson from '../components/rooms/useCurrentLesson';
 import { startSyncEngine } from '../sync/syncEngine';
 import { startMetronome } from '../sync/metronome';
 import { installSyncDebugHook } from '../sync/syncDebug';
 import SyncDebugOverlay from '../components/rooms/SyncDebugOverlay';
 import AudioPanel from '../components/rooms/AudioPanel';
 import socketClient from '../api/socketClient';
-import useRtcStore from '../store/rtcStore';
 import { setRoomParticipants, startRtcMesh } from '../rtc/rtcMesh';
 import { installRtcDebugHook } from '../rtc/rtcDebug';
 import { startQualityMonitor } from '../rtc/qualityMonitor';
-import ConnectionQuality from '../components/rooms/ConnectionQuality';
+
+const FREE_LIMIT_NOTE = 'On the free plan a lesson lasts up to 40 minutes, counted from its start.';
 
 /**
- * What the list says about the audio connection to a participant.
+ * A room the user is in (KAN-50): the lesson's tab in the middle, following the shared position (KAN-42); beside it
+ * the lesson controls (the host's, read-only for the others) with the time left, the invite link, the audio
+ * (KAN-47) and who is in the room with their connection quality (KAN-48). The host starts the lesson, changes its
+ * tab and ends it here; everything follows without a reload.
+ *
+ * Mounted afresh for every room id, so nothing of one room (an open dialog, a pending start) carries over to the next.
  */
-function audioLabel(participant, peer) {
-  if (peer?.state === 'connected') return 'audio connected';
-  if (!participant.online) return 'offline';
-  if (peer?.state === 'failed' || peer?.state === 'disconnected') return 'reconnecting audio';
-  return 'connecting audio';
+export default function RoomPageRoute() {
+  const { id } = useParams();
+  return <RoomPage key={id} id={id} />;
 }
 
-/**
- * A room the user is in: who is in it and has it open, the invite link for the host, the tab picked for the lesson,
- * and leaving. The active lesson's tab follows the shared position (KAN-42), the participants hear each other
- * (KAN-47) and see how good their connections are (KAN-48); the host's lesson controls come with the full room page.
- */
-export default function RoomPage() {
-  const { id } = useParams();
+function RoomPage({ id }) {
   // ?debug=1 shows the sync figures and exposes the hook the drift test reads (KAN-44)
   const [searchParams] = useSearchParams();
   const debug = searchParams.get('debug') === '1';
   const navigate = useNavigate();
   const fetchRoom = useRoomStore((state) => state.fetchRoom);
   const leaveRoom = useRoomStore((state) => state.leaveRoom);
+  const startLesson = useRoomStore((state) => state.startLesson);
+  const changeLessonTab = useRoomStore((state) => state.changeLessonTab);
+  const endLesson = useRoomStore((state) => state.endLesson);
   const plannedTab = useRoomStore((state) => plannedTabOf(state, id));
   const userId = useAuthStore((state) => state.user?.userId);
   // The room of the id it was loaded for, so another room shows the spinner until its own data arrives
   const [loaded, setLoaded] = useState({ id: null, room: null, error: null });
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const audioPeers = useRtcStore((state) => state.peers);
+  // Which dialog is open: 'start' (pick a tab and start), 'change' (another tab), 'end' (confirm ending)
+  const [dialog, setDialog] = useState(null);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     let current = true;
@@ -71,6 +79,8 @@ export default function RoomPage() {
   // The room's id as the server spells it, once it confirmed the user is in the room: the STOMP guard closes the
   // connection on a room topic of anyone else, or of an id in another spelling
   const roomId = room?.id;
+  const isHost = room?.myRole === 'HOST';
+  const { lesson, error: lessonError, loaded: lessonLoaded, reload: reloadLesson } = useCurrentLesson(roomId, { isHost });
 
   // The shared lesson playback and its metronome, on the synced server clock, while the room is open
   useEffect(() => {
@@ -161,6 +171,33 @@ export default function RoomPage() {
     }
   };
 
+  // The lesson events reload the lesson for everyone; the host's own change shows at once, without waiting for them
+  const start = async (tab) => {
+    const started = await startLesson(roomId, tab.id);
+    if (started) {
+      setDialog(null);
+      reloadLesson(started);
+    }
+    return Boolean(started);
+  };
+  const startPlanned = async () => {
+    setStarting(true);
+    await start(plannedTab);
+    setStarting(false);
+  };
+  const changeTab = async (tab) => {
+    const changed = await changeLessonTab(roomId, tab.id);
+    if (changed) {
+      setDialog(null);
+      reloadLesson(changed);
+    }
+    return Boolean(changed);
+  };
+  const end = async () => {
+    setDialog(null);
+    if (await endLesson(roomId)) reloadLesson(null);
+  };
+
   if (error) {
     return (
       <div className="max-w-md space-y-4 pt-12">
@@ -174,7 +211,6 @@ export default function RoomPage() {
     return <Loader2 size={20} className="animate-spin text-zinc-500" />;
   }
 
-  const isHost = room.myRole === 'HOST';
   const open = room.status === 'OPEN';
   const others = room.participants.length - 1;
   const leaveMessage = isHost && open
@@ -183,11 +219,51 @@ export default function RoomPage() {
       : 'You are the last one in the room, so it closes.')
     : 'You can come back with the invite link while the room is open.';
 
+  let placeholder;
+  if (!open) {
+    placeholder = 'The room is closed.';
+  } else if (!lessonLoaded) {
+    placeholder = <Loader2 size={20} className="animate-spin" />;
+  } else if (lessonError) {
+    placeholder = lessonError;
+  } else if (!isHost) {
+    placeholder = 'Waiting for the host to start the lesson.';
+  } else {
+    placeholder = (
+      <div className="max-w-sm space-y-4">
+        {plannedTab ? (
+          <>
+            <p>
+              Start the lesson with <span className="font-bold text-zinc-900 dark:text-white">{plannedTab.title}</span>
+              {plannedTab.artist && ` · ${plannedTab.artist}`} when everyone is here.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button type="button" onClick={startPlanned} disabled={starting} className={primaryButtonClass}>
+                {starting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} Start lesson
+              </button>
+              <button type="button" onClick={() => setDialog('start')} disabled={starting} className={secondaryButtonClass}>
+                Another tab
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p>Pick a tab and start the lesson when everyone is here.</p>
+            <button type="button" onClick={() => setDialog('start')} className={`${primaryButtonClass} mx-auto`}>
+              <Play size={14} /> Pick a tab and start
+            </button>
+          </>
+        )}
+        <p className="text-xs">{FREE_LIMIT_NOTE}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl space-y-12 pb-32">
-      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-zinc-200 pb-8 dark:border-zinc-800">
+    <div className="space-y-8 pb-32">
+      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-zinc-200 pb-6 dark:border-zinc-800">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter">{room.name}</h1>
+          <h1 className="text-4xl font-black tracking-tighter">{room.name}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className={badgeClass}>{isHost ? 'You host' : 'Participant'}</span>
             {!open && <span className={badgeClass}>Closed</span>}
@@ -201,61 +277,62 @@ export default function RoomPage() {
         </button>
       </header>
 
-      {isHost && open && room.inviteCode && (
-        <section className="space-y-3">
-          <h2 className={sectionTitleClass}>Invite link</h2>
-          <InviteLink code={room.inviteCode} />
-        </section>
-      )}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-3">
+          <LessonCanvas lesson={open ? lesson : null} placeholder={placeholder} />
+          {debug && <SyncDebugOverlay />}
+        </div>
 
-      {isHost && plannedTab && (
-        <section className="space-y-2">
-          <h2 className={sectionTitleClass}>Tab for the lesson</h2>
-          <Link to={`/tabs/${plannedTab.id}`} className="text-sm font-bold underline underline-offset-4">
-            {plannedTab.title}
-          </Link>
-          {plannedTab.artist && <span className="text-sm text-zinc-500 dark:text-zinc-400"> · {plannedTab.artist}</span>}
-        </section>
-      )}
+        <aside className="space-y-10">
+          {open && lesson && (
+            <LessonPanel
+              key={lesson.id}
+              roomId={room.id}
+              lesson={lesson}
+              isHost={isHost}
+              onChangeTab={() => setDialog('change')}
+              onEndLesson={() => setDialog('end')}
+            />
+          )}
 
-      <LessonCanvas roomId={room.id} />
-      {debug && <SyncDebugOverlay />}
+          {isHost && open && room.inviteCode && (
+            <section className="space-y-3">
+              <h2 className={sectionTitleClass}>Invite link</h2>
+              <InviteLink code={room.inviteCode} />
+            </section>
+          )}
 
-      {open && <AudioPanel />}
+          {open && <AudioPanel />}
 
-      <section className="space-y-3">
-        <h2 className={sectionTitleClass}>Participants</h2>
-        <ul className="space-y-2">
-          {room.participants.map((participant) => (
-            <li key={participant.userId} className="flex items-center gap-4 border border-zinc-200 p-3 dark:border-zinc-800">
-              {participant.role === 'HOST'
-                ? <Crown size={18} className="shrink-0" aria-label="Host" />
-                : <User size={18} className="shrink-0 text-zinc-500 dark:text-zinc-400" />}
-              <Link to={`/users/${participant.userId}`} className="min-w-0 flex-1 truncate text-sm font-bold hover:underline">
-                {participant.displayName || 'Unknown'}
-              </Link>
-              {participant.userId === userId && <span className="text-xs text-zinc-500 dark:text-zinc-400">you</span>}
-              {participant.userId !== userId && (
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {audioLabel(participant, audioPeers[participant.userId])}
-                </span>
-              )}
-              {participant.userId !== userId && <ConnectionQuality peer={audioPeers[participant.userId]} />}
-              {/* The last report of someone who closed the room says nothing about now */}
-              {participant.online && typeof participant.rttMs === 'number' && (
-                <span
-                  className="text-xs text-zinc-500 dark:text-zinc-400"
-                  title="This participant's average round trip to the others, as their browser reported it"
-                >
-                  avg {participant.rttMs} ms
-                </span>
-              )}
-              {participant.role === 'HOST' && <span className={badgeClass}>Host</span>}
-            </li>
-          ))}
-        </ul>
-      </section>
+          <ParticipantList participants={room.participants} capacity={room.capacity} userId={userId} />
+        </aside>
+      </div>
 
+      <LessonTabDialog
+        isOpen={dialog === 'start' && isHost && open && !lesson}
+        title="Start the lesson"
+        confirmText="Start lesson"
+        note={FREE_LIMIT_NOTE}
+        initialTab={plannedTab ?? null}
+        onConfirm={start}
+        onCancel={() => setDialog(null)}
+      />
+      <LessonTabDialog
+        isOpen={dialog === 'change' && isHost && open && Boolean(lesson)}
+        title="Change the tab"
+        confirmText="Show this tab"
+        note="Playback starts over from the first measure, stopped, at the new tab's tempo."
+        onConfirm={changeTab}
+        onCancel={() => setDialog(null)}
+      />
+      <ConfirmDialog
+        isOpen={dialog === 'end' && isHost && Boolean(lesson)}
+        title="End the lesson?"
+        message="The lesson ends for everyone. The room stays open, so you can start another one."
+        confirmText="End lesson"
+        onConfirm={end}
+        onCancel={() => setDialog(null)}
+      />
       <ConfirmDialog
         isOpen={confirmLeave}
         title="Leave the room?"
