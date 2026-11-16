@@ -175,7 +175,7 @@ function TabView({ id }) {
             >
               {saving && <Loader2 size={14} className="animate-spin" />} Save
             </button>
-            <button type="button" onClick={() => setEditing(false)} className="px-5 py-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+            <button type="button" onClick={() => setEditing(false)} className="px-5 py-2 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
               Cancel
             </button>
           </div>

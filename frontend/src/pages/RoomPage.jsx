@@ -19,6 +19,7 @@ import { startMetronome } from '../sync/metronome';
 import { installSyncDebugHook } from '../sync/syncDebug';
 import SyncDebugOverlay from '../components/rooms/SyncDebugOverlay';
 import AudioPanel from '../components/rooms/AudioPanel';
+import RoomHints from '../components/rooms/RoomHints';
 import socketClient from '../api/socketClient';
 import { setRoomParticipants, startRtcMesh } from '../rtc/rtcMesh';
 import { installRtcDebugHook } from '../rtc/rtcDebug';
@@ -277,6 +278,8 @@ function RoomPage({ id }) {
           {leaving ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />} Leave room
         </button>
       </header>
+
+      {open && <RoomHints isHost={isHost} roomPath={`/rooms/${room.id}`} />}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-3">
