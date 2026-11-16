@@ -37,12 +37,19 @@ The owner reviews and merges every PR. Move the Jira ticket with the work, never
   `Remove-Item target/surefire-reports -Recurse -Force -ErrorAction SilentlyContinue; .\mvnw.cmd -q test`, then
   `$t=0;$f=0;$e=0;$s=0; Get-ChildItem target/surefire-reports/TEST-*.xml | % { [xml]$x = Get-Content $_; $n=$x.testsuite; $t+=[int]$n.tests; $f+=[int]$n.failures; $e+=[int]$n.errors; $s+=[int]$n.skipped }; "$t run, $f failures, $e errors, $s skipped"`.
   (Totals in PRs #42-#45 were about 19 too high because of such stale reports.)
+  Run it with an absolute `Set-Location '<repo>\backend'`: the PowerShell tool keeps the last directory, and a
+  relative `cd backend` from `frontend/` fails while the totals line still prints `0 run`.
+- Every integration test erroring at once with `Could not find a valid Docker environment` (Testcontainers) is the
+  machine, not the code: Docker stopped answering, typically under memory pressure (a 35-minute `npm run build`
+  is the same sign). Check `docker ps`, wait until it answers, and run the suite again; never report such a run as
+  failures or count it.
 - Frontend changes: from `frontend/`, `npm test` (node:test unit tests), `npm run build`, and
   `npx eslint <changed files>` must be clean. Changes to the sync engine, clock sync or metronome also run
   `npm run test:e2e` (Playwright drift test; needs the backend running) and report its p95.
   `npm run lint` on the whole tree already fails on `development` (23 problems before KAN-92); report its total and
-  make sure it did not grow. Visible changes are checked in the browser with the `browser-check` skill; new REST
-  endpoints follow the `contract-first-api` skill.
+  make sure it did not grow. Visible changes are checked in the browser with the `browser-check` skill (test data
+  with `seed-test-data`, colours and focus with `a11y-audit`); new REST endpoints follow the `contract-first-api`
+  skill.
 - Windows shell pitfalls:
   - Text containing backslashes (Java string escapes, `ESCAPE '\\'`, regexes, JS) is written with the Edit/Write
     tools. Python heredocs and Bash `echo`/`sed` have mangled them several times. In JS checks run with Node, use
@@ -110,4 +117,6 @@ edit, `gh pr edit <n> --body-file <file>`) so the test count and sections stay t
 ## Scope          <- the change, as bullets
 ## Acceptance     <- observable checks, including the tests to add
 ```
-Report the new keys to the owner. Do not start work on them unless asked.
+Before writing the scope, search the code for the whole pattern, not only the instance that was found (KAN-98 grew
+from two known spots to every `focus:outline-none` without a replacement indicator). Report the new keys to the
+owner. Do not start work on them unless asked.

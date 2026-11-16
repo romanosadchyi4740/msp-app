@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Loader2, Music} from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosClient from '../api/axiosClient';
@@ -17,6 +17,8 @@ const UploadPage = () => {
   // Track Form State
   const [trackTitle, setTrackTitle] = useState('');
   const [trackFile, setTrackFile] = useState(null);
+  // The file input is uncontrolled, so it is cleared through this ref after an upload (KAN-99)
+  const fileInputRef = useRef(null);
   const [trackDuration, setTrackDuration] = useState(0);
   const [selectedAlbumId, setSelectedAlbumId] = useState('');
   const [selectedGenres, setSelectedGenres] = useState([]);
@@ -30,9 +32,13 @@ const UploadPage = () => {
   }, []);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
+    // Follows the input exactly: a cancelled picker leaves it empty, and the state must not keep the old file
+    const file = e.target.files[0] ?? null;
+    setTrackFile(file);
+    if (!file) {
+      setTrackDuration(0);
+    }
     if (file) {
-      setTrackFile(file);
       
       const audio = new Audio();
       audio.src = URL.createObjectURL(file);
@@ -97,7 +103,10 @@ const UploadPage = () => {
 
   const handleUploadTrack = async (e) => {
     e.preventDefault();
-    if (!trackFile || !selectedAlbumId || selectedGenres.length === 0) return;
+    if (!trackFile || !selectedAlbumId || selectedGenres.length === 0) {
+      setMessage({ type: 'error', text: 'Choose an audio file, an archive and at least one genre.' });
+      return;
+    }
 
     setUploadingTrack(true);
     setMessage({ type: '', text: '' });
@@ -126,6 +135,7 @@ const UploadPage = () => {
       toast.success('TRANSMISSION_COMPLETE: Node synchronized.');
       setTrackTitle('');
       setTrackFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setTrackDuration(0);
       setSelectedGenres([]);
       setUploadProgress(0);
@@ -276,6 +286,7 @@ const UploadPage = () => {
                   type="file"
                   accept="audio/*"
                   onChange={handleFileChange}
+                  ref={fileInputRef}
                   className="sr-only peer"
                   id="track-upload"
                 />
