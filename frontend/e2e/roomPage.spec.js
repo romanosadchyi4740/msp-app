@@ -8,7 +8,8 @@ import { startLatencyProxy } from './latencyProxy.js';
  * picks a tab and starts the lesson, plays and pauses, goes to a measure, changes the tempo and switches the
  * metronome, with the buttons and with the keyboard, changes the tab and ends the lesson; the participant sees every
  * change without a reload and has no controls that work. Then both chat in the room (KAN-51): messages arrive live,
- * stay after a reload, and someone outside the room cannot read them.
+ * stay after a reload, and someone outside the room cannot read them. A command the server refuses shows its
+ * message to the host alone (KAN-96).
  */
 
 // 32 measures of 4/4
@@ -21,6 +22,7 @@ let proxy;
 let api;
 const users = [];
 let roomId;
+let firstTabId;
 
 test.beforeAll(async () => {
   proxy = await startLatencyProxy({
@@ -34,10 +36,11 @@ test.beforeAll(async () => {
   }
   const [host, participant] = users;
   for (const [title, tempoBpm, fret] of [[FIRST_TAB, 120, 0], [SECOND_TAB, 90, 2]]) {
-    await post('/api/tabs', host, {
+    const tab = await post('/api/tabs', host, {
       title, artist: 'E2E', tempoBpm, timeSignature: '4/4', isPublic: false, rightsConfirmed: true,
       rawText: rawTab(fret),
     });
+    firstTabId ??= tab.id;
   }
   const room = await post('/api/rooms', host, { name: 'Room page check' });
   roomId = room.id;
@@ -174,6 +177,37 @@ test('participants chat in the room, live and from the history (KAN-51)', async 
   const response = await api.get(`/api/rooms/${roomId}/messages`,
     { headers: { Authorization: `Bearer ${outsider.token}` } });
   expect(response.status()).toBe(404);
+});
+
+test('a refused command shows its message to the host only (KAN-96)', async ({ browser }) => {
+  const [host] = users;
+  await post(`/api/rooms/${roomId}/sessions`, host, { tabId: firstTabId });
+  // The host's page has the debug hook, which sends a command the controls never would
+  const [hostPage, participantPage] = await Promise.all(users.map(async (user, index) => {
+    const context = await browser.newContext();
+    await context.addInitScript(({ token, profile }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(profile));
+    }, { token: user.token, profile: user.profile });
+    const page = await context.newPage();
+    await page.goto(index === 0 ? `/rooms/${roomId}?debug=1` : `/rooms/${roomId}`);
+    return page;
+  }));
+  for (const page of [hostPage, participantPage]) {
+    await expect(page.locator('[data-tempo]')).toHaveText('120', { timeout: 20_000 });
+  }
+  await hostPage.waitForFunction(() => window.__syncchord?.ready());
+
+  await hostPage.evaluate(() => window.__syncchord.send('SET_TEMPO', 500));
+
+  const refusal = 'Tempo must be between 20 and 400 beats per minute';
+  await expect(hostPage.getByText(refusal)).toBeVisible();
+  await expect(participantPage.getByText(refusal)).toHaveCount(0);
+  for (const page of [hostPage, participantPage]) await expect(page.locator('[data-tempo]')).toHaveText('120');
+
+  const ended = await api.post(`/api/rooms/${roomId}/sessions/current/end`,
+    { headers: { Authorization: `Bearer ${host.token}` } });
+  expect(ended.ok()).toBeTruthy();
 });
 
 async function register(displayName) {
