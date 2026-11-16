@@ -54,7 +54,7 @@ const SearchPage = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="INPUT SEARCH QUERY..."
-            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-16 py-6 text-xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all"
+            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-16 py-6 text-xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all"
           />
           {query && (
             <button onClick={() => setQuery('')} className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">

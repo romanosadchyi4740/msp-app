@@ -300,7 +300,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isDeleting}
-                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-500/50 dark:border-red-900 text-red-600 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-500/50 dark:border-red-900 text-red-600 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-700 hover:text-white dark:hover:text-white transition-all"
               >
                 {isDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
                 Dismantle Instance
@@ -414,7 +414,7 @@ const PlaylistPage = () => {
                   <div className="w-10 flex justify-end">
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleRemoveTrack(track.id); }}
-                      className="text-zinc-600 dark:text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
+                      className="text-zinc-600 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-500 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-all p-1"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -435,7 +435,7 @@ const PlaylistPage = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="SEARCH CATALOG..."
-              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 pl-12 pr-6 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
             />
           </div>
 

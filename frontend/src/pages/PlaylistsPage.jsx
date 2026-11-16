@@ -113,7 +113,7 @@ const PlaylistsPage = () => {
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
                 placeholder="COLLECTION TITLE"
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             <div className="space-y-2">
@@ -122,7 +122,7 @@ const PlaylistsPage = () => {
                 value={newDesc}
                 onChange={e => setNewDesc(e.target.value)}
                 placeholder="DESCRIPTION"
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             <button 

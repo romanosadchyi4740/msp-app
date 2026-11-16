@@ -170,7 +170,7 @@ const ChatPage = () => {
               placeholder="SEARCH IDENTITIES..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-2.5 pl-10 pr-4 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-2.5 pl-10 pr-4 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
             />
           </div>
         </div>
@@ -417,7 +417,7 @@ const ChatPage = () => {
                 )}
                 <form 
                   onSubmit={handleSend}
-                  className="flex items-center gap-4 border border-zinc-200 dark:border-zinc-800 p-1 bg-white dark:bg-zinc-900 m-8 mt-6"
+                  className="flex items-center gap-4 border border-zinc-200 dark:border-zinc-800 focus-within:border-zinc-900 dark:focus-within:border-white transition-colors p-1 bg-white dark:bg-zinc-900 m-8 mt-6"
                 >
                   <input 
                     type="file"
@@ -438,7 +438,7 @@ const ChatPage = () => {
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="INPUT TRANSMISSION..." 
-                    className="flex-1 bg-transparent px-2 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                    className="flex-1 bg-transparent px-2 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
                   />
                   <button 
                     type="submit"

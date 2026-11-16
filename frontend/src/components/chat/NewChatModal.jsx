@@ -98,7 +98,7 @@ const NewChatModal = ({ onClose, onSelectUser, onCreateCluster }) => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="SEARCH IDENTITIES..."
-                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
                 />
               </div>
               {step === '2B' && selectedUsers.length > 0 && (
@@ -195,7 +195,7 @@ const NewChatModal = ({ onClose, onSelectUser, onCreateCluster }) => {
                 value={clusterName}
                 onChange={(e) => setClusterName(e.target.value)}
                 placeholder="CLUSTER_NAME"
-                className="w-full bg-transparent border-b-2 border-zinc-200 dark:border-zinc-800 py-4 px-4 text-center text-lg font-black uppercase tracking-[0.3em] focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-300 dark:placeholder-zinc-800"
+                className="w-full bg-transparent border-b-2 border-zinc-200 dark:border-zinc-800 py-4 px-4 text-center text-lg font-black uppercase tracking-[0.3em] focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-300 dark:placeholder-zinc-800"
               />
             </div>
 

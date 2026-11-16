@@ -131,7 +131,7 @@ const TelemetryPage = () => {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="INPUT SIGNAL DATA..."
-            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-4 text-sm font-medium focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 mb-4 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-4 text-sm font-medium focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 mb-4 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
           />
 
           {showPoll && (
@@ -150,7 +150,7 @@ const TelemetryPage = () => {
                 value={pollQuestion}
                 onChange={(e) => setPollQuestion(e.target.value)}
                 placeholder="QUERY PARAMETERS..."
-                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-xs font-bold focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-xs font-bold focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
 
               <div className="space-y-2">
@@ -160,12 +160,12 @@ const TelemetryPage = () => {
                       value={opt}
                       onChange={(e) => handlePollOptionChange(index, e.target.value)}
                       placeholder={`OPTION_0${index + 1}`}
-                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-xs font-bold focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-xs font-bold focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
                     />
                     {pollOptions.length > 2 && (
                       <button 
                         onClick={() => handleRemovePollOption(index)}
-                        className="w-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 hover:border-red-500 hover:text-red-500 text-zinc-600 dark:text-zinc-400 transition-colors"
+                        className="w-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 hover:border-red-500 dark:hover:border-red-500 hover:text-red-500 dark:hover:text-red-500 text-zinc-600 dark:text-zinc-400 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -195,12 +195,12 @@ const TelemetryPage = () => {
               </button>
               
               {myTracks.length > 0 && (
-                <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 px-3 py-2 bg-zinc-50 dark:bg-zinc-950">
+                <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 focus-within:border-zinc-900 dark:focus-within:border-white transition-colors px-3 py-2 bg-zinc-50 dark:bg-zinc-950">
                   <Music size={12} className="text-zinc-600 dark:text-zinc-400" />
                   <select
                     value={selectedTrackId}
                     onChange={(e) => setSelectedTrackId(e.target.value)}
-                    className="bg-transparent text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white focus:outline-none appearance-none"
+                    className="bg-transparent text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white focus:outline-hidden appearance-none"
                   >
                     <option value="" className="text-zinc-600 dark:text-zinc-400">ATTACH TRANSMISSION (OPTIONAL)</option>
                     {myTracks.map(t => (
