@@ -109,7 +109,7 @@ const SettingsPage = () => {
               name="displayName"
               value={formData.displayName}
               onChange={handleChange}
-              className="w-full bg-transparent border border-border p-4 text-sm focus:outline-none focus:border-white transition-colors uppercase font-bold"
+              className="w-full bg-transparent border border-border p-4 text-sm focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors uppercase font-bold"
               placeholder="ENTER DISPLAY NAME"
               required
             />
@@ -123,7 +123,7 @@ const SettingsPage = () => {
               value={formData.biography}
               onChange={handleChange}
               rows={5}
-              className="w-full bg-transparent border border-border p-4 text-sm focus:outline-none focus:border-white transition-colors uppercase font-medium leading-relaxed resize-none"
+              className="w-full bg-transparent border border-border p-4 text-sm focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors uppercase font-medium leading-relaxed resize-none"
               placeholder="WRITE YOUR BIOGRAPHY..."
             />
           </div>
@@ -136,7 +136,7 @@ const SettingsPage = () => {
               name="avatarUrl"
               value={formData.avatarUrl}
               onChange={handleChange}
-              className="w-full bg-transparent border border-border p-4 text-sm focus:outline-none focus:border-white transition-colors"
+              className="w-full bg-transparent border border-border p-4 text-sm focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors"
               placeholder="https://example.com/avatar.jpg"
             />
           </div>
@@ -201,7 +201,7 @@ const SettingsPage = () => {
           </div>
           <button 
             onClick={() => setIsTerminateModalOpen(true)}
-            className="px-8 py-3 border border-red-900 text-red-700 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
+            className="px-8 py-3 border border-red-900 text-red-700 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-700 hover:text-white dark:hover:text-white transition-all whitespace-nowrap"
           >
             Terminate Identity
           </button>

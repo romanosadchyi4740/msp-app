@@ -173,7 +173,7 @@ const UploadPage = () => {
                 value={albumTitle}
                 onChange={(e) => setAlbumTitle(e.target.value)}
                 placeholder="INPUT TITLE..."
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             <div className="space-y-3">
@@ -182,7 +182,7 @@ const UploadPage = () => {
                 value={albumDesc}
                 onChange={(e) => setAlbumDesc(e.target.value)}
                 placeholder="INPUT DATA..."
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 h-32 resize-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 h-32 resize-none"
               />
             </div>
             <div className="space-y-3">
@@ -191,7 +191,7 @@ const UploadPage = () => {
                 value={albumCoverUrl}
                 onChange={(e) => setAlbumCoverUrl(e.target.value)}
                 placeholder="HTTPS://IMAGE.SOURCE"
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             <button 
@@ -216,7 +216,7 @@ const UploadPage = () => {
                 required
                 value={selectedAlbumId}
                 onChange={(e) => setSelectedAlbumId(e.target.value)}
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-900 dark:text-white appearance-none rounded-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-[10px] font-bold uppercase tracking-widest text-zinc-900 dark:text-white appearance-none rounded-none"
               >
                 <option value="" className="bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400">SELECT ARCHIVE...</option>
                 {myAlbums.map(album => (
@@ -231,7 +231,7 @@ const UploadPage = () => {
                 value={trackTitle}
                 onChange={(e) => setTrackTitle(e.target.value)}
                 placeholder="INPUT TITLE..."
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-4 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-xs font-bold uppercase tracking-widest text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             
@@ -270,17 +270,18 @@ const UploadPage = () => {
             <div className="space-y-3">
               <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Source File</label>
               <div className="relative">
+                {/* Visually hidden but focusable, so the keyboard can open the file picker (KAN-98) */}
                 <input 
                   required
                   type="file"
                   accept="audio/*"
                   onChange={handleFileChange}
-                  className="hidden"
+                  className="sr-only peer"
                   id="track-upload"
                 />
                 <label 
                   htmlFor="track-upload"
-                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-5 focus:outline-none border-dashed hover:border-zinc-900 dark:hover:border-white transition-all text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 cursor-pointer text-zinc-600 dark:text-zinc-400"
+                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-6 py-5 border-dashed hover:border-zinc-900 dark:hover:border-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-zinc-900 dark:peer-focus-visible:outline-white transition-all text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 cursor-pointer text-zinc-600 dark:text-zinc-400"
                 >
                   <Music size={14} />
                   {trackFile ? trackFile.name.toUpperCase() : 'UPLOAD AUDIO (.MP3)'}

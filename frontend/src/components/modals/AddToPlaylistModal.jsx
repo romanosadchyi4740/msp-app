@@ -106,7 +106,7 @@ const AddToPlaylistModal = () => {
                  value={newTitle}
                  onChange={e => setNewTitle(e.target.value)}
                  placeholder="COLLECTION TITLE"
-                 className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                 className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
                />
                <button 
                  disabled={isCreating || !newTitle.trim()}

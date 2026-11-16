@@ -57,7 +57,7 @@ const LoginPage = () => {
               <input
                 type="email"
                 required
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors"
                 placeholder="EMAIL@DOMAIN.COM"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -67,7 +67,7 @@ const LoginPage = () => {
               <input
                 type="password"
                 required
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors"
                 placeholder="PASSWORD"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -79,7 +79,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-4 px-4 bg-zinc-900 text-white dark:bg-white dark:text-black text-[11px] font-black uppercase tracking-[0.3em] hover:bg-zinc-800 dark:hover:bg-zinc-200 focus:outline-none transition-colors disabled:opacity-50"
+              className="group relative w-full flex justify-center py-4 px-4 bg-zinc-900 text-white dark:bg-white dark:text-black text-[11px] font-black uppercase tracking-[0.3em] hover:bg-zinc-800 dark:hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white transition-colors disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Execute Login'}
             </button>

@@ -31,7 +31,7 @@ const BroadcastCard = ({ broadcast, onVoteSuccess, onDeleteSuccess }) => {
         <button 
           onClick={handleDelete}
           disabled={isDeleting}
-          className="absolute top-8 right-8 text-zinc-600 dark:text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+          className="absolute top-8 right-8 text-zinc-600 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-500 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-all disabled:opacity-50"
           title="Purge Record"
         >
           {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}

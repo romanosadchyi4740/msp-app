@@ -61,7 +61,7 @@ const TerminateIdentityModal = ({ onClose }) => {
               value={confirmationText}
               onChange={(e) => setConfirmationText(e.target.value)}
               placeholder="CONFIRMATION_STRING"
-              className="w-full bg-zinc-50 dark:bg-black border border-red-200 dark:border-red-900/30 p-4 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-red-600 dark:focus:border-red-500 transition-all text-red-600 dark:text-red-500 placeholder-red-300 dark:placeholder-red-950"
+              className="w-full bg-zinc-50 dark:bg-black border border-red-200 dark:border-red-900/30 p-4 text-xs font-black uppercase tracking-widest focus:outline-hidden focus:border-red-600 dark:focus:border-red-500 transition-all text-red-600 dark:text-red-500 placeholder-red-300 dark:placeholder-red-950"
             />
           </div>
 
