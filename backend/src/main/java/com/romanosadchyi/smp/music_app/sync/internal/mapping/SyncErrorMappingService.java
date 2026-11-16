@@ -12,7 +12,8 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
 /**
- * Turns a failed sync command into the error its sender gets on {@code /user/queue/errors}, with the same body and
+ * Turns a failed sync command or snapshot into the error its sender gets (a command on
+ * {@code /user/queue/rooms/{roomId}/command-errors}, a snapshot on {@code /user/queue/errors}), with the same body and
  * codes as the REST API's {@code GlobalExceptionHandler}.
  */
 @Slf4j

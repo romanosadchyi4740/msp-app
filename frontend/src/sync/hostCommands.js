@@ -7,15 +7,12 @@ import socketClient from '../api/socketClient';
  * back on the room's state topic like everyone else's, so the controls show what the server applied, never what was
  * sent.
  *
- * A refused command is answered on `/user/queue/errors`, which carries no hint of what failed and is shared with the
- * signaling of the audio connections. An error is shown only when it comes within a few seconds of a command sent
- * from this browser, so the audio's errors do not pop up as if a button had failed.
+ * A refused command is answered on the sender's `/user/queue/rooms/{roomId}/command-errors` (KAN-96), a queue only
+ * command errors use, so every error there is shown, however late it arrives, and the errors of the audio
+ * connections' signaling or of the snapshot (on `/user/queue/errors`) never look like a failed button. The sync
+ * engine's automatic REQUEST_SYNC is a command too, so in the rare case it fails (the room closing meanwhile) that
+ * error shows here as well.
  */
-
-/** How long after a command an error on the queue is taken to be its answer. */
-const ERROR_WINDOW_MS = 3000;
-
-let lastCommandAt = -Infinity;
 
 /**
  * Sends a command; returns false (and says so) when there is no connection to send it over.
@@ -25,21 +22,26 @@ export function sendHostCommand(roomId, type, argument = null) {
     toast.error('Not connected to the room; the command was not sent.');
     return false;
   }
-  lastCommandAt = performance.now();
   socketClient.sendMessage(`/rooms/${roomId}/command`,
     { type, argument: argument === null ? null : String(argument), clientTime: Date.now() });
   return true;
 }
 
 /**
- * Shows the errors that answer this browser's commands while the host controls are on screen; returns the function
- * that stops it.
+ * The queue the server answers this user's refused commands in the room on.
  */
-export function watchCommandErrors() {
+export function commandErrorDestination(roomId) {
+  return `/user/queue/rooms/${roomId}/command-errors`;
+}
+
+/**
+ * Shows the errors that answer this user's commands in the room while the host controls are on screen; subscribes
+ * again on every (re)connect and returns the function that stops it.
+ */
+export function watchCommandErrors(roomId) {
   let subscription = null;
   const stopListening = socketClient.onConnect(() => {
-    subscription = socketClient.subscribe('/user/queue/errors', (error) => {
-      if (performance.now() - lastCommandAt > ERROR_WINDOW_MS) return;
+    subscription = socketClient.subscribe(commandErrorDestination(roomId), (error) => {
       toast.error(error?.message || 'The command was refused.');
     });
   });

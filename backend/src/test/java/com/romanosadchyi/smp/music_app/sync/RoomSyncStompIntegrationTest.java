@@ -75,7 +75,7 @@ class RoomSyncStompIntegrationTest {
         Client student = connect(lesson.student().bearer());
         Client host = connect(lesson.host().bearer());
         BlockingQueue<Map<String, Object>> studentState = subscribe(student.session(), stateTopic(lesson));
-        BlockingQueue<Map<String, Object>> studentErrors = subscribe(student.session(), "/user/queue/errors");
+        BlockingQueue<Map<String, Object>> studentErrors = subscribe(student.session(), commandErrors(lesson));
         BlockingQueue<Map<String, Object>> studentSnapshots = subscribe(student.session(),
                 "/user/queue/rooms/" + lesson.roomId() + "/snapshot");
         BlockingQueue<Map<String, Object>> joinSnapshot = subscribe(student.session(),
@@ -108,10 +108,51 @@ class RoomSyncStompIntegrationTest {
         assertThat(map(synced.get("playback"))).containsEntry("status", "PLAYING");
 
         // An invalid command is a bad request for the host
-        BlockingQueue<Map<String, Object>> hostErrors = subscribe(host.session(), "/user/queue/errors");
+        BlockingQueue<Map<String, Object>> hostErrors = subscribe(host.session(), commandErrors(lesson));
         Thread.sleep(SUBSCRIBE_SETTLE_MS);
         host.session().send(commandDestination(lesson), Map.of("type", "SEEK", "argument", "zero"));
         assertThat(poll(hostErrors)).containsEntry("code", "400 BAD_REQUEST");
+    }
+
+    @Test
+    void command_Refused_AnswersOnlyTheSendersCommandErrorQueue() throws Exception {
+        Lesson lesson = startLessonWithStudent();
+        Lesson otherLesson = startLessonWithStudent();
+        Client host = connect(lesson.host().bearer());
+        Client student = connect(lesson.student().bearer());
+        Client otherHost = connect(otherLesson.host().bearer());
+        BlockingQueue<Map<String, Object>> hostCommandErrors = subscribe(host.session(), commandErrors(lesson));
+        BlockingQueue<Map<String, Object>> hostSharedErrors = subscribe(host.session(), "/user/queue/errors");
+        BlockingQueue<Map<String, Object>> studentCommandErrors = subscribe(student.session(), commandErrors(lesson));
+        // A user queue is the subscriber's own, so someone outside the room hears nothing on it either
+        BlockingQueue<Map<String, Object>> outsiderCommandErrors = subscribe(otherHost.session(),
+                commandErrors(lesson));
+        Thread.sleep(SUBSCRIBE_SETTLE_MS);
+
+        host.session().send(commandDestination(lesson), Map.of("type", "SET_TEMPO", "argument", "500"));
+
+        assertThat(poll(hostCommandErrors)).containsEntry("code", "400 BAD_REQUEST")
+                .containsEntry("message", "Tempo must be between 20 and 400 beats per minute");
+        assertThat(hostSharedErrors.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
+        assertThat(studentCommandErrors.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
+        assertThat(outsiderCommandErrors.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
+        assertThat(host.errors()).isEmpty();
+        assertThat(playbackStateService.snapshot(lesson.sessionId()).tempoBpm()).isNotEqualTo(500);
+    }
+
+    @Test
+    void command_ToAnotherRoomsErrorQueueOfTheSender_IsNotRouted() throws Exception {
+        Lesson lesson = startLessonWithStudent();
+        Lesson otherLesson = startLessonWithStudent();
+        Client host = connect(lesson.host().bearer());
+        BlockingQueue<Map<String, Object>> otherRoomsErrors = subscribe(host.session(), commandErrors(otherLesson));
+        BlockingQueue<Map<String, Object>> ownErrors = subscribe(host.session(), commandErrors(lesson));
+        Thread.sleep(SUBSCRIBE_SETTLE_MS);
+
+        host.session().send(commandDestination(lesson), Map.of("type", "SEEK", "argument", "zero"));
+
+        assertThat(poll(ownErrors)).containsEntry("code", "400 BAD_REQUEST");
+        assertThat(otherRoomsErrors.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
     }
 
     @Test
@@ -256,6 +297,10 @@ class RoomSyncStompIntegrationTest {
 
     private static String stateTopic(Lesson lesson) {
         return "/topic/rooms/" + lesson.roomId() + "/state";
+    }
+
+    private static String commandErrors(Lesson lesson) {
+        return "/user/queue/rooms/" + lesson.roomId() + "/command-errors";
     }
 
     private static String commandDestination(Lesson lesson) {

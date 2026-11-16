@@ -45,7 +45,7 @@ export default function LessonPanel({ roomId, lesson, isHost, onChangeTab, onEnd
   const metronomeOn = Boolean(playback?.metronomeOn);
   const controlsOff = !isHost || !playback;
 
-  useEffect(() => (isHost ? watchCommandErrors() : undefined), [isHost]);
+  useEffect(() => (isHost ? watchCommandErrors(roomId) : undefined), [isHost, roomId]);
 
   // The shortcuts read the latest values without listening again on every change
   const shortcutState = useRef(null);

@@ -39,7 +39,9 @@ class RoomStompGuardTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/topic/broadcast/x", "/user/queue/rooms/x/snapshot", "/app/chat", "/topic/roomsx/y"})
+    // A user queue is the subscriber's own, so a room's user queues need no guard (KAN-96)
+    @ValueSource(strings = {"/topic/broadcast/x", "/user/queue/rooms/x/snapshot", "/user/queue/rooms/x/chat-errors",
+            "/user/queue/rooms/x/command-errors", "/app/chat", "/topic/roomsx/y"})
     void guards_NotOtherDestinations(String destination) {
         assertThat(guard.guards(destination)).isFalse();
     }
