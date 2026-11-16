@@ -26,7 +26,7 @@ Start from `tabs.yaml` and keep its shape:
 - Lists that page: an explicit schema with Spring-page-like fields (`TabPage`: `content`, `number`, `size`,
   `numberOfElements`, `totalElements`, `totalPages`, `first`, `last`, `empty`), never Spring's `Page<T>`; the request
   takes `pageNo` and `pageSize` query parameters. Cap the page size in the service (`MAX_PAGE_SIZE`), and escape `%`, `_` and `\` in
-  `LIKE` searches (`TabService.escapeLike` with `ESCAPE '\\'` in the query).
+  `LIKE` searches (`TabQueryService.escapeLike` with `ESCAPE '\\'` in the query).
 - Multipart uploads: `multipart/form-data` with `format: binary` for the file; the method gets `MultipartFile` plus
   one parameter per form field.
 - Name models after what they are in the API (`TabResponse`, `RoomCreateRequest`). They must not clash with the
