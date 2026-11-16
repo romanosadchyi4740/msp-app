@@ -9,7 +9,17 @@
   --color-accent: #f4f4f5;     /* zinc-100 */
 }
 
-:root {
+/* The tokens above follow the theme (KAN-97); App.jsx puts the theme class on the root element. Muted text meets
+   WCAG AA (4.5:1): zinc-500 is 4.1:1 on either page background, so each theme gets its own shade. Surfaces and
+   borders in the light theme match the zinc-100 / zinc-200 the other pages use. */
+:root.light {
+  --color-muted: #52525b;   /* zinc-600 */
+  --color-surface: #f4f4f5; /* zinc-100 */
+  --color-border: #e4e4e7;  /* zinc-200 */
+}
+
+:root.dark {
+  --color-muted: #a1a1aa;   /* zinc-400 */
 }
 
 body {

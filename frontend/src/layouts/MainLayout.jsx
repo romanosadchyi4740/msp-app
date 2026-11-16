@@ -113,10 +113,10 @@ const MainLayout = () => {
         className={`flex items-center gap-4 px-4 py-3 text-sm transition-all duration-200 group ${
           isActive
             ? 'text-zinc-900 dark:text-white font-bold'
-            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+            : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
         }`}
       >
-        <Icon size={18} className={isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'} />
+        <Icon size={18} className={isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'} />
         <span>{item.label}</span>
       </Link>
     );
@@ -146,8 +146,8 @@ const MainLayout = () => {
         {/* Become Artist Promo */}
         {user?.role !== 'ROLE_ARTIST' && (
           <div className="mx-6 mb-8 p-6 border border-zinc-200 dark:border-zinc-800 space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Artist Mode</h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">Artist Mode</h4>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
               Share your music with the community.
             </p>
             <button
@@ -172,20 +172,20 @@ const MainLayout = () => {
               <p className="text-xs font-bold truncate uppercase tracking-tight group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors">
                 {user?.displayName || 'Unknown User'}
               </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">{user?.userId}</p>
+              <p className="text-[10px] text-zinc-600 dark:text-zinc-400 truncate">{user?.userId}</p>
             </div>
           </Link>
           <div className="flex flex-col gap-2">
             <button
               onClick={toggleTheme}
-              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               <span>Invert Polarity</span>
             </button>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
             >
               <LogOut size={16} />
               <span>Logout</span>

@@ -136,14 +136,14 @@ export default function RoomChat({ roomId, userId, open }) {
             type="button"
             onClick={loadOlder}
             disabled={loadingOlder}
-            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
           >
             {loadingOlder && <Loader2 size={12} className="animate-spin" />} Load earlier
           </button>
         )}
       </div>
-      {!loaded && <Loader2 size={16} className="animate-spin text-zinc-500" />}
-      {error && <p role="alert" className="text-xs text-zinc-500 dark:text-zinc-400">{error}</p>}
+      {!loaded && <Loader2 size={16} className="animate-spin text-zinc-600 dark:text-zinc-400" />}
+      {error && <p role="alert" className="text-xs text-zinc-600 dark:text-zinc-400">{error}</p>}
       {/* A log announces what is added; older pages are added only on request */}
       <div
         ref={listRef}
@@ -154,7 +154,7 @@ export default function RoomChat({ roomId, userId, open }) {
         aria-busy={loadingOlder}
       >
         {loaded && !error && messages.length === 0 && (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">No messages yet.</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">No messages yet.</p>
         )}
         {messages.map((message, index) => {
           const mine = message.authorId === userId;
@@ -162,7 +162,7 @@ export default function RoomChat({ roomId, userId, open }) {
           return (
             <div key={message.id} className={continued ? '' : 'pt-2'}>
               {!continued && (
-                <p className="flex items-baseline gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
+                <p className="flex items-baseline gap-2 text-[10px] text-zinc-600 dark:text-zinc-400">
                   <span className="font-black uppercase tracking-widest">
                     {mine ? 'You' : (message.authorName || 'Unknown user')}
                   </span>
@@ -206,7 +206,7 @@ export default function RoomChat({ roomId, userId, open }) {
           )}
         </form>
       ) : (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">The room is closed; the chat is read-only.</p>
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">The room is closed; the chat is read-only.</p>
       )}
     </section>
   );

@@ -59,8 +59,8 @@ const ExplorePage = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <Loader2 size={32} className="text-zinc-500 dark:text-zinc-400 animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">Mapping Sectors</p>
+        <Loader2 size={32} className="text-zinc-600 dark:text-zinc-400 animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-400">Mapping Sectors</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ const ExplorePage = () => {
           <Compass size={48} className="text-zinc-900 dark:text-white" />
           <h1 className="text-6xl font-black tracking-tighter uppercase text-zinc-900 dark:text-white">Network Radar</h1>
         </div>
-        <p className="text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em]">Navigate sonic territories</p>
+        <p className="text-zinc-600 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em]">Navigate sonic territories</p>
       </header>
 
       <section>

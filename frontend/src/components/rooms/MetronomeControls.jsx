@@ -24,7 +24,7 @@ export default function MetronomeControls({ showState = true }) {
           <Volume2 size={14} /> Enable sound
         </button>
       ) : (
-        <label className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+        <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
           {volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
           <input
             type="range"

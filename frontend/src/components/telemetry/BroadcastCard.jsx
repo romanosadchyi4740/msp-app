@@ -31,7 +31,7 @@ const BroadcastCard = ({ broadcast, onVoteSuccess, onDeleteSuccess }) => {
         <button 
           onClick={handleDelete}
           disabled={isDeleting}
-          className="absolute top-8 right-8 text-zinc-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+          className="absolute top-8 right-8 text-zinc-600 dark:text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
           title="Purge Record"
         >
           {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
@@ -49,9 +49,9 @@ const BroadcastCard = ({ broadcast, onVoteSuccess, onDeleteSuccess }) => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-black uppercase tracking-widest text-zinc-900 dark:text-white">{broadcast.author.displayName}</span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">NODE_{broadcast.author.id.substring(0, 6)}</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">NODE_{broadcast.author.id.substring(0, 6)}</span>
             </div>
-            <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
               <RadioTower size={12} />
               <span className="text-[9px] font-black uppercase tracking-widest">
                 {formatDistanceToNow(new Date(broadcast.timestamp), { addSuffix: true })}
@@ -68,8 +68,8 @@ const BroadcastCard = ({ broadcast, onVoteSuccess, onDeleteSuccess }) => {
           {broadcast.attachedTrack && (
             <div className="mb-6 border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50 dark:bg-zinc-950">
               <div className="flex items-center gap-2 mb-3">
-                <Music size={12} className="text-zinc-500 dark:text-zinc-400" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Attached Transmission</span>
+                <Music size={12} className="text-zinc-600 dark:text-zinc-400" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Attached Transmission</span>
               </div>
               <TrackCard track={broadcast.attachedTrack} />
             </div>

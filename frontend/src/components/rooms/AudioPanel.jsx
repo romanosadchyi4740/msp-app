@@ -51,7 +51,7 @@ export default function AudioPanel() {
           </Link>
         </p>
       )}
-      <p className="flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
         <Headphones size={14} className="mt-0.5 shrink-0" />
         Use headphones. Echo cancellation and noise suppression are off so the guitar sounds as it is, which means
         speakers would feed the others&apos; sound back into your microphone.

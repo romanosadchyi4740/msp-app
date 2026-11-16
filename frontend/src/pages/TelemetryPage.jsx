@@ -116,7 +116,7 @@ const TelemetryPage = () => {
     <div className="max-w-3xl mx-auto pb-32">
       <header className="mb-12 border-b border-zinc-200 dark:border-zinc-800 pb-8">
         <h1 className="text-4xl font-black mb-4 tracking-tighter uppercase text-zinc-900 dark:text-white">Network Telemetry</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+        <p className="text-zinc-600 dark:text-zinc-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
           <span className="w-2 h-2 bg-zinc-900 dark:bg-white animate-pulse inline-block" />
           Decrypting incoming signals from followed nodes...
         </p>
@@ -125,7 +125,7 @@ const TelemetryPage = () => {
       {/* Broadcast Composer */}
       {user?.role === 'ROLE_ARTIST' && (
         <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 mb-12">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-4">Initialize Broadcast</h2>
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 mb-4">Initialize Broadcast</h2>
           
           <textarea
             value={content}
@@ -141,7 +141,7 @@ const TelemetryPage = () => {
                   <span className="w-1.5 h-1.5 bg-zinc-900 dark:bg-white" />
                   Consensus Module
                 </h3>
-                <button onClick={() => setShowPoll(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                <button onClick={() => setShowPoll(false)} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
                   <X size={14} />
                 </button>
               </div>
@@ -165,7 +165,7 @@ const TelemetryPage = () => {
                     {pollOptions.length > 2 && (
                       <button 
                         onClick={() => handleRemovePollOption(index)}
-                        className="w-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 hover:border-red-500 hover:text-red-500 text-zinc-500 dark:text-zinc-400 transition-colors"
+                        className="w-10 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 hover:border-red-500 hover:text-red-500 text-zinc-600 dark:text-zinc-400 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -177,7 +177,7 @@ const TelemetryPage = () => {
               {pollOptions.length < 4 && (
                 <button 
                   onClick={handleAddPollOption}
-                  className="text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-2 transition-colors"
+                  className="text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white flex items-center gap-2 transition-colors"
                 >
                   <Plus size={10} /> Add Variable
                 </button>
@@ -189,20 +189,20 @@ const TelemetryPage = () => {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowPoll(!showPoll)}
-                className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors px-3 py-2 border ${showPoll ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white' : 'border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white'}`}
+                className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-colors px-3 py-2 border ${showPoll ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white' : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white'}`}
               >
                 <Plus size={12} /> Consensus Module
               </button>
               
               {myTracks.length > 0 && (
                 <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 px-3 py-2 bg-zinc-50 dark:bg-zinc-950">
-                  <Music size={12} className="text-zinc-500 dark:text-zinc-400" />
+                  <Music size={12} className="text-zinc-600 dark:text-zinc-400" />
                   <select
                     value={selectedTrackId}
                     onChange={(e) => setSelectedTrackId(e.target.value)}
                     className="bg-transparent text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white focus:outline-none appearance-none"
                   >
-                    <option value="" className="text-zinc-500 dark:text-zinc-400">ATTACH TRANSMISSION (OPTIONAL)</option>
+                    <option value="" className="text-zinc-600 dark:text-zinc-400">ATTACH TRANSMISSION (OPTIONAL)</option>
                     {myTracks.map(t => (
                       <option key={t.id} value={t.id} className="text-zinc-900 dark:text-white bg-white dark:bg-zinc-900">{t.title}</option>
                     ))}
@@ -227,12 +227,12 @@ const TelemetryPage = () => {
       <section className="space-y-4">
         {loading && page === 0 ? (
           <div className="flex items-center justify-center p-12">
-            <Loader2 className="animate-spin text-zinc-500 dark:text-zinc-400" size={32} />
+            <Loader2 className="animate-spin text-zinc-600 dark:text-zinc-400" size={32} />
           </div>
         ) : broadcasts.length === 0 ? (
           <div className="p-12 text-center border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">NO SIGNALS DETECTED IN SECTOR.</p>
-            <p className="text-[10px] mt-2 text-zinc-400 dark:text-zinc-500">Establish connections with other nodes to receive telemetry.</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">NO SIGNALS DETECTED IN SECTOR.</p>
+            <p className="text-[10px] mt-2 text-zinc-600 dark:text-zinc-400">Establish connections with other nodes to receive telemetry.</p>
           </div>
         ) : (
           <>
@@ -249,7 +249,7 @@ const TelemetryPage = () => {
               <button
                 onClick={() => fetchFeed(page + 1)}
                 disabled={loading}
-                className="w-full py-4 border border-zinc-200 dark:border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors disabled:opacity-50"
+                className="w-full py-4 border border-zinc-200 dark:border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors disabled:opacity-50"
               >
                 {loading ? 'Decrypting...' : 'Load Prior Transmissions'}
               </button>

@@ -40,7 +40,7 @@ export default function TabPicker({ selected, onSelect }) {
   return (
     <div className="space-y-3">
       <label className="relative block">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-400" />
         <input
           className={`${inputClass} pl-9`}
           placeholder="Search public tabs by title or artist, or pick one of yours below"
@@ -49,9 +49,9 @@ export default function TabPicker({ selected, onSelect }) {
         />
       </label>
       {loading && tabs.length === 0 ? (
-        <Loader2 size={20} className="animate-spin text-zinc-500" />
+        <Loader2 size={20} className="animate-spin text-zinc-600 dark:text-zinc-400" />
       ) : tabs.length === 0 ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
           {searching ? 'No public tabs match.' : 'You have no tabs yet; search the public ones.'}
         </p>
       ) : (
@@ -71,10 +71,10 @@ export default function TabPicker({ selected, onSelect }) {
                       : 'border-zinc-200 hover:border-zinc-900 dark:border-zinc-800 dark:hover:border-white'
                   }`}
                 >
-                  <Icon size={18} className="shrink-0 text-zinc-500 dark:text-zinc-400" />
+                  <Icon size={18} className="shrink-0 text-zinc-600 dark:text-zinc-400" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold">{tab.title}</span>
-                    <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="block truncate text-xs text-zinc-600 dark:text-zinc-400">
                       {tab.artist || 'Unknown artist'}
                     </span>
                   </span>

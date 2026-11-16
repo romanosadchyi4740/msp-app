@@ -257,21 +257,21 @@ const PlaylistPage = () => {
           {playlist.coverUrl ? (
             <img src={playlist.coverUrl} alt="Cover" className="w-full h-full object-cover grayscale" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center"><Music size={32} className="text-zinc-400 dark:text-zinc-500" /></div>
+            <div className="w-full h-full flex items-center justify-center"><Music size={32} className="text-zinc-600 dark:text-zinc-400" /></div>
           )}
         </div>
         
         <div className="flex-1 w-full space-y-4">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="px-2 py-0.5 bg-zinc-900 text-white dark:bg-white dark:text-black text-[9px] font-black uppercase tracking-widest">Playlist</span>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-200 dark:border-zinc-800 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-200 dark:border-zinc-800 text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
               {playlist.isPublic ? <Globe size={10} /> : <Lock size={10} />}
               {playlist.isPublic ? 'Public' : 'Private'}
             </div>
             {isOwner && (
               <button 
                 onClick={() => setShowConfirmDialog(true)}
-                className="px-2 py-0.5 border border-zinc-200 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors"
+                className="px-2 py-0.5 border border-zinc-200 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors"
               >
                 Toggle Privacy
               </button>
@@ -280,7 +280,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={() => setShowSyncModal(true)}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-200 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors"
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-zinc-200 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-colors"
               >
                 {isSyncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
                 Pull Updates
@@ -300,7 +300,7 @@ const PlaylistPage = () => {
               <button 
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isDeleting}
-                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-500/50 dark:border-red-900 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                className="flex items-center gap-1.5 px-2 py-0.5 border border-red-500/50 dark:border-red-900 text-red-600 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
               >
                 {isDeleting ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
                 Dismantle Instance
@@ -324,7 +324,7 @@ const PlaylistPage = () => {
             <div className="mt-1">
               <button 
                 onClick={() => navigate(`/playlists/${playlist.forkedFromId}`)}
-                className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
+                className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
               >
                 &lt;Fork Origin: {playlist.forkedFromName} // Source Identity: {playlist.forkedFromOwnerName}&gt;
               </button>
@@ -332,10 +332,10 @@ const PlaylistPage = () => {
           )}
 
           {playlist.description && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest mt-2">{playlist.description}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-widest mt-2">{playlist.description}</p>
           )}
 
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
              Tracks: {playlist.tracksCount}
           </p>
         </div>
@@ -363,11 +363,11 @@ const PlaylistPage = () => {
       <section>
         {playlist.tracks.length === 0 ? (
            <div className="border border-zinc-200 dark:border-zinc-800 border-dashed p-16 text-center">
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">This playlist is empty.</p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">This playlist is empty.</p>
            </div>
         ) : (
           <div className="flex flex-col border border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-4 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center gap-4 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
               <div className="w-8 text-center">#</div>
               <div className="flex-1">Title / Author</div>
               <div className="w-16 text-right">Time</div>
@@ -380,7 +380,7 @@ const PlaylistPage = () => {
                 className={`group flex items-center gap-4 px-6 py-4 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors border-b border-zinc-200 dark:border-zinc-800/50 last:border-b-0 cursor-pointer ${currentTrack?.id === track.id ? 'bg-zinc-100 dark:bg-white/5' : ''}`}
                 onClick={() => handlePlayTrack(track)}
               >
-                <div className="w-8 text-center text-[10px] font-bold text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                <div className="w-8 text-center text-[10px] font-bold text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                   {currentTrack?.id === track.id && isPlaying ? (
                      <div className="w-3 h-3 bg-zinc-900 dark:bg-white mx-auto rounded-full animate-pulse" />
                   ) : (
@@ -393,20 +393,20 @@ const PlaylistPage = () => {
                      {track.coverUrl ? (
                        <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/>
                      ) : (
-                       <div className="w-full h-full flex items-center justify-center"><Music size={12} className="text-zinc-400 dark:text-zinc-500" /></div>
+                       <div className="w-full h-full flex items-center justify-center"><Music size={12} className="text-zinc-600 dark:text-zinc-400" /></div>
                      )}
                    </div>
                    <div className="overflow-hidden">
                      <p className={`text-[11px] font-black uppercase tracking-tight truncate ${currentTrack?.id === track.id ? 'text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white'}`}>
                        {track.title}
                      </p>
-                     <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">
+                     <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 truncate">
                        {track.authorName}
                      </p>
                    </div>
                 </div>
 
-                <div className="w-16 text-right text-[10px] font-medium tabular-nums text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                <div className="w-16 text-right text-[10px] font-medium tabular-nums text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                   {formatTime(track.duration)}
                 </div>
 
@@ -414,7 +414,7 @@ const PlaylistPage = () => {
                   <div className="w-10 flex justify-end">
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleRemoveTrack(track.id); }}
-                      className="text-zinc-500 dark:text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
+                      className="text-zinc-600 dark:text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -428,9 +428,9 @@ const PlaylistPage = () => {
 
       {isOwner && (
         <section className="pt-12 border-t border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-6">Append Tracks</h3>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400 mb-6">Append Tracks</h3>
           <div className="relative max-w-xl">
-            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-400" />
             <input 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -442,7 +442,7 @@ const PlaylistPage = () => {
           {searchQuery.trim() && (
             <div className="mt-4 max-w-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
               {isSearching ? (
-                <div className="p-6 flex justify-center"><Loader2 size={16} className="animate-spin text-zinc-500 dark:text-zinc-400" /></div>
+                <div className="p-6 flex justify-center"><Loader2 size={16} className="animate-spin text-zinc-600 dark:text-zinc-400" /></div>
               ) : searchResults.length > 0 ? (
                 searchResults.map(track => {
                   const isInPlaylist = playlist.tracks.some(t => t.id === track.id);
@@ -450,11 +450,11 @@ const PlaylistPage = () => {
                     <div key={track.id} className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800/50 last:border-b-0 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 flex-shrink-0">
-                          {track.coverUrl ? <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/> : <Music size={12} className="text-zinc-400 dark:text-zinc-500" />}
+                          {track.coverUrl ? <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/> : <Music size={12} className="text-zinc-600 dark:text-zinc-400" />}
                         </div>
                         <div className="overflow-hidden">
                           <p className="text-[10px] font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">{track.title}</p>
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">{track.authorName}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 truncate">{track.authorName}</p>
                         </div>
                       </div>
                       <button 
@@ -468,7 +468,7 @@ const PlaylistPage = () => {
                   );
                 })
               ) : (
-                <div className="p-6 text-center text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">No tracks found</div>
+                <div className="p-6 text-center text-[10px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">No tracks found</div>
               )}
             </div>
           )}

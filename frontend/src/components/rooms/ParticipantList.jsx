@@ -32,7 +32,7 @@ export default function ParticipantList({ participants, capacity, userId }) {
               <div className="flex items-center gap-3">
                 {participant.role === 'HOST'
                   ? <Crown size={18} className="shrink-0" aria-label="Host" />
-                  : <User size={18} className="shrink-0 text-zinc-500 dark:text-zinc-400" />}
+                  : <User size={18} className="shrink-0 text-zinc-600 dark:text-zinc-400" />}
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${participant.online || me ? 'bg-emerald-500' : 'bg-zinc-400'}`}
                   title={participant.online || me ? 'Has the room open' : 'Offline'}
@@ -40,12 +40,12 @@ export default function ParticipantList({ participants, capacity, userId }) {
                 <Link to={`/users/${participant.userId}`} className="min-w-0 flex-1 truncate text-sm font-bold hover:underline">
                   {participant.displayName || 'Unknown'}
                 </Link>
-                {me && <span className="text-xs text-zinc-500 dark:text-zinc-400">you</span>}
+                {me && <span className="text-xs text-zinc-600 dark:text-zinc-400">you</span>}
                 {participant.role === 'HOST' && <span className={badgeClass}>Host</span>}
               </div>
               {/* The last report of someone who closed the room says nothing about now */}
               {(!me || (participant.online && typeof participant.rttMs === 'number')) && (
-                <div className="flex flex-wrap items-center gap-3 pl-[2.6rem] text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="flex flex-wrap items-center gap-3 pl-[2.6rem] text-xs text-zinc-600 dark:text-zinc-400">
                   {!me && <span>{audioLabel(participant, audioPeers[participant.userId])}</span>}
                   {!me && <ConnectionQuality peer={audioPeers[participant.userId]} />}
                   {participant.online && typeof participant.rttMs === 'number' && (

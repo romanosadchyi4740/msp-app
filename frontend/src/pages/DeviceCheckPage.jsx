@@ -188,7 +188,7 @@ export default function DeviceCheckPage() {
     <div className="max-w-2xl space-y-10 pb-32">
       <header className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
         <h1 className="text-5xl font-black tracking-tighter">Device check</h1>
-        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
           Make sure the others will hear you, and you them, before you join a room.
         </p>
       </header>
@@ -204,7 +204,7 @@ export default function DeviceCheckPage() {
                   : <X size={16} className="shrink-0 text-red-600 dark:text-red-500" aria-label="Missing" />}
                 {check.label}
               </span>
-              {!check.ok && <p className="pl-6 text-xs text-zinc-500 dark:text-zinc-400">{check.hint}</p>}
+              {!check.ok && <p className="pl-6 text-xs text-zinc-600 dark:text-zinc-400">{check.hint}</p>}
             </li>
           ))}
         </ul>
@@ -233,7 +233,7 @@ export default function DeviceCheckPage() {
           {microphone.status === 'error' && (
             <div role="alert" className="space-y-1">
               <p className="text-sm font-bold text-red-600 dark:text-red-500">{microphone.problem.message}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{microphone.problem.hint}</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">{microphone.problem.hint}</p>
             </div>
           )}
           {micOn && (
@@ -246,7 +246,7 @@ export default function DeviceCheckPage() {
                 >
                   <div ref={meter} data-level="0" className="h-full w-0 bg-emerald-500" />
                 </div>
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400" data-heard={heard}>
+                <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400" data-heard={heard}>
                   {heard
                     ? 'The microphone hears you.'
                     : 'Play a note or say something: the bar should move.'}
@@ -254,7 +254,7 @@ export default function DeviceCheckPage() {
               </div>
               {devices.inputs.length > 0 && (
                 <div className="space-y-2">
-                  <label htmlFor="device-check-input" className="block text-xs text-zinc-500 dark:text-zinc-400">
+                  <label htmlFor="device-check-input" className="block text-xs text-zinc-600 dark:text-zinc-400">
                     Microphone
                   </label>
                   <select
@@ -280,7 +280,7 @@ export default function DeviceCheckPage() {
           <h2 className={sectionTitleClass}>Sound</h2>
           {support.outputSelection && devices.outputs.length > 0 ? (
             <div className="space-y-2">
-              <label htmlFor="device-check-output" className="block text-xs text-zinc-500 dark:text-zinc-400">
+              <label htmlFor="device-check-output" className="block text-xs text-zinc-600 dark:text-zinc-400">
                 Headphones or speakers
               </label>
               <select
@@ -296,7 +296,7 @@ export default function DeviceCheckPage() {
               </select>
             </div>
           ) : (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
               {support.outputSelection && !micOn
                 ? 'Allow the microphone to choose where the sound plays.'
                 : 'This browser plays on the output chosen in your system\'s sound settings.'}
@@ -311,11 +311,11 @@ export default function DeviceCheckPage() {
             </p>
           )}
           {tone === 'played' && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
               You should have heard two short tones. If not, check the volume and the output above.
             </p>
           )}
-          <p className="flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
             <Headphones size={14} className="mt-0.5 shrink-0" />
             Plug in headphones. Echo cancellation is off so the guitar sounds as it is; with speakers the others
             would hear themselves through your microphone.
@@ -337,7 +337,7 @@ export default function DeviceCheckPage() {
             {ready ? 'Continue' : 'Continue anyway'}
           </Link>
         )}
-        <span className="text-xs text-zinc-500 dark:text-zinc-400" data-ready={ready}>
+        <span className="text-xs text-zinc-600 dark:text-zinc-400" data-ready={ready}>
           {ready && 'Everything a room needs works.'}
           {!ready && compatible && 'You can listen in a room without a microphone.'}
           {!compatible && 'In a room you would neither hear the others nor be heard.'}

@@ -21,7 +21,7 @@ export default function LessonTimer({ endsAt }) {
   }, [endsAt]);
 
   if (!endsAt) {
-    return <p className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400"><Timer size={14} /> No time limit</p>;
+    return <p className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400"><Timer size={14} /> No time limit</p>;
   }
   const warning = Date.parse(endsAt) - now <= WARNING_MS;
   return (

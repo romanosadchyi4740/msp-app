@@ -24,7 +24,7 @@ export default function RoomsPage() {
       <header className="flex flex-wrap items-end justify-between gap-6 border-b border-zinc-200 pb-8 dark:border-zinc-800">
         <div>
           <h1 className="text-5xl font-black tracking-tighter">Rooms</h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Live lessons and rehearsals: one tab, one metronome, up to five players.
           </p>
         </div>
@@ -34,11 +34,11 @@ export default function RoomsPage() {
       </header>
 
       <section className="space-y-4">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">My rooms</h2>
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">My rooms</h2>
         {myRoomsLoading && myRooms.length === 0 ? (
-          <Loader2 size={20} className="animate-spin text-zinc-500" />
+          <Loader2 size={20} className="animate-spin text-zinc-600 dark:text-zinc-400" />
         ) : myRooms.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             You are in no rooms yet. <Link to="/rooms/new" className="underline">Create one</Link> or open an
             invite link someone sent you.
           </p>
@@ -50,10 +50,10 @@ export default function RoomsPage() {
                 to={`/rooms/${room.id}`}
                 className="flex items-center gap-4 border border-zinc-200 p-4 transition-colors hover:border-zinc-900 dark:border-zinc-800 dark:hover:border-white"
               >
-                <Users size={20} className="shrink-0 text-zinc-500 dark:text-zinc-400" />
+                <Users size={20} className="shrink-0 text-zinc-600 dark:text-zinc-400" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{room.name}</p>
-                  <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="truncate text-xs text-zinc-600 dark:text-zinc-400">
                     {room.myRole === 'HOST' ? 'You host' : `Host: ${room.hostName || 'Unknown'}`}
                     {' · '}
                     {room.participantCount} of {room.capacity}

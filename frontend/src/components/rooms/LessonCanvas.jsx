@@ -7,7 +7,7 @@ import { onPlaybackFrame } from '../../sync/syncEngine';
 import { errorMessage } from './roomStyles';
 
 const placeholderClass = 'flex h-[60vh] items-center justify-center border border-dashed border-zinc-300 p-6 '
-  + 'text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400';
+  + 'text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400';
 
 /**
  * The tab of the room's active lesson (`lesson`, from useCurrentLesson), scrolled to the shared position by the sync

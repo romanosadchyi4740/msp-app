@@ -102,7 +102,7 @@ export default function LessonPanel({ roomId, lesson, isHost, onChangeTab, onEnd
           <p className="text-lg font-black tabular-nums" aria-live="off">
             Measure {measure}{measureCount ? ` of ${measureCount}` : ''}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{STATUS_LABELS[status] ?? 'Waiting for the playback'}</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">{STATUS_LABELS[status] ?? 'Waiting for the playback'}</p>
         </div>
       </div>
 
@@ -142,7 +142,7 @@ export default function LessonPanel({ roomId, lesson, isHost, onChangeTab, onEnd
         </button>
         <p className="min-w-24 text-center">
           <span className="block text-2xl font-black tabular-nums" data-tempo>{tempoBpm ?? '–'}</span>
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">BPM</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">BPM</span>
         </p>
         <button
           type="button"
@@ -179,13 +179,13 @@ export default function LessonPanel({ roomId, lesson, isHost, onChangeTab, onEnd
           <button type="button" onClick={onEndLesson} className={secondaryButtonClass}>
             <Square size={14} /> End lesson
           </button>
-          <p className="flex w-full items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="flex w-full items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400">
             <Keyboard size={14} className="mt-0.5 shrink-0" />
             Space plays and pauses, left and right go a measure back and forward, up and down change the tempo.
           </p>
         </div>
       ) : (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">
           <span className={badgeClass}>Host controls</span> The host plays, pauses and sets the tempo for everyone.
         </p>
       )}

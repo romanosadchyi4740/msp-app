@@ -9,7 +9,7 @@ export const secondaryButtonClass = 'flex items-center justify-center gap-2 bord
 export const badgeClass = 'px-2 py-0.5 text-[9px] font-black uppercase tracking-widest border border-zinc-300 '
   + 'dark:border-zinc-700';
 
-export const sectionTitleClass = 'text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400';
+export const sectionTitleClass = 'text-xs font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400';
 
 /**
  * The message of a failed request, from the backend's error body when it has one.

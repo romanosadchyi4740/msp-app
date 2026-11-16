@@ -47,7 +47,7 @@ const RegisterPage = () => {
           <h2 className="mt-8 text-3xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white">
             Create Identity
           </h2>
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">
             Establish your presence
           </p>
         </div>
@@ -105,7 +105,7 @@ const RegisterPage = () => {
             <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Or register with</span>
+            <span className="px-2 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Or register with</span>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ const RegisterPage = () => {
           />
         </div>
 
-        <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+        <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
           Already Registered?{' '}
           <Link to={authPath('/login', next)} className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
             Access Account

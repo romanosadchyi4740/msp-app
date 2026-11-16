@@ -12,14 +12,14 @@ const SyncConfirmModal = ({ isOpen, originName, onConfirm, onCancel, confirmText
       
       <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-8 space-y-6">
         <h2 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white">Initialize Data Sync</h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
           Pulling latest transmissions from origin node <span className="text-zinc-900 dark:text-white font-mono">[{originName}]</span>. This will append any new audio files to your local instance. Your existing data will not be overwritten.
         </p>
         
         <div className="flex items-center justify-end gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
           <button 
             onClick={onCancel}
-            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             {cancelText}
           </button>

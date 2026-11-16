@@ -35,7 +35,7 @@ export default function RoomNewPage() {
       <div className="max-w-2xl space-y-10 pb-32">
         <header className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
           <h1 className="text-5xl font-black tracking-tighter">{room.name}</h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             The room is ready. Send this link to up to {room.capacity - 1} players; they join after signing in.
           </p>
         </header>
@@ -44,7 +44,7 @@ export default function RoomNewPage() {
           <InviteLink code={room.inviteCode} />
         </section>
         {tab && (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Tab for the lesson: <span className="font-bold text-zinc-900 dark:text-white">{tab.title}</span>
           </p>
         )}
@@ -59,7 +59,7 @@ export default function RoomNewPage() {
     <form onSubmit={submit} className="max-w-2xl space-y-10 pb-32">
       <header className="border-b border-zinc-200 pb-8 dark:border-zinc-800">
         <h1 className="text-5xl font-black tracking-tighter">New room</h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
           Name the room and pick the tab to play; you get a link to invite the others.
         </p>
       </header>
@@ -80,7 +80,7 @@ export default function RoomNewPage() {
 
       <section className="space-y-3">
         <h2 className={sectionTitleClass}>Tab</h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">
           {tab ? <>Picked: <span className="font-bold text-zinc-900 dark:text-white">{tab.title}</span></>
             : 'Optional; you can pick it in the room too.'}
         </p>
