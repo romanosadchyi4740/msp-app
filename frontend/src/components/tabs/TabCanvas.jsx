@@ -1,26 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { AlphaTabApi, LayoutMode, model, StaveProfile } from '@coderline/alphatab';
 import useUiStore from '../../store/uiStore';
-
-// High-contrast colours for the rendered tab, per app theme.
-const COLORS = {
-  dark: {
-    mainGlyphColor: '#fafafa',
-    secondaryGlyphColor: 'rgba(250,250,250,0.7)',
-    scoreInfoColor: '#fafafa',
-    staffLineColor: '#a1a1aa',
-    barSeparatorColor: '#d4d4d8',
-    barNumberColor: '#a1a1aa',
-  },
-  light: {
-    mainGlyphColor: '#09090b',
-    secondaryGlyphColor: 'rgba(9,9,11,0.7)',
-    scoreInfoColor: '#09090b',
-    staffLineColor: '#52525b',
-    barSeparatorColor: '#27272a',
-    barNumberColor: '#52525b',
-  },
-};
+import { canvasColorsFor } from './canvasColors';
 
 // When the cursor reaches a line outside the comfortable part of the view, that line is scrolled to this fraction
 // of the view height from the top.
@@ -97,7 +78,7 @@ export default function TabCanvas({ source, onLoaded, onError, className = '', r
         layoutMode: LayoutMode.Page,
         staveProfile: StaveProfile.Tab,
         scale: 1.3,
-        resources: COLORS[themeRef.current] ?? COLORS.dark,
+        resources: canvasColorsFor(themeRef.current),
       },
       player: { enablePlayer: false, enableCursor: false, enableUserInteraction: false },
     });
@@ -152,7 +133,7 @@ export default function TabCanvas({ source, onLoaded, onError, className = '', r
     themeRef.current = theme;
     const api = viewRef.current.api;
     if (!api?.score) return;
-    Object.assign(api.settings.display.resources, toColors(COLORS[theme] ?? COLORS.dark));
+    Object.assign(api.settings.display.resources, toColors(canvasColorsFor(theme)));
     api.updateSettings();
     api.render();
   }, [theme]);

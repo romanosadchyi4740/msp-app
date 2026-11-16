@@ -12,8 +12,10 @@ PR, Jira) and, for a new module, `modulith-extract`.
 ## 1. The spec: `backend/src/main/resources/openapi/<module>.yaml`
 Start from `tabs.yaml` and keep its shape:
 - `openapi: 3.0.3`; `info.description` says what the API is (with the ticket key), who may read/change what, and
-  that a missing or invalid token gets a bodiless 401 from the security filter. One tag per module
-  (`tags: [Rooms]` → interface `RoomsApi`). Global `security: [bearerAuth: []]` and the `bearerAuth` scheme.
+  that a missing or invalid token gets a bodiless 401 from the security filter. One tag per controller, so each
+  controller has one job and few services (`tags: [Rooms]` → interface `RoomsApi` → `RoomController`; rooms also
+  has `Lessons` and `RoomChat`, tabs has `Tabs`, `TabCreation` and `TabEditing`).
+  Global `security: [bearerAuth: []]` and the `bearerAuth` scheme.
 - Every operation has an `operationId` (it becomes the Java method name), a one-line `summary`, and every error
   status it can really return, each with `$ref: '#/components/schemas/ErrorResponse'` (copy that schema; it
   matches `GlobalExceptionHandler`'s body).
@@ -26,7 +28,7 @@ Start from `tabs.yaml` and keep its shape:
 - Lists that page: an explicit schema with Spring-page-like fields (`TabPage`: `content`, `number`, `size`,
   `numberOfElements`, `totalElements`, `totalPages`, `first`, `last`, `empty`), never Spring's `Page<T>`; the request
   takes `pageNo` and `pageSize` query parameters. Cap the page size in the service (`MAX_PAGE_SIZE`), and escape `%`, `_` and `\` in
-  `LIKE` searches (`TabService.escapeLike` with `ESCAPE '\\'` in the query).
+  `LIKE` searches (`TabQueryService.escapeLike` with `ESCAPE '\\'` in the query).
 - Multipart uploads: `multipart/form-data` with `format: binary` for the file; the method gets `MultipartFile` plus
   one parameter per form field.
 - Name models after what they are in the API (`TabResponse`, `RoomCreateRequest`). They must not clash with the
@@ -72,8 +74,8 @@ public class RoomController implements RoomsApi {
     }
 }
 ```
-- No mapping annotations: the interface holds them. Javadoc says it implements the interface generated from
-  `openapi/<module>.yaml` (see `TabController`).
+- No mapping annotations: the interface holds them. Javadoc says what the controller is for and that it
+  implements the interface generated from the `<Tag>` tag of `openapi/<module>.yaml` (see `TabController`).
 - The current user is `CurrentUser.get()`, never `@AuthenticationPrincipal` (the overriding method cannot add a
   parameter) and never the `User` entity.
 - The controller only delegates. Services take and return the generated models; entity ↔ model mapping is in the

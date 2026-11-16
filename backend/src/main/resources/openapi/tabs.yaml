@@ -15,10 +15,15 @@ security:
   - bearerAuth: []
 tags:
   - name: Tabs
+    description: Reading tabs, the user's own and the public library
+  - name: TabCreation
+    description: Creating tabs, and previewing ASCII tab text before it is stored
+  - name: TabEditing
+    description: Changing and deleting the user's own tabs
 paths:
   /api/tabs/upload:
     post:
-      tags: [Tabs]
+      tags: [TabCreation]
       operationId: uploadGuitarProTab
       summary: Upload a Guitar Pro tab (.gp, .gp5, .gpx, at most 10 MB); the content must match the extension
       requestBody:
@@ -57,7 +62,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
   /api/tabs:
     post:
-      tags: [Tabs]
+      tags: [TabCreation]
       operationId: createAsciiTab
       summary: Create an ASCII tab
       requestBody:
@@ -77,7 +82,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
   /api/tabs/preview:
     post:
-      tags: [Tabs]
+      tags: [TabCreation]
       operationId: previewAsciiTab
       summary: The alphaTex of ASCII tab text, for a preview while editing; nothing is stored
       requestBody:
@@ -158,7 +163,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
     put:
-      tags: [Tabs]
+      tags: [TabEditing]
       operationId: updateTab
       summary: Replace a tab's metadata, and the text of an ASCII tab
       requestBody:
@@ -181,7 +186,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
-      tags: [Tabs]
+      tags: [TabEditing]
       operationId: deleteTab
       summary: Delete a tab and its file
       responses:
