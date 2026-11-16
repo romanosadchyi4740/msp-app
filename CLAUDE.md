@@ -358,8 +358,11 @@ and `RoomParticipant.rttMs`.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
 - Project skills in `.claude/skills/`: `kan-ticket` (ticket, branch, PR and Jira workflow), `modulith-extract`
   (extracting a module), `split-service` (splitting an oversized service), `contract-first-api` (adding a REST
-  endpoint from an OpenAPI spec), `browser-check` (running the app and checking a frontend change in Chrome). Their Java helpers are in
-  `.claude/scripts/java/` (`java_style.py --check` checks the mechanical style rules of section 4).
+  endpoint from an OpenAPI spec), `browser-check` (running the app and checking a frontend change in Chrome),
+  `seed-test-data` (throwaway users and data through the API and STOMP, deleted afterwards) and `a11y-audit` (WCAG
+  contrast and keyboard focus measured in Chrome, both themes). Their Java helpers are in `.claude/scripts/java/`
+  (`java_style.py --check` checks the mechanical style rules of section 4), the JavaScript ones in
+  `.claude/scripts/js/` (`testData.mjs`, `a11yAudit.js`).
 - Project agents in `.claude/agents/`: `code-reviewer` (read-only review of the branch against these rules; run it
   before opening or updating a PR) and `test-gap-finder` (lists untested branches; writes tests under
   `backend/src/test` only when asked).
