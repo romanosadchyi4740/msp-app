@@ -13,10 +13,10 @@ export default function TabListItem({ tab, showOwner = false }) {
       to={`/tabs/${tab.id}`}
       className="flex items-center gap-4 border border-zinc-200 p-4 transition-colors hover:border-zinc-900 dark:border-zinc-800 dark:hover:border-white"
     >
-      <Icon size={20} className="shrink-0 text-zinc-500 dark:text-zinc-400" />
+      <Icon size={20} className="shrink-0 text-zinc-600 dark:text-zinc-400" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold">{tab.title}</p>
-        <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="truncate text-xs text-zinc-600 dark:text-zinc-400">
           {[tab.artist, showOwner && tab.ownerName ? `added by ${tab.ownerName}` : null].filter(Boolean).join(' · ')
             || 'Unknown artist'}
         </p>
@@ -24,7 +24,7 @@ export default function TabListItem({ tab, showOwner = false }) {
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <span className={badgeClass}>{tab.format === 'GUITAR_PRO' ? `Guitar Pro${tab.gpVersion ? ` ${tab.gpVersion}` : ''}` : 'Text'}</span>
         {!showOwner && <span className={badgeClass}>{tab.isPublic ? 'Public' : 'Private'}</span>}
-        {tab.hidden && <span className={`${badgeClass} border-red-500 text-red-500`}>Hidden</span>}
+        {tab.hidden && <span className={`${badgeClass} border-red-500 text-red-600 dark:text-red-500`}>Hidden</span>}
       </div>
     </Link>
   );

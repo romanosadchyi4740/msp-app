@@ -161,7 +161,7 @@ export default function TabCanvas({ source, onLoaded, onError, className = '', r
         <div className="absolute inset-0 flex items-center justify-center text-sm opacity-60">Loading tab…</div>
       )}
       {status === 'error' && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-red-500">
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-red-600 dark:text-red-500">
           The tab could not be shown.
         </div>
       )}

@@ -60,20 +60,20 @@ export default function JoinRoomPage() {
       {error ? (
         <div className="space-y-4 border border-zinc-200 p-8 dark:border-zinc-800">
           <h1 className="text-2xl font-black tracking-tighter">Cannot join</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{error}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">{error}</p>
           <Link to="/rooms" className="text-sm underline">Go to my rooms</Link>
         </div>
       ) : !preview ? (
-        <Loader2 size={20} className="animate-spin text-zinc-500" />
+        <Loader2 size={20} className="animate-spin text-zinc-600 dark:text-zinc-400" />
       ) : (
         <div className="space-y-6 border border-zinc-200 p-8 dark:border-zinc-800">
-          <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
             <Users size={18} />
             <span className="text-xs font-black uppercase tracking-[0.2em]">You are invited to a room</span>
           </div>
           <div>
             <h1 className="text-3xl font-black tracking-tighter">{preview.name}</h1>
-            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Host: {preview.hostName || 'Unknown'} · {preview.participantCount} of {preview.capacity} in the room
             </p>
           </div>
@@ -99,7 +99,7 @@ export default function JoinRoomPage() {
             </>
           )}
           {preview.full && !closed && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
               If you are already in this room, joining opens it.
             </p>
           )}

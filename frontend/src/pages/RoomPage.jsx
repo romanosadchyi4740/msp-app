@@ -204,13 +204,13 @@ function RoomPage({ id }) {
     return (
       <div className="max-w-md space-y-4 pt-12">
         <h1 className="text-2xl font-black tracking-tighter">Room not available</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{error}</p>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{error}</p>
         <Link to="/rooms" className="text-sm underline">Go to my rooms</Link>
       </div>
     );
   }
   if (!room) {
-    return <Loader2 size={20} className="animate-spin text-zinc-500" />;
+    return <Loader2 size={20} className="animate-spin text-zinc-600 dark:text-zinc-400" />;
   }
 
   const open = room.status === 'OPEN';
@@ -269,7 +269,7 @@ function RoomPage({ id }) {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className={badgeClass}>{isHost ? 'You host' : 'Participant'}</span>
             {!open && <span className={badgeClass}>Closed</span>}
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="text-xs text-zinc-600 dark:text-zinc-400">
               {room.participants.length} of {room.capacity} in the room
             </span>
           </div>

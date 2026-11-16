@@ -1,6 +1,6 @@
 export const inputClass = 'w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-sm '
   + 'focus:outline-none focus:border-zinc-900 dark:focus:border-white';
-export const labelClass = 'block text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-1';
+export const labelClass = 'block text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 mb-1';
 
 export const EMPTY_DETAILS = { title: '', artist: '', tempoBpm: '', timeSignature: '', isPublic: false };
 

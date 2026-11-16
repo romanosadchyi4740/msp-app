@@ -49,7 +49,7 @@ export default function SyncDebugOverlay() {
       <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.5">
         {rows.map(([label, value]) => (
           <div key={label} className="contents">
-            <dt className="text-zinc-500 dark:text-zinc-400">{label}</dt>
+            <dt className="text-zinc-600 dark:text-zinc-400">{label}</dt>
             <dd>{value}</dd>
           </div>
         ))}

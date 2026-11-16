@@ -18,7 +18,7 @@ export default function ConnectionQuality({ peer }) {
   const details = `Round trip ${figure(peer.rttMs, 'ms')}, jitter ${figure(peer.jitterMs, 'ms')}, `
     + `packet loss ${figure(peer.lossPercent, '%')}`;
   return (
-    <span className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400" title={details}>
+    <span className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400" title={details}>
       <span data-quality={peer.quality} className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[peer.quality]}`} />
       <span>
         {peer.quality}

@@ -35,7 +35,7 @@ export default function TabsPage() {
       <header className="flex flex-wrap items-end justify-between gap-6 border-b border-zinc-200 pb-8 dark:border-zinc-800">
         <div>
           <h1 className="text-5xl font-black tracking-tighter">Tabs</h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Your tabs for lessons and rehearsals, and tabs shared by others.
           </p>
         </div>
@@ -48,11 +48,11 @@ export default function TabsPage() {
       </header>
 
       <section className="space-y-4">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">My tabs</h2>
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">My tabs</h2>
         {myTabsLoading && myTabs.length === 0 ? (
-          <Loader2 size={20} className="animate-spin text-zinc-500" />
+          <Loader2 size={20} className="animate-spin text-zinc-600 dark:text-zinc-400" />
         ) : myTabs.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             You have no tabs yet. <Link to="/tabs/new" className="underline">Create your first tab.</Link>
           </p>
         ) : (
@@ -63,9 +63,9 @@ export default function TabsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Find tabs</h2>
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">Find tabs</h2>
         <label className="relative block">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-400" />
           <input
             className={`${inputClass} pl-9`}
             placeholder="Search public tabs by title or artist"
@@ -74,12 +74,12 @@ export default function TabsPage() {
           />
         </label>
         {search.loading && search.results.length === 0 ? (
-          <Loader2 size={20} className="animate-spin text-zinc-500" />
+          <Loader2 size={20} className="animate-spin text-zinc-600 dark:text-zinc-400" />
         ) : search.results.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">No public tabs match.</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">No public tabs match.</p>
         ) : (
           <>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
               {search.totalElements} {search.totalElements === 1 ? 'tab' : 'tabs'}
             </p>
             <div className="space-y-2">

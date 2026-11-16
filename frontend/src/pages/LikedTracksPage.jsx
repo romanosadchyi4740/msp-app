@@ -92,19 +92,19 @@ const LikedTracksPage = () => {
             {tracks.map((track, idx) => (
               <div 
                 key={track.id} 
-                className="group flex items-center gap-4 px-6 py-4 hover:bg-white/5 transition-colors border-b border-border/50 last:border-b-0 cursor-pointer"
+                className="group flex items-center gap-4 px-6 py-4 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors border-b border-border/50 last:border-b-0 cursor-pointer"
                 onClick={() => handlePlayTrack(track)}
               >
-                <div className="w-8 text-center text-[10px] font-bold text-muted group-hover:text-white transition-colors">
+                <div className="w-8 text-center text-[10px] font-bold text-muted group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                   {currentTrack?.id === track.id && isPlaying ? (
-                     <div className="w-3 h-3 bg-white mx-auto rounded-full animate-pulse" />
+                     <div className="w-3 h-3 bg-zinc-900 dark:bg-white mx-auto rounded-full animate-pulse" />
                   ) : (
                     (idx + 1).toString().padStart(2, '0')
                   )}
                 </div>
                 
                 <div className="flex-1 flex items-center gap-4 overflow-hidden">
-                   <div className="w-10 h-10 bg-zinc-800 flex-shrink-0">
+                   <div className="w-10 h-10 bg-zinc-200 dark:bg-zinc-800 flex-shrink-0">
                      {track.coverUrl ? (
                        <img src={track.coverUrl} className="w-full h-full object-cover grayscale" alt=""/>
                      ) : (
@@ -112,7 +112,7 @@ const LikedTracksPage = () => {
                      )}
                    </div>
                    <div className="overflow-hidden">
-                     <p className={`text-[11px] font-black uppercase tracking-tight truncate ${currentTrack?.id === track.id ? 'text-white' : 'text-zinc-300'}`}>
+                     <p className={`text-[11px] font-black uppercase tracking-tight truncate ${currentTrack?.id === track.id ? 'text-zinc-900 underline dark:text-white dark:no-underline' : 'text-zinc-900 dark:text-zinc-300'}`}>
                        {track.title}
                      </p>
                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted truncate">
@@ -121,7 +121,7 @@ const LikedTracksPage = () => {
                    </div>
                 </div>
 
-                <div className="w-16 text-right text-[10px] font-medium tabular-nums text-muted group-hover:text-white transition-colors">
+                <div className="w-16 text-right text-[10px] font-medium tabular-nums text-muted group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                   {formatTime(track.duration)}
                 </div>
               </div>

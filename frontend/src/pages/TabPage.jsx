@@ -118,26 +118,26 @@ function TabView({ id }) {
     );
   }
   if (!tab) {
-    return <Loader2 size={24} className="animate-spin text-zinc-500" />;
+    return <Loader2 size={24} className="animate-spin text-zinc-600 dark:text-zinc-400" />;
   }
 
   return (
     <div className="space-y-6 pb-32">
-      <Link to="/tabs" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+      <Link to="/tabs" className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
         <ArrowLeft size={14} /> Tabs
       </Link>
 
       <header className="flex flex-wrap items-end justify-between gap-6 border-b border-zinc-200 pb-6 dark:border-zinc-800">
         <div className="min-w-0 space-y-2">
           <h1 className="truncate text-4xl font-black tracking-tighter">{tab.title}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {[tab.artist, tab.ownerName ? `added by ${tab.ownerName}` : null].filter(Boolean).join(' · ')}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {facts.map((fact) => <span key={fact} className={badgeClass}>{fact}</span>)}
             {isOwner && <span className={badgeClass}>{tab.isPublic ? 'Public' : 'Private'}</span>}
             {tab.hidden && (
-              <span className={`${badgeClass} border-red-500 text-red-500`}>Hidden after a complaint</span>
+              <span className={`${badgeClass} border-red-500 text-red-600 dark:text-red-500`}>Hidden after a complaint</span>
             )}
           </div>
         </div>
@@ -146,7 +146,7 @@ function TabView({ id }) {
             <button type="button" onClick={startEditing} className="flex items-center gap-2 border border-current px-4 py-2 text-xs font-bold uppercase tracking-widest">
               <Pencil size={14} /> Edit
             </button>
-            <button type="button" onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 border border-red-500 px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-500">
+            <button type="button" onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 border border-red-500 px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-600 dark:text-red-500">
               <Trash2 size={14} /> Delete
             </button>
           </div>
@@ -175,7 +175,7 @@ function TabView({ id }) {
             >
               {saving && <Loader2 size={14} className="animate-spin" />} Save
             </button>
-            <button type="button" onClick={() => setEditing(false)} className="px-5 py-2 text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+            <button type="button" onClick={() => setEditing(false)} className="px-5 py-2 text-xs font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
               Cancel
             </button>
           </div>

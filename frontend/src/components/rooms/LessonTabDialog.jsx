@@ -38,12 +38,12 @@ function TabDialog({ title, confirmText, note, initialTab, onConfirm, onCancel }
       <div className="relative w-full max-w-lg space-y-6 border border-zinc-200 bg-white p-8 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-sm font-black uppercase tracking-widest">{title}</h2>
-          <button type="button" onClick={onCancel} disabled={busy} aria-label="Close" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
+          <button type="button" onClick={onCancel} disabled={busy} aria-label="Close" className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
             <X size={18} />
           </button>
         </div>
         <TabPicker selected={tab} onSelect={setTab} />
-        {note && <p className="text-xs text-zinc-500 dark:text-zinc-400">{note}</p>}
+        {note && <p className="text-xs text-zinc-600 dark:text-zinc-400">{note}</p>}
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onCancel} disabled={busy} className={secondaryButtonClass}>Cancel</button>
           <button type="button" onClick={confirm} disabled={!tab || busy} className={primaryButtonClass}>

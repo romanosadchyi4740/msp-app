@@ -38,7 +38,7 @@ const TerminateIdentityModal = ({ onClose }) => {
             <AlertTriangle size={20} />
             <h2 className="text-sm font-black uppercase tracking-[0.3em]">Critical Protocol</h2>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-600 dark:hover:text-white transition-colors">
+          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -76,7 +76,7 @@ const TerminateIdentityModal = ({ onClose }) => {
             <button 
               onClick={onClose}
               disabled={isTerminating}
-              className="w-full py-4 bg-transparent border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-all disabled:opacity-50"
+              className="w-full py-4 bg-transparent border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] hover:text-zinc-900 hover:border-zinc-900 dark:hover:text-white dark:hover:border-white transition-all disabled:opacity-50"
             >
               Abort
             </button>

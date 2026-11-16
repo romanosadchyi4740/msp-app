@@ -49,7 +49,7 @@ const AddToPlaylistModal = () => {
       <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900">
           <h2 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white">Add to Collection</h2>
-          <button onClick={closePlaylistModal} className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
+          <button onClick={closePlaylistModal} className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -59,20 +59,20 @@ const AddToPlaylistModal = () => {
             {track.coverUrl ? (
               <img src={track.coverUrl} alt="cover" className="w-full h-full object-cover grayscale" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center"><Music size={16} className="text-zinc-400 dark:text-zinc-500" /></div>
+              <div className="w-full h-full flex items-center justify-center"><Music size={16} className="text-zinc-600 dark:text-zinc-400" /></div>
             )}
           </div>
           <div className="flex-1 overflow-hidden">
             <p className="text-xs font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">{track.title}</p>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">{track.authorName}</p>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-600 dark:text-zinc-400 truncate">{track.authorName}</p>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-zinc-50 dark:bg-zinc-950">
           <div>
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-3">Your Collections</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400 mb-3">Your Collections</h3>
             {myPlaylists.length === 0 ? (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">No playlists found.</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">No playlists found.</p>
             ) : (
               <div className="space-y-2">
                 {myPlaylists.map(playlist => (
@@ -87,12 +87,12 @@ const AddToPlaylistModal = () => {
                         {playlist.coverUrl ? (
                            <img src={playlist.coverUrl} alt="" className="w-full h-full object-cover grayscale" />
                         ) : (
-                           <Music size={12} className="text-zinc-400 dark:text-zinc-500" />
+                           <Music size={12} className="text-zinc-600 dark:text-zinc-400" />
                         )}
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-900 dark:text-white truncate">{playlist.title}</span>
                     </div>
-                    <Plus size={14} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Plus size={14} className="text-zinc-600 dark:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 ))}
               </div>
@@ -100,7 +100,7 @@ const AddToPlaylistModal = () => {
           </div>
 
           <div>
-             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mb-3">Create New</h3>
+             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400 mb-3">Create New</h3>
              <form onSubmit={handleCreate} className="flex gap-2">
                <input 
                  value={newTitle}

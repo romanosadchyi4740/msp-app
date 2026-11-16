@@ -88,7 +88,7 @@ const SettingsPage = () => {
         <div className="space-y-8">
           {/* Avatar Placeholder/Info */}
           <div className="flex items-center gap-8 p-8 border border-border bg-surface/50">
-            <div className="w-20 h-20 bg-zinc-800 flex items-center justify-center">
+            <div className="w-20 h-20 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
               {formData.avatarUrl ? (
                 <img src={formData.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover grayscale" />
               ) : (
@@ -144,12 +144,12 @@ const SettingsPage = () => {
 
         <div className="flex flex-col gap-4">
           {error && (
-            <div className="p-4 border border-red-900 bg-red-950/20 text-red-500 text-[10px] font-black uppercase tracking-widest">
+            <div className="p-4 border border-red-900 bg-red-950/20 text-red-700 dark:text-red-500 text-[10px] font-black uppercase tracking-widest">
               {error}
             </div>
           )}
           {success && (
-            <div className="p-4 border border-green-900 bg-green-950/20 text-green-500 text-[10px] font-black uppercase tracking-widest">
+            <div className="p-4 border border-green-900 bg-green-950/20 text-green-700 dark:text-green-500 text-[10px] font-black uppercase tracking-widest">
               System updated successfully.
             </div>
           )}
@@ -177,7 +177,7 @@ const SettingsPage = () => {
           />
           <span className="space-y-1">
             <span className="block text-sm font-bold">Relay only</span>
-            <span className="block text-xs text-zinc-500 dark:text-zinc-400 max-w-md">
+            <span className="block text-xs text-zinc-600 dark:text-zinc-400 max-w-md">
               Send and receive room audio only through the relay server, so the other participants never see your
               IP address. The route is longer, so the delay may grow. Kept in this browser.
             </span>
@@ -187,21 +187,21 @@ const SettingsPage = () => {
 
       {/* Danger Zone */}
       <section className="pt-16 border-t border-red-900/30 space-y-8">
-        <div className="flex items-center gap-3 text-red-500">
+        <div className="flex items-center gap-3 text-red-600 dark:text-red-500">
           <AlertTriangle size={16} />
           <h2 className="text-xs font-black uppercase tracking-[0.3em]">Danger Zone</h2>
         </div>
         
         <div className="p-8 border border-red-900/20 bg-red-950/5 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-2">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-white">Terminate Identity</h3>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 max-w-sm">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white">Terminate Identity</h3>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 max-w-sm">
               Permanently purge your digital footprint and disconnect from the network.
             </p>
           </div>
           <button 
             onClick={() => setIsTerminateModalOpen(true)}
-            className="px-8 py-3 border border-red-900 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
+            className="px-8 py-3 border border-red-900 text-red-700 dark:text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
           >
             Terminate Identity
           </button>

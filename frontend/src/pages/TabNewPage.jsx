@@ -135,7 +135,7 @@ export default function TabNewPage() {
       className={`flex items-center gap-2 border px-4 py-2 text-xs font-black uppercase tracking-widest ${
         mode === value
           ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-black'
-          : 'border-zinc-300 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400'
+          : 'border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400'
       }`}
     >
       <Icon size={14} /> {label}
@@ -166,7 +166,7 @@ export default function TabNewPage() {
                 onChange={(event) => setRawText(event.target.value)}
                 spellCheck={false}
               />
-              <span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="mt-1 block text-xs text-zinc-600 dark:text-zinc-400">
                 One line per string, highest first (e|, B|, G|, D|, A|, E|), with | between measures.
               </span>
             </label>
@@ -174,8 +174,8 @@ export default function TabNewPage() {
             <label className="block">
               <span className={labelClass}>Guitar Pro file *</span>
               <input type="file" accept={GUITAR_PRO_EXTENSIONS.join(',')} onChange={handleFile} className="text-sm" />
-              <span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400">.gp, .gp5 or .gpx, at most 10 MB.</span>
-              {fileError && <span className="mt-1 block text-xs text-red-500">{fileError}</span>}
+              <span className="mt-1 block text-xs text-zinc-600 dark:text-zinc-400">.gp, .gp5 or .gpx, at most 10 MB.</span>
+              {fileError && <span className="mt-1 block text-xs text-red-600 dark:text-red-500">{fileError}</span>}
             </label>
           )}
 
@@ -205,16 +205,16 @@ export default function TabNewPage() {
           <div className="flex items-center justify-between">
             <span className={labelClass}>Preview</span>
             {mode === 'ascii' && preview.alphaTex && !preview.error && (
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">{preview.measureCount} measures</span>
+              <span className="text-xs text-zinc-600 dark:text-zinc-400">{preview.measureCount} measures</span>
             )}
           </div>
           {mode === 'ascii' && preview.error && previewCurrent && hasText && (
-            <p className="text-xs text-red-500">{preview.error}</p>
+            <p className="text-xs text-red-600 dark:text-red-500">{preview.error}</p>
           )}
           {source ? (
             <TabCanvas source={source} className="h-[60vh] border border-zinc-200 dark:border-zinc-800" />
           ) : (
-            <div className="flex h-[60vh] items-center justify-center border border-dashed border-zinc-300 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+            <div className="flex h-[60vh] items-center justify-center border border-dashed border-zinc-300 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
               {mode === 'ascii' ? 'Type or paste a tab to see it here.' : 'Choose a file to see it here.'}
             </div>
           )}
