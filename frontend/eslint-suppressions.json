@@ -1,0 +1,42 @@
+{
+  "src/components/chat/ChatAudioPlayer.jsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/modals/ClusterDetailsModal.jsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/modals/ShareTrackModal.jsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/pages/LikedTracksPage.jsx": {
+    "react-hooks/immutability": {
+      "count": 1
+    }
+  },
+  "src/pages/PlaylistPage.jsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 3
+    }
+  },
+  "src/pages/SearchPage.jsx": {
+    "react-hooks/immutability": {
+      "count": 1
+    }
+  },
+  "src/pages/TelemetryPage.jsx": {
+    "react-hooks/immutability": {
+      "count": 2
+    }
+  },
+  "src/pages/UploadPage.jsx": {
+    "react-hooks/immutability": {
+      "count": 1
+    }
+  }
+}

@@ -11,7 +11,7 @@ const AlbumDetailsPage = () => {
   const { albumId } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
-  const { playTrack, currentTrack, isPlaying } = usePlayerStore();
+  const { playTrack, currentTrack } = usePlayerStore();
   const [album, setAlbum] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -152,7 +152,6 @@ const AlbumDetailsPage = () => {
         <div className="divide-y divide-zinc-200 dark:divide-zinc-800/30">
           {album.tracks.map((track, index) => {
             const isCurrent = currentTrack?.id === track.id;
-            const active = isCurrent && isPlaying;
 
             return (
               <div 

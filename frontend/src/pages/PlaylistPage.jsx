@@ -25,7 +25,6 @@ const PlaylistPage = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -140,14 +139,12 @@ const PlaylistPage = () => {
   };
 
   const handleToggleVisibility = async () => {
-    setTogglingVisibility(true);
     try {
       const res = await axiosClient.put(`/api/playlists/${id}/visibility`);
       setPlaylist(res.data);
     } catch (err) {
       console.error('Failed to toggle visibility', err);
     } finally {
-      setTogglingVisibility(false);
       setShowConfirmDialog(false);
     }
   };

@@ -71,8 +71,8 @@ cd backend && ./mvnw -Dtest=ArchitectureTest test   # module boundaries (Spring 
 cd backend && ./mvnw -Dtest=ChatServiceTest test
 cd backend && ./mvnw -Dtest=ChatServiceTest#methodName test
 cd frontend && npm install && npm run dev    # http://localhost:5173
-cd frontend && npm run lint; npm run build  # lint has 23 pre-existing problems
-cd frontend && npm test                      # unit tests (node:test, src/**/*.test.js)
+cd frontend && npm run lint; npm run build  # older errors are in eslint-suppressions.json (KAN-101); new ones fail
+cd frontend && npm test                      # unit tests (node:test, src/**/*.test.js and the e2e/*.test.js helpers)
 cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running, and coturn for the audio test; uses the installed Chrome)
 ```
 
@@ -357,6 +357,8 @@ and `RoomParticipant.rttMs`.
   not `main`. The owner reviews and merges PRs. Move the Jira ticket along with the work: In Progress when
   starting, In Review when the PR is opened, Done after the merge.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
+  CI (`.github/workflows/ci.yml`) runs on every PR and push to `development`/`main`: `./mvnw verify` with the JaCoCo
+  report (`backend/target/site/jacoco`), the Java style check, and `npm ci`, lint, `npm test`, build.
 - Project skills in `.claude/skills/`: `kan-ticket` (ticket, branch, PR and Jira workflow), `modulith-extract`
   (extracting a module), `split-service` (splitting an oversized service), `contract-first-api` (adding a REST
   endpoint from an OpenAPI spec), `browser-check` (running the app and checking a frontend change in Chrome),

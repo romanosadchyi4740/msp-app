@@ -7,7 +7,7 @@ import TerminateIdentityModal from '../components/modals/TerminateIdentityModal'
 import useRtcStore from '../store/rtcStore';
 
 const SettingsPage = () => {
-  const { user, updateProfile, loading: isUpdating } = useAuthStore();
+  const { updateProfile, loading: isUpdating } = useAuthStore();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({

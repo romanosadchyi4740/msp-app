@@ -6,7 +6,7 @@ const safeParse = (key) => {
   if (!item || item === 'undefined') return null;
   try {
     return JSON.parse(item);
-  } catch (e) {
+  } catch {
     return null;
   }
 };
