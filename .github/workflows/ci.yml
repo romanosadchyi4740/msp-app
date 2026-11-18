@@ -10,10 +10,11 @@ on:
 permissions:
   contents: read
 
-# A newer push to the same PR or branch cancels the run still going
+# A newer push to a PR cancels its run still going; runs for merges into development/main always finish, so every
+# integration commit gets a result
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -24,9 +25,9 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
@@ -70,7 +71,7 @@ jobs:
 
       - name: Upload coverage report
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: jacoco-report
           path: backend/target/site/jacoco
@@ -78,7 +79,7 @@ jobs:
 
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports
           path: backend/target/surefire-reports
@@ -89,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # The mechanical rules of CLAUDE.md section 4 (imports instead of qualified names, file endings)
       - name: Check
         run: git ls-files 'backend/src/*.java' | xargs python3 .claude/scripts/java/java_style.py --check
@@ -102,9 +103,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm

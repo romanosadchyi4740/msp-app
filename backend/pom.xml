@@ -282,12 +282,6 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.14</version>
-				<configuration>
-					<excludes>
-						<!-- Interfaces and models generated from the OpenAPI specs -->
-						<exclude>com/romanosadchyi/smp/music_app/*/internal/api/**</exclude>
-					</excludes>
-				</configuration>
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
@@ -301,6 +295,12 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<excludes>
+								<!-- Interfaces and models generated from the OpenAPI specs -->
+								<exclude>com/romanosadchyi/smp/music_app/*/internal/api/**</exclude>
+							</excludes>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
