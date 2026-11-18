@@ -7,15 +7,20 @@ import com.romanosadchyi.smp.music_app.users.internal.dto.AuthResponseDto;
 import com.romanosadchyi.smp.music_app.users.internal.dto.LoginRequestDto;
 import com.romanosadchyi.smp.music_app.users.internal.dto.RegisterRequestDto;
 import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.exception.EmailAlreadyInUseException;
 import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,7 +50,7 @@ class AuthServiceTest {
         when(passwordEncoder.encode("pass123")).thenReturn("encoded_pass");
         
         User savedUser = User.builder().id(UUID.randomUUID()).email("test@test.com").displayName("TestUser").role(UserRole.ROLE_USER).build();
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(savedUser);
         when(jwtService.generateToken(new AuthenticatedUser(savedUser.getId(), "test@test.com", "ROLE_USER"))).thenReturn("jwt_token");
 
         AuthResponseDto response = authService.register(dto);
@@ -53,16 +58,37 @@ class AuthServiceTest {
         assertNotNull(response);
         assertEquals("jwt_token", response.accessToken());
         assertEquals("TestUser", response.displayName());
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).saveAndFlush(any(User.class));
     }
 
     @Test
-    void register_EmailAlreadyExists_ThrowsResponseStatusException() {
+    void register_EmailAlreadyExists_ThrowsEmailAlreadyInUse() {
         RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
         when(userRepository.existsByEmail("test@test.com")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> authService.register(dto));
-        verify(userRepository, never()).save(any(User.class));
+        EmailAlreadyInUseException ex = assertThrows(EmailAlreadyInUseException.class, () -> authService.register(dto));
+        assertEquals("Email already in use", ex.getMessage());
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    void register_ConcurrentRegistrationWithTheEmail_ThrowsEmailAlreadyInUse() {
+        RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
+        when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(uniqueViolation("email_unique"));
+
+        assertThrows(EmailAlreadyInUseException.class, () -> authService.register(dto));
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void register_OtherConstraintViolation_IsRethrown() {
+        RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
+        when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
+        DataIntegrityViolationException violation = uniqueViolation("users_role_check");
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(violation);
+
+        assertSame(violation, assertThrows(DataIntegrityViolationException.class, () -> authService.register(dto)));
     }
 
     @Test
@@ -88,7 +114,19 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrongpass", "encoded_pass")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> authService.login(dto));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> authService.login(dto));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        assertEquals("Invalid credentials", ex.getReason());
+    }
+
+    @Test
+    void login_UnknownEmail_ThrowsTheSameUnauthorized() {
+        LoginRequestDto dto = new LoginRequestDto("nobody@test.com", "pass123");
+        when(userRepository.findByEmail("nobody@test.com")).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> authService.login(dto));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        assertEquals("Invalid credentials", ex.getReason());
     }
 
     @Test
@@ -98,7 +136,20 @@ class AuthServiceTest {
         
         when(userRepository.findByEmail("google@test.com")).thenReturn(Optional.of(user));
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> authService.login(dto));
-        assertEquals("400 BAD_REQUEST \"Please login via Google\"", ex.getMessage());
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> authService.login(dto));
+        assertEquals("Please login via Google", ex.getMessage());
+    }
+
+    @Test
+    void authenticateWithGoogle_MalformedToken_ThrowsUnauthorized() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> authService.authenticateWithGoogle("not-a-token"));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        verifyNoInteractions(userRepository);
+    }
+
+    private static DataIntegrityViolationException uniqueViolation(String constraint) {
+        return new DataIntegrityViolationException("could not execute statement",
+                new ConstraintViolationException("violation", new SQLException("duplicate"), constraint));
     }
 }

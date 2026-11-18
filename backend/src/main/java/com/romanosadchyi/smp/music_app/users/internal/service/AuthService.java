@@ -12,24 +12,32 @@ import com.romanosadchyi.smp.music_app.users.internal.dto.LoginRequestDto;
 import com.romanosadchyi.smp.music_app.users.internal.dto.RegisterRequestDto;
 import com.romanosadchyi.smp.music_app.users.internal.entity.AuthProvider;
 import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import com.romanosadchyi.smp.music_app.users.internal.exception.EmailAlreadyInUseException;
 import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthService {
+
+    static final String EMAIL_IN_USE = "Email already in use";
+    static final String EMAIL_UNIQUE_CONSTRAINT = "email_unique";
 
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
@@ -39,10 +47,14 @@ public class AuthService {
     @Value("${google.client.id}")
     String googleClientId;
 
+    /**
+     * @throws EmailAlreadyInUseException if an account has the email, also when another registration with it
+     *                                    commits between the check and the insert
+     */
     @Transactional
     public AuthResponseDto register(RegisterRequestDto request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already in use");
+            throw new EmailAlreadyInUseException(EMAIL_IN_USE);
         }
 
         User user = User.builder()
@@ -54,7 +66,15 @@ public class AuthService {
                 .avatarUrl("https://ui-avatars.com/api/?name=" + request.displayName())
                 .build();
 
-        user = userRepository.save(user);
+        try {
+            // Flushed here so a concurrent registration's unique violation surfaces in this method
+            user = userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            if (isEmailUniqueViolation(e)) {
+                throw new EmailAlreadyInUseException(EMAIL_IN_USE);
+            }
+            throw e;
+        }
 
         String token = jwtService.generateToken(toAuthenticatedUser(user));
 
@@ -67,7 +87,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (user.getPassword() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please login via Google");
+            throw new IllegalArgumentException("Please login via Google");
         }
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -118,9 +138,15 @@ public class AuthService {
             } else {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid ID token.");
             }
-        } catch (Exception e) {
+        } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
+            // Only the verifier's failures (malformed token, keys not fetched); others are server errors, not a 401
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Failed to authenticate with Google", e);
         }
+    }
+
+    private static boolean isEmailUniqueViolation(DataIntegrityViolationException e) {
+        return e.getCause() instanceof ConstraintViolationException violation
+                && EMAIL_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
     }
 
     private static AuthenticatedUser toAuthenticatedUser(User user) {
