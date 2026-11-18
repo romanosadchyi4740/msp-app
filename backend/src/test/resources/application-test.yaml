@@ -25,6 +25,9 @@ google:
 app:
   cors:
     allowed-origins: http://localhost:5173
+  websocket:
+    # StompTestClient connects to /ws-raw
+    raw-endpoint-enabled: true
 
 data-seeder:
   enabled: false

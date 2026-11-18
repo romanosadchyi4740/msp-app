@@ -21,6 +21,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     StompAuthorizationInterceptor stompAuthorizationInterceptor;
     StompDeliveryInterceptor stompDeliveryInterceptor;
     WebSocketSessionRegistry webSocketSessionRegistry;
+    CorsProperties corsProperties;
+    WebSocketProperties webSocketProperties;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -29,15 +31,23 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.setUserDestinationPrefix("/user");
     }
 
+    /**
+     * A handshake from a browser page on another origin is refused with 403 (KAN-22). Spring Security's CORS
+     * filter, configured with the same origins, refuses it too; this keeps the endpoints safe on their own. Clients
+     * that send no {@code Origin} header, such as Postman or the test STOMP client, are not browsers and are let
+     * through; they still need a valid token on {@code CONNECT}.
+     */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        String[] allowedOrigins = corsProperties.allowedOrigins().toArray(String[]::new);
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(allowedOrigins)
                 .withSockJS();
-        
-        // Non-SockJS endpoint for direct WebSocket testing in Postman
-        registry.addEndpoint("/ws-raw")
-                .setAllowedOriginPatterns("*");
+        if (webSocketProperties.rawEndpointEnabled()) {
+            // Non-SockJS endpoint for Postman, the integration tests and the test data scripts
+            registry.addEndpoint("/ws-raw")
+                    .setAllowedOrigins(allowedOrigins);
+        }
     }
 
     @Override

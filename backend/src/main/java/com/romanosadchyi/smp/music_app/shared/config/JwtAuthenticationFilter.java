@@ -60,7 +60,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
+            // The type only: parser messages may quote parts of the token
+            log.error("Cannot set user authentication ({})", e.getClass().getSimpleName());
         }
         filterChain.doFilter(request, response);
     }

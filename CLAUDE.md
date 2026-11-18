@@ -83,7 +83,7 @@ with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTI
 start if a variable is missing). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
 refuses to start while a secret is missing or has a value committed to the repo; settings are bound to
 `@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`,
-`TurnProperties`).
+`TurnProperties`, `CorsProperties`).
 Frontend config comes from Vite env vars (`VITE_API_URL`, `VITE_WS_URL`, `VITE_GOOGLE_CLIENT_ID`) read in
 `src/config.js`; dev defaults are in the committed `frontend/.env.development`,
 and `frontend/.env.example` lists them for builds.
@@ -99,7 +99,9 @@ and `frontend/.env.example` lists them for builds.
 - **STOMP auth** happens only on `CONNECT`, in `JwtStompChannelInterceptor` (registered in `WebSocketConfig`). It
   reads the `Authorization` native header and sets an `AuthenticatedUser` as the session user. There is **no** per-destination authorization yet
   (the room `ChannelInterceptor` from section 6 has to be added). Endpoints are `/ws` (SockJS, used by the
-  frontend) and `/ws-raw` (plain WebSocket, for Postman). The broker is the simple in-memory broker on
+  frontend) and `/ws-raw` (plain WebSocket, for Postman, `StompTestClient` and `testData.mjs`; registered only when
+  `app.websocket.raw-endpoint-enabled` is true, i.e. in `local` and `test`, never in `prod`). Both accept handshakes
+  only from `app.cors.allowed-origins` (KAN-22). The broker is the simple in-memory broker on
   `/topic` and `/queue`, with app prefix `/app` and user prefix `/user`.
 - **Chat** (module `chats`): `MessageController` `@MessageMapping("/chat")` → `ChatMessageService` persists the message
   (content is encrypted transparently by the JPA `shared.util.EncryptedTextConverter` → the `EncryptionUtil` bean: AES-256-GCM,
@@ -343,7 +345,6 @@ and `RoomParticipant.rttMs`.
 ## 7. Known issues in the base project (fix before production; see Jira epic KAN-5)
 
 - The local and test secrets are committed and public; they are only accepted in those profiles (KAN-20).
-- `setAllowedOriginPatterns("*")` on WebSocket endpoints.
 - Simple in-memory STOMP broker → one backend instance only (fine for MVP; later RabbitMQ STOMP relay or
   Redis pub/sub).
 

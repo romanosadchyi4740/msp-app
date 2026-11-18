@@ -36,6 +36,11 @@ jwt:
 turn:
   credential-ttl-seconds: ${TURN_CREDENTIAL_TTL_SECONDS:3600}
 
+# The plain WebSocket endpoint /ws-raw (no SockJS) is for Postman and test tooling; local and test turn it on
+app:
+  websocket:
+    raw-endpoint-enabled: false
+
 # Only /actuator/health is exposed, and it returns just {"status": ...} (public, for the ALB health check)
 management:
   endpoints:
