@@ -1,6 +1,5 @@
 import React from 'react';
 import { Play, Pause, Music, MessageCircle, Heart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useChatStore from '../store/chatStore';
 import useLikeStore from '../store/likeStore';

@@ -94,7 +94,7 @@ const UploadPage = () => {
       // Refetch albums to update the dropdown
       const response = await axiosClient.get('/api/albums/my');
       setMyAlbums(response.data);
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to create archive.' });
     } finally {
       setCreatingAlbum(false);

@@ -1,0 +1,125 @@
+# CI (KAN-18): every pull request and every push to development or main builds and tests the backend and the
+# frontend. The job names are what branch protection requires; rename them together with the protection rule.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [development, main]
+
+permissions:
+  contents: read
+
+# A newer push to the same PR or branch cancels the run still going
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (tests, coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # Unit and integration tests; the integration tests start Postgres and S3Mock with Testcontainers on the
+      # runner's Docker. JaCoCo writes the coverage report in the verify phase.
+      - name: Build and test
+        run: ./mvnw -B -ntp verify
+
+      - name: Test results summary
+        if: always()
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+          t = f = e = s = 0
+          failed = []
+          for path in glob.glob('target/surefire-reports/TEST-*.xml'):
+              suite = ET.parse(path).getroot()
+              t += int(suite.get('tests')); f += int(suite.get('failures'))
+              e += int(suite.get('errors')); s += int(suite.get('skipped'))
+              for case in suite.iter('testcase'):
+                  if case.find('failure') is not None or case.find('error') is not None:
+                      failed.append(f"{case.get('classname')}#{case.get('name')}")
+          print(f"### Backend tests\n{t} run, {f} failures, {e} errors, {s} skipped\n")
+          for name in failed:
+              print(f"- {name}")
+          EOF
+
+      - name: Coverage summary
+        if: success()
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import csv
+          missed = covered = 0
+          with open('target/site/jacoco/jacoco.csv') as report:
+              for row in csv.DictReader(report):
+                  missed += int(row['LINE_MISSED']); covered += int(row['LINE_COVERED'])
+          print(f"### Backend line coverage\n{100 * covered / (missed + covered):.1f}% ({covered} of {missed + covered} lines)")
+          EOF
+
+      - name: Upload coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco
+          retention-days: 14
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports
+          retention-days: 14
+
+  java-style:
+    name: Java style
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # The mechanical rules of CLAUDE.md section 4 (imports instead of qualified names, file endings)
+      - name: Check
+        run: git ls-files 'backend/src/*.java' | xargs python3 .claude/scripts/java/java_style.py --check
+
+  frontend:
+    name: Frontend (lint, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      # Known errors are recorded in eslint-suppressions.json; a new error, or a recorded one that was fixed
+      # without pruning the file, fails the step
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      # Checks that the production bundle compiles; the VITE_* settings are optional (src/config.js)
+      - name: Build
+        run: npm run build

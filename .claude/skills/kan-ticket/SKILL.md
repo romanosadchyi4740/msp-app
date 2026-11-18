@@ -46,8 +46,8 @@ The owner reviews and merges every PR. Move the Jira ticket with the work, never
 - Frontend changes: from `frontend/`, `npm test` (node:test unit tests), `npm run build`, and
   `npx eslint <changed files>` must be clean. Changes to the sync engine, clock sync or metronome also run
   `npm run test:e2e` (Playwright drift test; needs the backend running) and report its p95.
-  `npm run lint` on the whole tree already fails on `development` (23 problems before KAN-92); report its total and
-  make sure it did not grow. Visible changes are checked in the browser with the `browser-check` skill (test data
+  `npm run lint` must pass: older errors are recorded in `eslint-suppressions.json` (KAN-101), a new error fails it,
+  and a recorded one you fixed is removed with `npx eslint . --prune-suppressions`. Visible changes are checked in the browser with the `browser-check` skill (test data
   with `seed-test-data`, colours and focus with `a11y-audit`); new REST endpoints follow the `contract-first-api`
   skill.
 - Windows shell pitfalls:
@@ -88,7 +88,8 @@ Jira: [KAN-<n>](https://romanos4740.atlassian.net/browse/KAN-<n>) (epic KAN-<epi
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
-Keep the footer line exactly as above. Never claim something is verified that was not run (e.g. CI before KAN-18).
+Keep the footer line exactly as above. Never claim something is verified that was not run. CI (`.github/workflows/ci.yml`, KAN-18) runs on every PR;
+report its result (`gh pr checks <n>`) and do not call a PR ready while a check is red.
 For a **stacked PR**, use `--base <parent PR branch>` and say at the top that it is stacked on #<parent>.
 
 Then: transition the ticket to In Review (`31`) and add the comment `PR for review: <url>`.

@@ -277,6 +277,33 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- Test coverage report (KAN-18): target/site/jacoco/index.html after `./mvnw verify`; no threshold yet (KAN-60) -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.14</version>
+				<configuration>
+					<excludes>
+						<!-- Interfaces and models generated from the OpenAPI specs -->
+						<exclude>com/romanosadchyi/smp/music_app/*/internal/api/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
