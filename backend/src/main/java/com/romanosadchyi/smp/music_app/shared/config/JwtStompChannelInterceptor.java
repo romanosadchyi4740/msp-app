@@ -69,7 +69,8 @@ public class JwtStompChannelInterceptor implements ChannelInterceptor {
         try {
             user = jwtService.parseToken(authHeader.substring(7));
         } catch (RuntimeException e) {
-            log.warn("Refused WebSocket CONNECT with an invalid token: {}", e.getMessage());
+            // The type only: parser messages may quote parts of the token
+            log.warn("Refused WebSocket CONNECT with an invalid token ({})", e.getClass().getSimpleName());
             throw new AccessDeniedException("Invalid token");
         }
         boolean active;

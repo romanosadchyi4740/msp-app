@@ -26,13 +26,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto> register(@RequestBody RegisterRequestDto request) {
-        log.info("Registering new user with email: {}", request.email());
+        log.info("Registering a new user");
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDto> login(@RequestBody LoginRequestDto request) {
-        log.info("Logging in user with email: {}", request.email());
+        log.info("Logging in a user with email and password");
         return ResponseEntity.ok(authService.login(request));
     }
 

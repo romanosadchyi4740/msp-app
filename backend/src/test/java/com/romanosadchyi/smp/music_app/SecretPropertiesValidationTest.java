@@ -1,6 +1,7 @@
 package com.romanosadchyi.smp.music_app;
 
 import com.romanosadchyi.smp.music_app.rtc.internal.config.TurnProperties;
+import com.romanosadchyi.smp.music_app.shared.config.CorsProperties;
 import com.romanosadchyi.smp.music_app.shared.security.JwtProperties;
 import com.romanosadchyi.smp.music_app.shared.util.EncryptionProperties;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,8 @@ class SecretPropertiesValidationTest {
                     "turn.secret=a-real-turn-secret",
                     "turn.urls=turn:turn.example.com:3478?transport=udp,turns:turn.example.com:443?transport=tcp",
                     "turn.stun-urls=",
-                    "turn.credential-ttl-seconds=3600");
+                    "turn.credential-ttl-seconds=3600",
+                    "app.cors.allowed-origins=https://app.example.com");
 
     @Test
     void allSet_Binds() {
@@ -42,6 +44,7 @@ class SecretPropertiesValidationTest {
             assertThat(context.getBean(EncryptionProperties.class).secretKey()).hasSize(32);
             assertThat(context.getBean(TurnProperties.class).urls()).hasSize(2);
             assertThat(context.getBean(TurnProperties.class).stunUrls()).isEmpty();
+            assertThat(context.getBean(CorsProperties.class).allowedOrigins()).containsExactly("https://app.example.com");
         });
     }
 
@@ -91,6 +94,12 @@ class SecretPropertiesValidationTest {
     void turnCredentialLifetimeOutsideOneToSixHours_FailsStartup() {
         assertFailsOn("turn.credential-ttl-seconds=600", "turn");
         assertFailsOn("turn.credential-ttl-seconds=86400", "turn");
+    }
+
+    @Test
+    void noAllowedOrigins_FailsStartup() {
+        // CORS and the WebSocket handshake would refuse every browser
+        assertFailsOn("app.cors.allowed-origins=", "app.cors");
     }
 
     private void assertFailsOn(String blankProperty, String prefix) {
