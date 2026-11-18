@@ -9,12 +9,12 @@ import com.romanosadchyi.smp.music_app.users.internal.dto.RegisterRequestDto;
 import com.romanosadchyi.smp.music_app.users.internal.entity.User;
 import com.romanosadchyi.smp.music_app.users.internal.exception.EmailAlreadyInUseException;
 import com.romanosadchyi.smp.music_app.users.internal.repository.UserRepository;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -82,6 +82,17 @@ class AuthServiceTest {
     }
 
     @Test
+    void register_EmailViolationDeeperInTheCauseChain_ThrowsEmailAlreadyInUse() {
+        RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
+        when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
+        DataIntegrityViolationException wrapped = new DataIntegrityViolationException("could not execute statement",
+                new RuntimeException("wrapper", uniqueViolation("email_unique").getCause()));
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(wrapped);
+
+        assertThrows(EmailAlreadyInUseException.class, () -> authService.register(dto));
+    }
+
+    @Test
     void register_OtherConstraintViolation_IsRethrown() {
         RegisterRequestDto dto = new RegisterRequestDto("test@test.com", "pass123", "TestUser");
         when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
@@ -145,6 +156,7 @@ class AuthServiceTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> authService.authenticateWithGoogle("not-a-token"));
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        assertEquals("Failed to authenticate with Google", ex.getReason());
         verifyNoInteractions(userRepository);
     }
 

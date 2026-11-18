@@ -9,10 +9,15 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.web.ErrorResponseException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.sql.SQLException;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,6 +45,40 @@ class GlobalExceptionHandlerTest {
         handler.handleGeneralException(e);
 
         assertThat(output).doesNotContain("token-fragment-abc").doesNotContain("\tat ");
+    }
+
+    @Test
+    void unreadableBody_Is400WithAFixedMessageAndNothingQuoted(CapturedOutput output) {
+        HttpMessageNotReadableException e = new HttpMessageNotReadableException(
+                "JSON parse error: Unrecognized token 'hunter2-secret'", new MockHttpInputMessage(new byte[0]));
+
+        ResponseEntity<ErrorResponseDto> response = handler.handleGeneralException(e);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().message()).isEqualTo(GlobalExceptionHandler.MALFORMED_REQUEST);
+        assertThat(output).contains("Request refused with 400 (HttpMessageNotReadableException)")
+                .doesNotContain("hunter2-secret").doesNotContain("ERROR");
+    }
+
+    @Test
+    void pathVariableOfTheWrongType_Is400WithAFixedMessage(CapturedOutput output) {
+        MethodArgumentTypeMismatchException e = new MethodArgumentTypeMismatchException(
+                "not-a-uuid", UUID.class, "id", null, new IllegalArgumentException("Invalid UUID string: not-a-uuid"));
+
+        ResponseEntity<ErrorResponseDto> response = handler.handleGeneralException(e);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().message()).isEqualTo(GlobalExceptionHandler.MALFORMED_REQUEST);
+        assertThat(output).doesNotContain("not-a-uuid");
+    }
+
+    @Test
+    void clientErrorWithoutDetail_FallsBackToTheReasonPhrase() {
+        ResponseEntity<ErrorResponseDto> response = handler.handleGeneralException(
+                new ErrorResponseException(HttpStatus.UNSUPPORTED_MEDIA_TYPE));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(response.getBody().message()).isEqualTo("Unsupported Media Type");
     }
 
     @Test

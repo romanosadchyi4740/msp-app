@@ -49,6 +49,14 @@ class AuthErrorsIntegrationTest {
     }
 
     @Test
+    void login_MalformedBody_IsBadRequest() throws Exception {
+        mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"a@example.com\", \"password\": hunter2}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("The request is malformed"));
+    }
+
+    @Test
     void register_TakenEmail_IsConflict() throws Exception {
         String email = uniqueEmail();
         register(email).andExpect(status().isOk());

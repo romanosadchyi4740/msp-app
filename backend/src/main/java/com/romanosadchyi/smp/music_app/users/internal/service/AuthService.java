@@ -38,6 +38,7 @@ public class AuthService {
 
     static final String EMAIL_IN_USE = "Email already in use";
     static final String EMAIL_UNIQUE_CONSTRAINT = "email_unique";
+    static final String GOOGLE_FAILED = "Failed to authenticate with Google";
 
     UserRepository userRepository;
     PasswordEncoder passwordEncoder;
@@ -101,52 +102,66 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDto authenticateWithGoogle(String googleIdTokenString) {
+        GoogleIdToken.Payload payload = verifyGoogleToken(googleIdTokenString);
+
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+        String pictureUrl = (String) payload.get("picture");
+
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            User newUser = User.builder()
+                    .email(email)
+                    .displayName(name)
+                    .role(UserRole.ROLE_USER)
+                    .provider(AuthProvider.GOOGLE)
+                    .avatarUrl(pictureUrl != null ? pictureUrl : "https://ui-avatars.com/api/?name=" + name)
+                    .build();
+            return userRepository.save(newUser);
+        });
+
+        if (user.getProvider() != AuthProvider.GOOGLE) {
+            user.setProvider(AuthProvider.GOOGLE);
+            if (user.getAvatarUrl() == null || user.getAvatarUrl().startsWith("https://ui-avatars.com")) {
+                user.setAvatarUrl(pictureUrl);
+            }
+            userRepository.save(user);
+        }
+
+        String token = jwtService.generateToken(toAuthenticatedUser(user));
+        return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
+    }
+
+    /**
+     * Only the verifier's failures (malformed or invalid token, keys not fetched) are a 401; a failure after the
+     * token was accepted, such as a database error, is a server error.
+     */
+    private GoogleIdToken.Payload verifyGoogleToken(String googleIdTokenString) {
+        GoogleIdToken idToken;
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
-
-            GoogleIdToken idToken = verifier.verify(googleIdTokenString);
-            if (idToken != null) {
-                GoogleIdToken.Payload payload = idToken.getPayload();
-
-                String email = payload.getEmail();
-                String name = (String) payload.get("name");
-                String pictureUrl = (String) payload.get("picture");
-
-                User user = userRepository.findByEmail(email).orElseGet(() -> {
-                    User newUser = User.builder()
-                            .email(email)
-                            .displayName(name)
-                            .role(UserRole.ROLE_USER)
-                            .provider(AuthProvider.GOOGLE)
-                            .avatarUrl(pictureUrl != null ? pictureUrl : "https://ui-avatars.com/api/?name=" + name)
-                            .build();
-                    return userRepository.save(newUser);
-                });
-
-                if (user.getProvider() != AuthProvider.GOOGLE) {
-                    user.setProvider(AuthProvider.GOOGLE);
-                    if (user.getAvatarUrl() == null || user.getAvatarUrl().startsWith("https://ui-avatars.com")) {
-                        user.setAvatarUrl(pictureUrl);
-                    }
-                    userRepository.save(user);
-                }
-
-                String token = jwtService.generateToken(toAuthenticatedUser(user));
-                return new AuthResponseDto(token, user.getDisplayName(), user.getId().toString(), user.getRole().name());
-            } else {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid ID token.");
-            }
+            idToken = verifier.verify(googleIdTokenString);
         } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
-            // Only the verifier's failures (malformed token, keys not fetched); others are server errors, not a 401
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Failed to authenticate with Google", e);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, GOOGLE_FAILED, e);
         }
+        if (idToken == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, GOOGLE_FAILED);
+        }
+        return idToken.getPayload();
     }
 
+    /**
+     * Whether the insert hit the unique email constraint; the Hibernate exception is looked for in the whole cause
+     * chain, as the translation that wraps it differs with the configured exception translator.
+     */
     private static boolean isEmailUniqueViolation(DataIntegrityViolationException e) {
-        return e.getCause() instanceof ConstraintViolationException violation
-                && EMAIL_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException violation) {
+                return EMAIL_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
+            }
+        }
+        return false;
     }
 
     private static AuthenticatedUser toAuthenticatedUser(User user) {
