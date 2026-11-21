@@ -48,6 +48,9 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
   | S3 uploads, requests | cents |
   | **Total** | **~13 USD** |
 
+- `us-east-1` was considered on 2026-11-21 (~1.5 USD/month cheaper) and rejected: its ~120 ms round trip from Ukraine,
+  against ~30–40 ms to Frankfurt, would add delay to TURN-relayed audio and make the clock sync less accurate.
+
 - Alternatives: `t3.micro` (x86, 1 GB) ~9 USD; `t4g.small` (ARM, 2 GB) ~12 USD, i.e. ~18 USD in total. The
   instance type is a Terraform variable, so switching is a one-line change.
 - No RDS (~15 USD) and no ALB (~18 USD): together they would more than double the cost for no benefit at this scale.
