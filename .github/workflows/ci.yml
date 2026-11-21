@@ -1,5 +1,6 @@
 # CI (KAN-18): every pull request and every push to development or main builds and tests the backend and the
-# frontend. The job names are what branch protection requires; rename them together with the protection rule.
+# frontend, and checks the Terraform code (KAN-103). The job names are what branch protection requires; rename
+# them together with the protection rule.
 name: CI
 
 on:
@@ -94,6 +95,33 @@ jobs:
       # The mechanical rules of CLAUDE.md section 4 (imports instead of qualified names, file endings)
       - name: Check
         run: git ls-files 'backend/src/*.java' | xargs python3 .claude/scripts/java/java_style.py --check
+
+  terraform:
+    name: Terraform (fmt, validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.13.5'
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -recursive -diff
+
+      # No credentials and no state: -backend=false skips the S3 backend; the providers come from the lock files
+      - name: Validate
+        run: |
+          for dir in . bootstrap; do
+            echo "== $dir"
+            terraform -chdir="$dir" init -backend=false -input=false -lockfile=readonly
+            terraform -chdir="$dir" validate
+          done
 
   frontend:
     name: Frontend (lint, tests, build)
