@@ -60,7 +60,3 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
     }
   }
 }
-
-locals {
-  app_origin = "https://${var.app_domain}"
-}

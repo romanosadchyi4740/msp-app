@@ -29,8 +29,15 @@ Expected cost: about 13 USD/month (instance ~7, Elastic IP ~3.6, volume ~2, S3 c
   In that case the `$(terraform ... output ...)` in step 3 below does not work; paste the bucket name instead.
 - A **default VPC** in `eu-central-1` (every account has one unless it was deleted; `aws ec2 create-default-vpc`
   creates it again).
-- **AWS CLI v2** with a profile allowed to create EC2, IAM, S3 and Budgets resources, e.g. `aws configure --profile syncchord`,
-  then `export AWS_PROFILE=syncchord` (PowerShell: `$env:AWS_PROFILE = "syncchord"`). Check with `aws sts get-caller-identity`.
+- **AWS CLI v2** with a profile allowed to create EC2, IAM, S3 and Budgets resources. Credentials never go into this
+  folder: Terraform's AWS provider reads the profile from `~/.aws` (outside the repository) through `AWS_PROFILE`.
+  - Preferred: IAM Identity Center, short-lived credentials: `aws configure sso --profile syncchord`, then
+    `aws sso login --profile syncchord` before a session.
+  - Otherwise an IAM user's access key (not the root user's): `aws configure --profile syncchord`, stored in
+    `~/.aws/credentials`; deactivate the key after the demo.
+
+  Then `export AWS_PROFILE=syncchord` (PowerShell: `$env:AWS_PROFILE = "syncchord"`) and check with
+  `aws sts get-caller-identity`.
 - The **Session Manager plugin** for the AWS CLI, for the shell on the instance:
   <https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html>.
 - A **DuckDNS** subdomain (sign in at <https://www.duckdns.org>), e.g. `myname.duckdns.org`.
