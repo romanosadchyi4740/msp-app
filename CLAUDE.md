@@ -74,6 +74,7 @@ cd frontend && npm install && npm run dev    # http://localhost:5173
 cd frontend && npm run lint; npm run build  # older errors are in eslint-suppressions.json (KAN-101); new ones fail
 cd frontend && npm test                      # unit tests (node:test, src/**/*.test.js and the e2e/*.test.js helpers)
 cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running, and coturn for the audio test; uses the installed Chrome)
+cd infra/terraform && terraform fmt -check -recursive   # demo AWS infra (KAN-103); validate with `init -backend=false`, never plan/apply (owner only; README there)
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
