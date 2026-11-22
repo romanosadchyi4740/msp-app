@@ -43,7 +43,7 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
   | Item | Monthly |
   |---|---|
   | `t4g.micro` (ARM, 2 vCPU burstable, 1 GB) | ~7 USD |
-  | public IPv4 address (Elastic IP), charged since 2024 | ~3.6 USD |
+  | public IPv4 address (auto-assigned, no Elastic IP), charged since 2024 | ~3.6 USD |
   | 20 GB gp3 root volume | ~2 USD |
   | S3 uploads, requests | cents |
   | **Total** | **~13 USD** |
@@ -54,6 +54,10 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
 - Alternatives: `t3.micro` (x86, 1 GB) ~9 USD; `t4g.small` (ARM, 2 GB) ~12 USD, i.e. ~18 USD in total. The
   instance type is a Terraform variable, so switching is a one-line change.
 - No RDS (~15 USD) and no ALB (~18 USD): together they would more than double the cost for no benefit at this scale.
+- **No Elastic IP** (changed on 2026-11-22, KAN-104). Every public IPv4 address costs the same while the instance runs,
+  but an Elastic IP is also billed while the instance is stopped. Without it a stopped instance costs ~2 USD/month (the
+  volume) instead of ~6. The price: the address changes on every stop/start, so the boot script
+  `deploy/syncchord-up.sh` reads it from the instance metadata, updates the DuckDNS record and passes it to coturn.
 - An **AWS Budgets** alert (free) e-mails at 80% of the actual spend and at 100% of the forecast (limit variable,
   default 20 USD).
 - After the defense, `terraform destroy` removes everything; the only remaining cost is the small state bucket.
@@ -78,10 +82,10 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
 - **HTTPS is mandatory**: browsers allow `getUserMedia` (the microphone) only in a secure context, and an HTTPS page
   cannot open an `http://` API or a `ws://` socket (mixed content). Plain `http://<ip>` would break the lesson audio.
 - **Caddy** terminates TLS and gets a Let's Encrypt certificate automatically. It routes `/api/*`, `/auth/*`,
-  `/ws*` and `/actuator/health` to the backend and everything else to the frontend. With everything on one origin,
+  `/ws`, `/ws/*` and `/actuator/health` to the backend and everything else to the frontend. With everything on one origin,
   `VITE_API_URL` is empty and CORS only needs that one origin.
-- **Domain: DuckDNS** (free, `<name>.duckdns.org`) for now. The Elastic IP never changes, so the DuckDNS record is
-  set once by hand; no update client is needed.
+- **Domain: DuckDNS** (free, `<name>.duckdns.org`) for now. The boot script sets the record to the current public IP
+  through DuckDNS's update URL (token in `/opt/syncchord/.env`); records have a 60 s TTL.
 - If a nicer name is wanted later: a `.com` from **Cloudflare Registrar** or **Porkbun** costs ~10–12 USD/year
   (Cloudflare sells at cost, so renewals cost the same). Beware 1–3 USD first-year offers on `.xyz`/`.online` and
   similar: they often renew at 15–40 USD. Route 53 works but costs the most (~14 USD/year + 0.50 USD/month for the
@@ -92,7 +96,9 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
 ### TURN (coturn)
 
 - coturn runs on the same instance and is reachable **directly**, not behind Caddy or any proxy. It uses host
-  networking, with `external-ip` set to the Elastic IP; without it, relay candidates would carry the private IP.
+  networking, with `external-ip` set to `<public IP>/<private IP>` by the boot script; without it, relay candidates
+  would carry the private IP. It refuses to relay to private ranges and the instance metadata address, so TURN cannot
+  be used to reach the VPC or the instance role's credentials.
 - Ports: UDP + TCP 3478, plus the UDP relay range 49160–49200, which must match coturn's `min-port`/`max-port`.
 - Credentials: `use-auth-secret` with `TURN_SECRET`, the same scheme as locally (`GET /api/rtc/ice-servers`).
 - **No TURN over TLS on 443**, since Caddy owns 443 on this instance. Most networks allow UDP or TCP 3478. Relay-only
@@ -183,12 +189,12 @@ runs.
 - [ ] Pick a DuckDNS subdomain (sign in at duckdns.org).
 - [ ] AWS CLI profile with rights to create the resources; Terraform ≥ 1.10.
 - [ ] `terraform apply` for `bootstrap/`, then the main config (KAN-103); confirm the AWS Budgets e-mail.
-- [ ] Set the DuckDNS record to the Elastic IP from the Terraform output.
-- [ ] Generate the secrets and write `/opt/syncchord/.env` (KAN-104 README).
+- [ ] Put the DuckDNS token into `/opt/syncchord/.env`; the boot script keeps the record up to date.
+- [ ] Generate the secrets and write `/opt/syncchord/.env` (`deploy/README.md`).
 - [ ] Add `https://<name>.duckdns.org` to the Google OAuth client's authorized JavaScript origins.
 - [ ] Before the defense: test a 3-person room from two different networks (e.g. Wi-Fi and mobile data), and once in
       relay-only mode.
-- [ ] After the defense: `terraform destroy` (or stop the instance; the Elastic IP and disk still cost ~6 USD/month).
+- [ ] After the defense: `terraform destroy` (or stop the instance; the disk still costs ~2 USD/month).
 
 ## 10. Ticket map
 

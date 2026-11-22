@@ -1,0 +1,2 @@
+# The real settings exist only on the instance; only the example is committed
+.env

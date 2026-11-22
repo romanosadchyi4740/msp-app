@@ -64,6 +64,17 @@ class SecretPropertiesValidationTest {
     }
 
     @Test
+    void blankMinioAccessKeyWithASecret_FailsStartup() {
+        assertFailsOn("minio.access-key=", "minio");
+    }
+
+    @Test
+    void bothMinioKeysEmpty_BindsForTheInstanceRole() {
+        contextRunner.withPropertyValues("minio.access-key=", "minio.secret-key=")
+                .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
     void blankTurnSecret_FailsStartup() {
         assertFailsOn("turn.secret=", "turn");
     }

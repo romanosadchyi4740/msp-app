@@ -1,0 +1,17 @@
+# Runs syncchord-up.sh at every boot (KAN-104): new public IP to DuckDNS and coturn, then `docker compose up -d`.
+# Installed to /etc/systemd/system/syncchord.service (see README.md).
+[Unit]
+Description=SyncChord stack (DuckDNS record, coturn external IP, docker compose up)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/syncchord/syncchord-up.sh
+# The first start pulls the images
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

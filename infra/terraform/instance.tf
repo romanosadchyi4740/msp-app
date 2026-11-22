@@ -24,6 +24,9 @@ resource "aws_instance" "app" {
   instance_type          = var.instance_type
   iam_instance_profile   = aws_iam_instance_profile.app.name
   vpc_security_group_ids = [aws_security_group.app.id]
+  # No Elastic IP: the auto-assigned address costs the same while running and nothing while stopped. It changes on
+  # every stop/start; /opt/syncchord/syncchord-up.sh updates DuckDNS and coturn at boot (KAN-104).
+  associate_public_ip_address = true
 
   # Base setup only (swap, Docker, /opt/syncchord); the app stack is KAN-104
   user_data = file("${path.module}/cloud-init.yaml")
@@ -55,15 +58,5 @@ resource "aws_instance" "app" {
   # The running instance gets updates from unattended-upgrades instead.
   lifecycle {
     ignore_changes = [ami]
-  }
-}
-
-# A fixed public address: the DuckDNS record and coturn's external-ip point at it
-resource "aws_eip" "app" {
-  domain   = "vpc"
-  instance = aws_instance.app.id
-
-  tags = {
-    Name = "${var.project}-app"
   }
 }

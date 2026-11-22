@@ -16,7 +16,8 @@ import java.util.TreeMap;
  * Refuses to start outside the {@code local} and {@code test} profiles while a secret is missing or still has a value
  * committed to this public repository: the defaults in {@code application-local.yaml} or the values in
  * {@code application-test.yaml}. Registered in {@code META-INF/spring.factories}, so it runs before any bean, and
- * before Flyway, is created. Blank values fail later, in the {@code @Validated} properties.
+ * before Flyway, is created. Blank values fail later, in the {@code @Validated} properties, except
+ * {@code minio.secret-key}: empty together with the access key, the backend uses the EC2 instance role.
  */
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SecretsStartupCheck implements EnvironmentPostProcessor {

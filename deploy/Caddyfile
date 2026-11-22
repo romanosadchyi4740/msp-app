@@ -1,0 +1,22 @@
+# One origin for the app (KAN-104): Caddy gets the certificate for APP_DOMAIN from Let's Encrypt (falling back to
+# ZeroSSL) and renews it; it lives in the caddy_data volume.
+{
+	servers {
+		# No HTTP/3: the security group does not open UDP 443, so browsers would try it and fall back
+		protocols h1 h2
+	}
+}
+
+{$APP_DOMAIN} {
+	# REST, auth, the SockJS/STOMP endpoint and the health check go to the backend; /ws-raw is off in prod
+	@backend path /api/* /auth/* /ws /ws/* /actuator/health
+	handle @backend {
+		reverse_proxy backend:8080
+	}
+
+	# Compressed here only: the backend's SockJS streaming responses must not be buffered by an encoder
+	handle {
+		encode zstd gzip
+		reverse_proxy frontend:80
+	}
+}
