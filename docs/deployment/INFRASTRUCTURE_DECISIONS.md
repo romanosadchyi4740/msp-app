@@ -99,7 +99,8 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
   networking, with `external-ip` set to `<public IP>/<private IP>` by the boot script; without it, relay candidates
   would carry the private IP. It refuses to relay to private ranges and the instance metadata address, so TURN cannot
   be used to reach the VPC or the instance role's credentials.
-- Ports: UDP + TCP 3478, plus the UDP relay range 49160–49200, which must match coturn's `min-port`/`max-port`.
+- Ports: UDP + TCP 3478, plus the UDP relay range 49160–49359 (200 ports; a full relay-only room
+  needs up to 40), which must match coturn's `min-port`/`max-port`.
 - Credentials: `use-auth-secret` with `TURN_SECRET`, the same scheme as locally (`GET /api/rtc/ice-servers`).
 - **No TURN over TLS on 443**, since Caddy owns 443 on this instance. Most networks allow UDP or TCP 3478. Relay-only
   mode is the fallback during the demo. TURN over TLS stays in KAN-27.

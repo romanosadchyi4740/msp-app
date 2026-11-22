@@ -8,6 +8,8 @@
 }
 
 {$APP_DOMAIN} {
+	header Strict-Transport-Security "max-age=31536000"
+
 	# REST, auth, the SockJS/STOMP endpoint and the health check go to the backend; /ws-raw is off in prod
 	@backend path /api/* /auth/* /ws /ws/* /actuator/health
 	handle @backend {

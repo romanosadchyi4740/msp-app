@@ -1,6 +1,6 @@
 # Production stack of the demo instance (KAN-104). Lives in /opt/syncchord next to Caddyfile and .env (see README.md).
-# Start it with syncchord-up.sh, not with a bare `docker compose up`: the script fills in the instance's current public
-# and private IP (PUBLIC_IP, PRIVATE_IP), which coturn announces, and points the DuckDNS name at the public one.
+# Start it with syncchord-up.sh rather than a bare `docker compose up`: the script writes the instance's current public
+# and private IP (PUBLIC_IP, PRIVATE_IP, which coturn announces) into .env and points the DuckDNS name at the public one.
 name: syncchord
 
 x-defaults: &defaults
@@ -103,12 +103,17 @@ services:
       - --use-auth-secret
       - --static-auth-secret=${TURN_SECRET}
       - --listening-port=3478
-      - --external-ip=${PUBLIC_IP:?start the stack with syncchord-up.sh}/${PRIVATE_IP:?start the stack with syncchord-up.sh}
-      # Must match turn_relay_port_min/max of the security group (infra/terraform)
+      - --external-ip=${PUBLIC_IP:?run syncchord-up.sh once, it writes PUBLIC_IP to .env}/${PRIVATE_IP:?run syncchord-up.sh once}
+      # Must match turn_relay_port_min/max of the security group (infra/terraform). One port per allocation: a full
+      # relay-only room of 5 needs up to 40 (4 peer connections x UDP and TCP TURN URLs per participant)
       - --min-port=${TURN_MIN_PORT:-49160}
-      - --max-port=${TURN_MAX_PORT:-49200}
+      - --max-port=${TURN_MAX_PORT:-49359}
+      # One signed-in user cannot take the whole range (2 per peer connection, 4 peers, some slack)
+      - --user-quota=12
       # A TURN relay must not reach into the VPC, the Docker networks or the instance metadata (the instance role's
-      # credentials); peers are browsers on the internet, or this coturn's own relay addresses
+      # credentials); peers are browsers on the internet, or this coturn's own relay addresses. Browsers only use UDP
+      # relays, so TCP relaying (RFC 6062), which could reach host services such as sshd, is off
+      - --no-tcp-relay
       - --no-multicast-peers
       - --denied-peer-ip=0.0.0.0-0.255.255.255
       - --denied-peer-ip=10.0.0.0-10.255.255.255
@@ -117,6 +122,7 @@ services:
       - --denied-peer-ip=169.254.0.0-169.254.255.255
       - --denied-peer-ip=172.16.0.0-172.31.255.255
       - --denied-peer-ip=192.168.0.0-192.168.255.255
+      # The instance's own address stays allowed for relay-to-relay traffic between two relay-only browsers
       - --allowed-peer-ip=${PRIVATE_IP}
     mem_limit: 128m
 

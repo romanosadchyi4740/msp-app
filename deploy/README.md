@@ -8,15 +8,15 @@ The EC2 instance from `infra/terraform` runs the whole app with Docker Compose:
 | `frontend` | The `frontend/Dockerfile` image (nginx), built with an empty `VITE_API_URL`, so it calls the API on its own origin |
 | `backend` | `prod` profile, JVM capped at 384 MB heap, Hikari pool of 5, S3 through the instance role (no AWS keys) |
 | `postgres` | PostgreSQL 15 tuned down (`shared_buffers=64MB`, `max_connections=20`), data in the `pgdata` volume, no published port |
-| `coturn` | TURN/STUN on 3478 (UDP + TCP) and relay ports 49160–49200, host network, `use-auth-secret` |
+| `coturn` | TURN/STUN on 3478 (UDP + TCP) and UDP relay ports 49160–49359, host network, `use-auth-secret`, no TCP relaying, at most 12 allocations per user |
 
 Files on the instance, all in `/opt/syncchord`: `docker-compose.prod.yml`, `Caddyfile`, `syncchord-up.sh` (from this
 folder) and `.env` (secrets, only there). `syncchord.service` runs `syncchord-up.sh` at every boot.
 
 **Why a boot script:** the instance has no Elastic IP (it would cost money while the instance is stopped), so its public
 address changes on every stop/start. `syncchord-up.sh` reads the current public and private IP from the instance
-metadata, points the DuckDNS name at the public one and starts Compose with both, which coturn needs for its
-`external-ip`. Run it instead of a bare `docker compose up`.
+metadata, points the DuckDNS name at the public one, writes both into `.env` (coturn's `external-ip` needs them) and
+starts Compose. Run it instead of a bare `docker compose up`; other Compose commands work directly.
 
 Until KAN-105 (CD) exists, the images are built on your PC and pushed to GHCR by hand.
 

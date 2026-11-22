@@ -1,9 +1,10 @@
 package com.romanosadchyi.smp.music_app.storage.internal;
 
-import io.minio.credentials.IamAwsProvider;
 import io.minio.credentials.Provider;
 import io.minio.credentials.StaticProvider;
 import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,9 +20,14 @@ class MinioConfigTest {
     }
 
     @Test
-    void minioCredentials_BothKeysEmpty_UsesTheInstanceRole() {
-        assertThat(new MinioConfig(properties("", "")).minioCredentials()).isInstanceOf(IamAwsProvider.class);
-        assertThat(new MinioConfig(properties(null, null)).minioCredentials()).isInstanceOf(IamAwsProvider.class);
+    void minioCredentials_BothKeysEmpty_UsesTheInstanceRoleRefreshedBeforePresignedUrlsOutliveIt() {
+        Provider provider = new MinioConfig(properties("", "")).minioCredentials();
+
+        assertThat(provider).isInstanceOf(RefreshingCredentialsProvider.class);
+        assertThat(((RefreshingCredentialsProvider) provider).getMinRemaining())
+                .isEqualTo(Duration.ofSeconds(3600).plus(MinioConfig.REFRESH_MARGIN));
+        assertThat(new MinioConfig(properties(null, null)).minioCredentials())
+                .isInstanceOf(RefreshingCredentialsProvider.class);
     }
 
     @Test

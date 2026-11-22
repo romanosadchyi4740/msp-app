@@ -11,7 +11,7 @@ The owner runs `plan`/`apply` with their own credentials. Region: `eu-central-1`
 | File | Resources |
 |---|---|
 | `bootstrap/main.tf` | `syncchord-tfstate-<account id>`: versioned, encrypted, private, TLS-only bucket for the state (applied once) |
-| `network.tf` | security group in the default VPC: TCP 80, 443; TCP + UDP 3478; UDP 49160–49200 (`turn_relay_port_*`). **No 22** |
+| `network.tf` | security group in the default VPC: TCP 80, 443; TCP + UDP 3478; UDP 49160–49359 (`turn_relay_port_*`). **No 22** |
 | `instance.tf` | `t4g.micro` (Ubuntu 24.04 arm64), 20 GB encrypted gp3, IMDSv2 with hop limit 2, auto-assigned public IP (no Elastic IP) |
 | `cloud-init.yaml` | first boot: 2 GB swap file, Docker Engine + compose plugin, log rotation, `/opt/syncchord` |
 | `iam.tf` | instance role: `AmazonSSMManagedInstanceCore`, read/write on the uploads bucket, read of `/syncchord/*` parameters only (a deny blocks the rest, which the managed policy would allow) |

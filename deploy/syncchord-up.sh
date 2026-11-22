@@ -3,8 +3,9 @@
 # changing .env or the Compose file. `syncchord-up.sh --pull` pulls newer images first.
 #
 # The instance has no Elastic IP, so its public address changes on every stop/start. This script reads the current
-# public and private IP from the instance metadata (IMDSv2), points the DuckDNS name at the public one, and hands
-# both to Compose for coturn's external-ip.
+# public and private IP from the instance metadata (IMDSv2), points the DuckDNS name at the public one, and writes
+# both into .env as PUBLIC_IP and PRIVATE_IP for coturn's external-ip, so every later `docker compose` command (logs,
+# exec, restart) works without this script.
 set -euo pipefail
 
 cd "$(dirname "$(readlink -f "$0")")"
@@ -12,6 +13,15 @@ cd "$(dirname "$(readlink -f "$0")")"
 # Reads one variable from .env without executing the file
 env_value() {
   sed -n "s/^$1=//p" .env | tail -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
+}
+
+# Sets one variable in .env (replaces its line or appends one); sed -i keeps the file's mode and owner
+set_env_value() {
+  if grep -q "^$1=" .env; then
+    sed -i "s|^$1=.*|$1=$2|" .env
+  else
+    printf '%s=%s\n' "$1" "$2" >> .env
+  fi
 }
 
 imds() {
@@ -22,7 +32,8 @@ IMDS_TOKEN=$(curl -fsS --max-time 5 -X PUT -H "X-aws-ec2-metadata-token-ttl-seco
   http://169.254.169.254/latest/api/token)
 PUBLIC_IP=$(imds public-ipv4)
 PRIVATE_IP=$(imds local-ipv4)
-export PUBLIC_IP PRIVATE_IP
+set_env_value PUBLIC_IP "$PUBLIC_IP"
+set_env_value PRIVATE_IP "$PRIVATE_IP"
 echo "Public IP $PUBLIC_IP, private IP $PRIVATE_IP"
 
 APP_DOMAIN=$(env_value APP_DOMAIN)

@@ -10,6 +10,9 @@ Wants=network-online.target
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/opt/syncchord/syncchord-up.sh
+# E.g. instance metadata or DuckDNS not answering yet right after boot
+Restart=on-failure
+RestartSec=15
 # The first start pulls the images
 TimeoutStartSec=900
 

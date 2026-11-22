@@ -82,7 +82,7 @@ Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO AP
 (`minio_user/minio_password`), bucket `music-files`. All backend config is in
 `backend/src/main/resources/`: `application.yaml` (shared), `application-local.yaml` (default profile; env vars
 with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTIVE=prod`; no defaults, fails to
-start if a variable is missing). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
+start if a variable is missing, except the MinIO keys: both empty on AWS, where the instance role is used, KAN-104). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
 refuses to start while a secret is missing or has a value committed to the repo; settings are bound to
 `@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`,
 `TurnProperties`, `CorsProperties`).

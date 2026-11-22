@@ -12,23 +12,31 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import java.time.Clock;
+import java.time.Duration;
+
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 class MinioConfig {
 
+    static final Duration REFRESH_MARGIN = Duration.ofMinutes(5);
+
     MinioProperties properties;
 
     /**
      * Static keys (MinIO locally), or, when both keys are empty, the EC2 instance role read from the instance
-     * metadata (IMDSv2) and refreshed before it expires, so no AWS access keys exist for the app.
+     * metadata (IMDSv2), so no AWS access keys exist for the app. Role credentials are refreshed while they still
+     * outlive a presigned URL signed with them, plus a margin.
      */
     @Bean
     public Provider minioCredentials() {
         if (properties.usesInstanceRole()) {
             log.info("S3 credentials come from the EC2 instance role");
-            return new IamAwsProvider(null, null);
+            Duration minRemaining = Duration.ofSeconds(properties.presignedUrlExpirySeconds()).plus(REFRESH_MARGIN);
+            return new RefreshingCredentialsProvider(() -> new IamAwsProvider(null, null), minRemaining,
+                    Clock.systemUTC());
         }
         return new StaticProvider(properties.accessKey(), properties.secretKey(), null);
     }
@@ -45,7 +53,8 @@ class MinioConfig {
 
     /**
      * Signs presigned URLs for the address browsers use, which differs from {@code minio.url} when the backend
-     * runs in Docker. Signing is offline; the fixed region stops the client from looking it up over the network.
+     * runs in Docker. Signing needs no network call (the fixed region stops the client from looking it up), except
+     * the instance-role credential refresh.
      */
     @Bean
     public MinioClient minioPresignClient(Provider minioCredentials) {
