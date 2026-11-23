@@ -42,7 +42,7 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
 
 ## 2. Tech stack (as in the repo)
 
-- **Backend** `backend/`: Java 25, Spring Boot 4.1.1, Spring Modulith 2 (structure verification only),
+- **Backend** `backend/`: Java 25, Spring Boot 4.1.3, Spring Modulith 2 (structure verification only),
   Maven wrapper. webmvc, websocket (STOMP + SockJS),
   security (stateless JWT, BCrypt, Google sign-in), data-jpa (Hibernate), Flyway, actuator, Lombok,
   MinIO client (S3-compatible). Base package `com.romanosadchyi.smp.music_app`.
