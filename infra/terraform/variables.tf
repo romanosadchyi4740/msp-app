@@ -55,9 +55,9 @@ variable "turn_relay_port_min" {
 }
 
 variable "turn_relay_port_max" {
-  description = "Last UDP relay port of coturn (its max-port, KAN-104)"
+  description = "Last UDP relay port of coturn (its max-port, KAN-104); a full relay-only room of 5 needs up to 40 ports"
   type        = number
-  default     = 49200
+  default     = 49359
 
   validation {
     condition     = var.turn_relay_port_max >= var.turn_relay_port_min

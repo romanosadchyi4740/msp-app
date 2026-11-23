@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM eclipse-temurin:25-jdk AS build
+# The jar is platform independent, so Maven runs natively on the build machine even when the image is built for
+# another platform (arm64 for the demo instance from an x86 PC); only the runtime stage is the target platform
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS build
 WORKDIR /build
 COPY .mvn .mvn
 COPY mvnw pom.xml lombok.config ./

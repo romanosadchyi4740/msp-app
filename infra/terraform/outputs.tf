@@ -1,6 +1,6 @@
-output "elastic_ip" {
-  description = "Public address of the instance; point the DuckDNS record and coturn's external-ip at it"
-  value       = aws_eip.app.public_ip
+output "public_ip" {
+  description = "Public address at the last apply; it changes on every stop/start (syncchord-up.sh updates DuckDNS at boot)"
+  value       = aws_instance.app.public_ip
 }
 
 output "instance_id" {

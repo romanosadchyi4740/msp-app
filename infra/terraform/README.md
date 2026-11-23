@@ -11,16 +11,21 @@ The owner runs `plan`/`apply` with their own credentials. Region: `eu-central-1`
 | File | Resources |
 |---|---|
 | `bootstrap/main.tf` | `syncchord-tfstate-<account id>`: versioned, encrypted, private, TLS-only bucket for the state (applied once) |
-| `network.tf` | security group in the default VPC: TCP 80, 443; TCP + UDP 3478; UDP 49160–49200 (`turn_relay_port_*`). **No 22** |
-| `instance.tf` | `t4g.micro` (Ubuntu 24.04 arm64), 20 GB encrypted gp3, IMDSv2 with hop limit 2, Elastic IP |
+| `network.tf` | security group in the default VPC: TCP 80, 443; TCP + UDP 3478; UDP 49160–49359 (`turn_relay_port_*`). **No 22** |
+| `instance.tf` | `t4g.micro` (Ubuntu 24.04 arm64), 20 GB encrypted gp3, IMDSv2 with hop limit 2, auto-assigned public IP (no Elastic IP) |
 | `cloud-init.yaml` | first boot: 2 GB swap file, Docker Engine + compose plugin, log rotation, `/opt/syncchord` |
 | `iam.tf` | instance role: `AmazonSSMManagedInstanceCore`, read/write on the uploads bucket, read of `/syncchord/*` parameters only (a deny blocks the rest, which the managed policy would allow) |
 | `s3.tf` | `syncchord-uploads-<account id>`: private, owner-enforced, SSE-S3, CORS GET from `https://<app_domain>`, unfinished multipart uploads removed after a day |
 | `budget.tf` | monthly AWS Budgets alert: e-mail at 80% actual and 100% forecast (default limit 20 USD) |
 
-The app stack (Compose file, Caddy, coturn, `.env`) is KAN-104; deploys are KAN-105.
+The app stack (Compose file, Caddy, coturn, `.env`) is in `deploy/` (KAN-104, see `deploy/README.md`); deploys are KAN-105.
 
-Expected cost: about 13 USD/month (instance ~7, Elastic IP ~3.6, volume ~2, S3 cents).
+Expected cost while running: about 13 USD/month on `t4g.micro`, about 20 on `t4g.small` (instance ~7 / ~14, public
+IPv4 ~3.6, volume ~2, S3 cents). Stopped: about 2 USD/month (the volume only; the public IP is released).
+
+**No Elastic IP.** AWS bills every public IPv4 address the same while the instance runs, but an Elastic IP also costs
+money while the instance is stopped. The auto-assigned address changes on every stop/start instead; the stack's boot
+script (`deploy/syncchord-up.sh`, KAN-104) points the DuckDNS name at the new address and gives it to coturn.
 
 ## Prerequisites
 
@@ -64,8 +69,9 @@ Expected cost: about 13 USD/month (instance ~7, Elastic IP ~3.6, volume ~2, S3 c
    PowerShell: `terraform init -backend-config="bucket=$(terraform -chdir=bootstrap output -raw state_bucket)"` works the
    same. The plan should list only the resources in the table above (about 20).
 
-4. **DuckDNS**: on duckdns.org, set the subdomain's IPv4 to the `elastic_ip` output. It never changes, so this is a
-   one-time step; no update client is needed.
+4. **DuckDNS**: nothing to do by hand once the stack runs: `syncchord-up.sh` sets the record at every boot (needs the
+   DuckDNS token in `/opt/syncchord/.env`, see `deploy/README.md`). Before that, the current address is the `public_ip`
+   output.
 
 5. **Budget alert**: AWS sends the alerts to `budget_email`; check that the address is right under
    Billing → Budgets → `syncchord-monthly`.
@@ -86,16 +92,16 @@ ls -ld /opt/syncchord                       # drwxr-x--- root root
 From your own machine, ports 22 and 5432 must not answer:
 
 ```bash
-nc -vz -w 5 <elastic_ip> 22     # times out
-nc -vz -w 5 <elastic_ip> 5432   # times out
+nc -vz -w 5 <public_ip> 22     # times out
+nc -vz -w 5 <public_ip> 5432   # times out
 ```
-(PowerShell: `Test-NetConnection <elastic_ip> -Port 22`.) Port 443 also does not answer yet; Caddy comes in KAN-104.
+(PowerShell: `Test-NetConnection <public_ip> -Port 22`.) Port 443 answers only once the stack from `deploy/` runs.
 
 ## Outputs
 
 | Output | Used for |
 |---|---|
-| `elastic_ip` | DuckDNS record; coturn `external-ip` (KAN-104) |
+| `public_ip` | address at the last apply (changes on stop/start; `terraform refresh` updates it) |
 | `instance_id` | SSM target; deploy workflow (KAN-105) |
 | `uploads_bucket` | `MINIO_BUCKET_NAME` in the app's `.env` (KAN-104) |
 | `app_origin` | `CORS_ALLOWED_ORIGINS` of the backend |
@@ -104,7 +110,7 @@ nc -vz -w 5 <elastic_ip> 5432   # times out
 ## Changing things later
 
 - **Instance type**: set `instance_type = "t4g.small"` (2 GB) in `terraform.tfvars` and apply; the instance is stopped
-  and resized in place, the disk and the Elastic IP stay. Keep to arm64 (`t4g.*`).
+  and resized in place; the disk stays, the public IP changes (the boot script updates DuckDNS). Keep to arm64 (`t4g.*`).
 - **CPU credits**: the default `standard` keeps the bill fixed; under sustained load the CPU is throttled to the
   baseline (10% for `t4g.micro`). `unlimited` keeps bursting and bills the extra credits.
 - **Domain**: change `app_domain`; the bucket CORS follows. The backend's `CORS_ALLOWED_ORIGINS` and the Google OAuth
@@ -128,4 +134,5 @@ terraform destroy
 What remains is the state bucket (a few cents a month). To remove it too, empty it (all versions) in the S3 console,
 delete `prevent_destroy` from `bootstrap/main.tf` and run `terraform destroy` in `bootstrap/`.
 
-Stopping the instance instead of destroying it still costs about 6 USD/month (Elastic IP and volume).
+Stopping the instance instead of destroying it costs about 2 USD/month (the volume) and keeps the database and the
+certificate; on the next start the boot script points DuckDNS at the new address.

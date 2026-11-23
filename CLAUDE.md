@@ -75,13 +75,14 @@ cd frontend && npm run lint; npm run build  # older errors are in eslint-suppres
 cd frontend && npm test                      # unit tests (node:test, src/**/*.test.js and the e2e/*.test.js helpers)
 cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running, and coturn for the audio test; uses the installed Chrome)
 cd infra/terraform && terraform fmt -check -recursive   # demo AWS infra (KAN-103); validate with `init -backend=false`, never plan/apply (owner only; README there)
+# deploy/: the demo instance's production stack (Compose, Caddy, coturn, boot script; KAN-104); its README has the first start
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
 (`minio_user/minio_password`), bucket `music-files`. All backend config is in
 `backend/src/main/resources/`: `application.yaml` (shared), `application-local.yaml` (default profile; env vars
 with docker-compose defaults) and `application-prod.yaml` (`SPRING_PROFILES_ACTIVE=prod`; no defaults, fails to
-start if a variable is missing). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
+start if a variable is missing, except the MinIO keys: both empty on AWS, where the instance role is used, KAN-104). Outside the `local` and `test` profiles `shared.config.SecretsStartupCheck` also
 refuses to start while a secret is missing or has a value committed to the repo; settings are bound to
 `@Validated` `@ConfigurationProperties` records (`JwtProperties`, `EncryptionProperties`, `MinioProperties`,
 `TurnProperties`, `CorsProperties`).

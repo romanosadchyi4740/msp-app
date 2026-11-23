@@ -9,8 +9,9 @@ minio:
   url: ${MINIO_URL}
   public-url: ${MINIO_PUBLIC_URL:${MINIO_URL}}
   region: ${MINIO_REGION}
-  access-key: ${MINIO_USER}
-  secret-key: ${MINIO_PASSWORD}
+  # Both empty on AWS: the backend then uses the EC2 instance role (KAN-104)
+  access-key: ${MINIO_USER:}
+  secret-key: ${MINIO_PASSWORD:}
   bucket-name: ${MINIO_BUCKET_NAME}
 
 jwt:

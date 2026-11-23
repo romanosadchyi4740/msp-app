@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
-# Static build served by nginx, for running the whole app locally (e2e).
-# In the cloud the same `npm run build` output goes to S3 + CloudFront.
+# Static build served by nginx: locally (docker-compose.yml, e2e) and behind Caddy on the demo instance
+# (deploy/docker-compose.prod.yml, built with an empty VITE_API_URL, i.e. same origin).
 
-FROM node:22-alpine AS build
+# The output is static files, so the build runs natively on the build machine for any target platform
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci

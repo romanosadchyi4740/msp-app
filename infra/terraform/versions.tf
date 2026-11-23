@@ -1,5 +1,5 @@
-# Demo deployment (epic KAN-102, KAN-103): one EC2 instance with Docker Compose, an Elastic IP, the uploads bucket,
-# IAM and a budget alert. Decisions: docs/deployment/INFRASTRUCTURE_DECISIONS.md.
+# Demo deployment (epic KAN-102, KAN-103): one EC2 instance with Docker Compose (no Elastic IP), the uploads
+# bucket, IAM and a budget alert. Decisions: docs/deployment/INFRASTRUCTURE_DECISIONS.md.
 
 terraform {
   # 1.10 is the first version with native S3 state locking (use_lockfile)

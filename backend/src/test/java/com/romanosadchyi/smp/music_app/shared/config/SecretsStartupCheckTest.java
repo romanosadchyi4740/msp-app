@@ -30,6 +30,27 @@ class SecretsStartupCheckTest {
     }
 
     @Test
+    void prodProfile_EmptyMinioSecretForTheInstanceRole_Starts() {
+        // application-prod.yaml defaults MINIO_PASSWORD to empty: on AWS the backend uses the instance role
+        MockEnvironment environment = withSecrets("abcdefghijabcdefghijabcdefghij12", "a-real-db-password");
+        environment.setProperty("minio.secret-key", "");
+        environment.setActiveProfiles("prod");
+
+        assertThatCode(() -> check.postProcessEnvironment(environment, null)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void prodProfile_CommittedMinioSecret_Fails() {
+        MockEnvironment environment = withSecrets("abcdefghijabcdefghijabcdefghij12", "a-real-db-password");
+        environment.setProperty("minio.secret-key", "minio_password");
+        environment.setActiveProfiles("prod");
+
+        assertThatThrownBy(() -> check.postProcessEnvironment(environment, null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("committed to the repository: minio.secret-key");
+    }
+
+    @Test
     void prodProfile_CommittedValues_FailNamingThePropertiesNotTheValues() {
         MockEnvironment environment = withSecrets("test-encryption-key-32-chars-ok!", "postgres");
         environment.setActiveProfiles("prod");
