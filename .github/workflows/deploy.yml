@@ -1,0 +1,226 @@
+# CD of the demo instance (KAN-105, epic KAN-102). A release is a merge of development into main: this workflow then
+# builds the backend and frontend images for arm64, pushes them to GHCR tagged with the commit SHA (and latest), and
+# makes the instance pull and start exactly that SHA through SSM. A manual run with an earlier SHA rolls back to it
+# without building. Setup (repository variables, the deploy role from infra/terraform): deploy/README.md.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Roll back to this earlier main commit (full 40-character SHA; its images must exist). Empty builds and deploys the current main
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# One deploy at a time, in order; a running deploy is never cancelled halfway
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-central-1
+
+jobs:
+  prepare:
+    name: Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      build: ${{ steps.version.outputs.build }}
+      registry: ${{ steps.version.outputs.registry }}
+    steps:
+      - name: Version and settings
+        id: version
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+          OWNER: ${{ github.repository_owner }}
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          AWS_INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+        run: |
+          # The deploy role trusts main only; fail here with a clear message instead of at the AWS login
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Deploys run from main only (this run is on $GITHUB_REF)"
+            exit 1
+          fi
+          missing=0
+          for name in AWS_DEPLOY_ROLE_ARN AWS_INSTANCE_ID APP_DOMAIN GOOGLE_CLIENT_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Repository variable $name is not set (deploy/README.md, Continuous deployment)"
+              missing=1
+            fi
+          done
+          [[ $missing == 0 ]] || exit 1
+
+          if [[ -n "$INPUT_SHA" ]]; then
+            if [[ ! "$INPUT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error::sha must be a full 40-character commit SHA in lower case"
+              exit 1
+            fi
+            echo "tag=$INPUT_SHA" >> "$GITHUB_OUTPUT"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+          # Image names must be lower case
+          echo "registry=ghcr.io/${OWNER,,}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Image (${{ matrix.component }})
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    # Native arm64 (the instance is a t4g), no emulation
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - component: backend
+            build-args: ''
+          # Same origin as the API behind Caddy, so VITE_API_URL is empty; the client id is public (it is in the bundle)
+          - component: frontend
+            build-args: |
+              VITE_API_URL=
+              VITE_GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component }}
+          platforms: linux/arm64
+          push: true
+          build-args: ${{ matrix.build-args }}
+          tags: |
+            ${{ needs.prepare.outputs.registry }}/msp-app-${{ matrix.component }}:${{ needs.prepare.outputs.tag }}
+            ${{ needs.prepare.outputs.registry }}/msp-app-${{ matrix.component }}:latest
+          # The source label links a new package to this repository, which gives the workflow write access to it
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.tag }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+  deploy:
+    name: Deploy to the demo instance
+    needs: [prepare, build]
+    # Runs after a successful build, and also when the build was skipped (rollback)
+    if: >-
+      always() && needs.prepare.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    env:
+      TAG: ${{ needs.prepare.outputs.tag }}
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # A rollback to a SHA this workflow never built would otherwise fail on the instance, after stopping nothing
+      - name: Images exist
+        run: |
+          for component in backend frontend; do
+            docker buildx imagetools inspect "$REGISTRY/msp-app-$component:$TAG" > /dev/null \
+              || { echo "::error::No image $REGISTRY/msp-app-$component:$TAG"; exit 1; }
+          done
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: deploy-${{ github.run_id }}
+
+      - name: Update the stack on the instance
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          # Runs as root in /opt/syncchord. The deploy/ files of the same commit come along, so Compose and Caddy
+          # changes deploy with the images and a rollback restores them too. TAG is a validated SHA. SSM runs this with
+          # sh (dash on Ubuntu), so it stays POSIX.
+          script=$(cat <<EOF
+          set -eu
+          cd /opt/syncchord
+          base="https://raw.githubusercontent.com/$REPOSITORY/$TAG/deploy"
+          files="docker-compose.prod.yml Caddyfile syncchord-up.sh"
+          for f in \$files; do curl -fsSL --retry 3 -o "\$f.new" "\$base/\$f"; done
+          caddyfile_changed=false
+          cmp -s Caddyfile Caddyfile.new || caddyfile_changed=true
+          for f in \$files; do mv "\$f.new" "\$f"; done
+          chmod 755 syncchord-up.sh
+          ./syncchord-up.sh --tag "$TAG"
+          # The Caddyfile is a single-file bind mount, which keeps pointing at the replaced file until a restart
+          if [ "\$caddyfile_changed" = true ]; then docker compose -f docker-compose.prod.yml restart caddy; fi
+          docker image prune -f
+          EOF
+          )
+          params=$(jq -n --arg script "$script" '{commands: [$script], executionTimeout: ["900"]}')
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy ${TAG:0:12} (run $GITHUB_RUN_ID)" \
+            --parameters "$params" \
+            --query Command.CommandId --output text) \
+            || { echo "::error::SSM refused the command; is the instance running (EC2 console) and online in Fleet Manager?"; exit 1; }
+          echo "SSM command $command_id"
+
+          # The built-in waiter gives up after 100 s; pulling and starting the backend can take longer
+          status=Pending
+          for _ in $(seq 1 90); do
+            sleep 10
+            status=$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2> /dev/null || echo Pending)
+            case "$status" in Pending|InProgress|Delayed) ;; *) break ;; esac
+          done
+
+          echo "::group::Output on the instance"
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text || true
+          echo "::endgroup::"
+          if [[ "$status" != Success ]]; then
+            echo "::error::Deploy command ended with status $status"
+            exit 1
+          fi
+
+      # The backend needs about a minute to start (Flyway); Caddy answers 502 until then
+      - name: Health check
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS --max-time 10 "https://$APP_DOMAIN/actuator/health" | grep -q '"status":"UP"'; then
+              echo "https://$APP_DOMAIN is up"
+              echo "Deployed \`$TAG\` to https://$APP_DOMAIN" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::https://$APP_DOMAIN/actuator/health did not report UP within 5 minutes"
+          exit 1

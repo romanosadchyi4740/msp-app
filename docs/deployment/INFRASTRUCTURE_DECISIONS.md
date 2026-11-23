@@ -162,17 +162,22 @@ On both `development` and `main`:
 If a job's `name:` in `ci.yml` changes, update the required checks too; otherwise PRs wait for a check that no longer
 runs.
 
-## 7. CD (planned: KAN-105)
+## 7. CD (KAN-105)
 
 - **Release** = merge `development` into `main` (PR). The workflow `.github/workflows/deploy.yml` then:
   1. builds the backend and frontend images on GitHub's **arm64** runner (`ubuntu-24.04-arm`, no emulation), tags them
      with the commit SHA and `latest`, and pushes them to **GHCR** with the workflow's own `GITHUB_TOKEN`;
   2. gets AWS credentials through **GitHub OIDC**, so no AWS keys are stored in GitHub. The deploy role trusts only this
      repository's `main` branch and may only send `AWS-RunShellScript` to this instance;
-  3. runs `docker compose pull && docker compose up -d` on the instance through **SSM**, then checks
-     `https://<domain>/actuator/health`.
-- **Rollback**: run the workflow manually (`workflow_dispatch`) with an older SHA.
-- A restart of a few seconds per deploy is acceptable; no blue/green.
+  3. through **SSM**, fetches the `deploy/` files of the same commit and runs `syncchord-up.sh --tag <SHA>`, which pins
+     `IMAGE_TAG` in `.env` to that SHA, pulls and recreates what changed; then checks `https://<domain>/actuator/health`.
+- **Images pinned by SHA**, not `latest`: the instance always runs a known commit, and a reboot or a manual
+  `syncchord-up.sh` keeps it.
+- **Rollback**: run the workflow manually (`workflow_dispatch`) with an older SHA; it skips the build, checks the
+  images exist and deploys them with that commit's `deploy/` files.
+- A restart of about a minute per deploy (the backend start) is acceptable; no blue/green.
+- Not deployed by the workflow: `.env` (secrets stay only on the instance) and `syncchord.service`.
+- Setup (repository variables, package access): `deploy/README.md`, Continuous deployment.
 
 ## 8. Security work done before going public
 

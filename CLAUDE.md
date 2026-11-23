@@ -76,6 +76,7 @@ cd frontend && npm test                      # unit tests (node:test, src/**/*.t
 cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running, and coturn for the audio test; uses the installed Chrome)
 cd infra/terraform && terraform fmt -check -recursive   # demo AWS infra (KAN-103); validate with `init -backend=false`, never plan/apply (owner only; README there)
 # deploy/: the demo instance's production stack (Compose, Caddy, coturn, boot script; KAN-104); its README has the first start
+# .github/workflows/deploy.yml: CD on every merge into main, rollback by running it with an older SHA (KAN-105)
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001

@@ -18,7 +18,9 @@ address changes on every stop/start. `syncchord-up.sh` reads the current public 
 metadata, points the DuckDNS name at the public one, writes both into `.env` (coturn's `external-ip` needs them) and
 starts Compose. Run it instead of a bare `docker compose up`; other Compose commands work directly.
 
-Until KAN-105 (CD) exists, the images are built on your PC and pushed to GHCR by hand.
+Images are built and deployed by GitHub Actions (`.github/workflows/deploy.yml`, KAN-105) on every merge into `main`;
+see [Continuous deployment](#continuous-deployment). Section 1 below is the manual way, for the first start before
+the workflow is set up.
 
 ## Before the first start
 
@@ -112,7 +114,8 @@ All from `/opt/syncchord` as root:
 | Task | Command |
 |---|---|
 | Logs | `docker compose -f docker-compose.prod.yml logs -f --tail 200 backend` (or `caddy`, `coturn`, `postgres`) |
-| New images (after pushing new `latest`) | `./syncchord-up.sh --pull && docker image prune -f` |
+| New images (after pushing new `latest`) | `./syncchord-up.sh --pull && docker image prune -f` (with `IMAGE_TAG=latest`) |
+| A specific build | `./syncchord-up.sh --tag <commit SHA>` (sets `IMAGE_TAG` in `.env` and pulls; what the deploy workflow runs) |
 | After editing `.env` or the Compose file | `./syncchord-up.sh` (recreates only what changed) |
 | Restart the backend | `docker compose -f docker-compose.prod.yml restart backend` |
 | Database shell | `docker compose -f docker-compose.prod.yml exec postgres psql -U syncchord music_app_db` |
@@ -129,3 +132,46 @@ itself; the site is back after 1–2 minutes.
 
 **Destroying** the instance (`terraform destroy`) deletes the database and the certificate. Let's Encrypt issues at
 most 5 certificates a week for the same name; Caddy falls back to ZeroSSL when that limit is hit.
+
+## Continuous deployment
+
+`.github/workflows/deploy.yml` (KAN-105). A release is a PR from `development` into `main`; after the merge the
+workflow:
+
+1. builds both images natively on GitHub's arm64 runner and pushes them to GHCR as `<commit SHA>` and `latest`, with
+   the workflow's own `GITHUB_TOKEN`;
+2. gets AWS credentials through GitHub OIDC (no AWS keys in GitHub) for the deploy role from `infra/terraform`, which
+   trusts only this repository's `main` and may only run `AWS-RunShellScript` on this instance;
+3. through SSM, as root in `/opt/syncchord`: downloads `docker-compose.prod.yml`, `Caddyfile` and `syncchord-up.sh`
+   of the same commit, runs `./syncchord-up.sh --tag <SHA>` (pins `IMAGE_TAG` in `.env`), restarts Caddy if the
+   Caddyfile changed and prunes old images;
+4. waits for `https://<APP_DOMAIN>/actuator/health` to answer `UP` (up to 5 minutes).
+
+`.env` and `syncchord.service` are never touched; change those by hand. A deploy restarts the backend, so open
+lessons drop for about a minute.
+
+**Rollback**: Actions → Deploy → Run workflow (on `main`), with the full SHA of an earlier `main` commit. It skips the
+build, checks that both images of that SHA exist, and deploys them with the `deploy/` files of that commit.
+
+**One-time setup**
+
+1. `terraform apply` with the KAN-105 changes (creates the GitHub OIDC provider and the `syncchord-github-deploy`
+   role; if the account already has a GitHub OIDC provider, set `create_github_oidc_provider = false`).
+2. Repository → Settings → Secrets and variables → Actions → **Variables** (none of these is secret):
+
+   | Variable | Value |
+   |---|---|
+   | `AWS_DEPLOY_ROLE_ARN` | `terraform output -raw deploy_role_arn` |
+   | `AWS_INSTANCE_ID` | `terraform output -raw instance_id` |
+   | `APP_DOMAIN` | the same as in `.env`, e.g. `myname.duckdns.org` |
+   | `GOOGLE_CLIENT_ID` | the OAuth client id (the same as `GOOGLE_CLIENT_ID` in `.env`) |
+3. `.env` on the instance: `IMAGE_REGISTRY=ghcr.io/<owner in lower case>`, the owner of this repository.
+4. If the packages `msp-app-backend` and `msp-app-frontend` were first pushed by hand (section 1), give the repository
+   write access to each once: the package → Package settings → Manage Actions access → Add repository → Write.
+   Packages the workflow creates itself are linked to the repository through the image's source label. Keep them
+   public, so the instance pulls without a token.
+5. The repository must stay public: the instance downloads the `deploy/` files from `raw.githubusercontent.com`, and
+   the arm64 runners are free only for public repositories.
+
+The instance must be running when the workflow runs; a stopped instance fails the SSM step (start it and re-run the
+failed jobs).
