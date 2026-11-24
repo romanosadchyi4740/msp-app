@@ -1,5 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { AxiosHeaders } from 'axios';
 import { REDACTED, redactAxiosError, stompDebugLine } from './redact.js';
 
 const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.payload.signature';
@@ -44,6 +45,30 @@ describe('redactAxiosError', () => {
 
     assert.equal(error.response.config.headers.Authorization, REDACTED);
     assert.equal(error.response.config.data, REDACTED);
+  });
+
+  test('finds the header in any spelling, also in axios own header object', () => {
+    const headers = new AxiosHeaders();
+    headers.set('authorization', `Bearer ${TOKEN}`);
+    const lowerCase = { config: { headers } };
+    const plain = { config: { headers: { AUTHORIZATION: `Bearer ${TOKEN}` } } };
+
+    redactAxiosError(lowerCase);
+    redactAxiosError(plain);
+
+    assert.equal(headers.get('Authorization'), REDACTED);
+    assert.equal(plain.config.headers.AUTHORIZATION, REDACTED);
+    assert.doesNotMatch(JSON.stringify(headers.toJSON()), /eyJ|Bearer/);
+  });
+
+  test('cleans a real axios header object set the way axiosClient sets it', () => {
+    const headers = new AxiosHeaders({ 'Content-Type': 'application/json' });
+    headers.Authorization = `Bearer ${TOKEN}`;
+
+    redactAxiosError({ config: { headers } });
+
+    assert.equal(headers.get('authorization'), REDACTED);
+    assert.equal(headers.get('Content-Type'), 'application/json');
   });
 
   test('leaves a network error without a body or a token alone', () => {

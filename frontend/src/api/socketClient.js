@@ -4,6 +4,16 @@ import { WS_URL } from '../config';
 import axiosClient from './axiosClient';
 import { stompDebugLine } from './redact';
 
+// A SyntaxError from JSON.parse quotes the start of the input, i.e. message text: log only that it failed (KAN-107)
+function parseBody(message) {
+  try {
+    return JSON.parse(message.body);
+  } catch (error) {
+    console.warn(`Dropped a message that is not JSON: ${error.name}`);
+    return undefined;
+  }
+}
+
 class SocketClient {
   constructor() {
     this.client = null;
@@ -47,8 +57,9 @@ class SocketClient {
       // The user ID is extracted from the token on the server side
       // The server sends messages to /user/{userId}/queue/messages
       this.client.subscribe('/user/queue/messages', (message) => {
-        if (this.onMessageReceived) {
-          this.onMessageReceived(JSON.parse(message.body));
+        const body = parseBody(message);
+        if (body !== undefined && this.onMessageReceived) {
+          this.onMessageReceived(body);
         }
       });
       this.connectListeners.forEach((listener) => {
@@ -92,7 +103,10 @@ class SocketClient {
   subscribe(destination, callback) {
     if (this.client && this.client.connected) {
       return this.client.subscribe(destination, (message) => {
-        callback(JSON.parse(message.body));
+        const body = parseBody(message);
+        if (body !== undefined) {
+          callback(body);
+        }
       });
     }
     return null;

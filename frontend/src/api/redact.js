@@ -4,11 +4,19 @@
 
 export const REDACTED = '[redacted]';
 
+// Header names are case-insensitive: the token may sit under `authorization` as well
+function redactHeaders(headers) {
+  if (!headers || typeof headers !== 'object') return;
+  for (const name of Object.keys(headers)) {
+    if (name.toLowerCase() === 'authorization' && headers[name] !== undefined && headers[name] !== null) {
+      headers[name] = REDACTED;
+    }
+  }
+}
+
 function redactConfig(config) {
   if (!config) return;
-  if (config.headers?.Authorization !== undefined) {
-    config.headers.Authorization = REDACTED;
-  }
+  redactHeaders(config.headers);
   if (config.data !== undefined && config.data !== null) {
     config.data = REDACTED;
   }
