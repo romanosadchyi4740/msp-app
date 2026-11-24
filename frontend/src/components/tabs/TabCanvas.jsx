@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { AlphaTabApi, LayoutMode, model, StaveProfile } from '@coderline/alphatab';
 import useUiStore from '../../store/uiStore';
+import { CORE_SETTINGS } from './alphaTabSettings';
 import { canvasColorsFor } from './canvasColors';
 
 // When the cursor reaches a line outside the comfortable part of the view, that line is scrolled to this fraction
@@ -70,10 +71,7 @@ export default function TabCanvas({ source, onLoaded, onError, className = '', r
     }
 
     const api = new AlphaTabApi(hostRef.current, {
-      // The whole tab is rendered up front, so every measure has bounds for the cursor. Rendering runs on the main
-      // thread: it happens once per load, and alphaTab's web worker does not start under the Vite dev server.
-      // (With workers, the bounds are only ready on postRenderFinished.)
-      core: { enableLazyLoading: false, useWorkers: false },
+      core: { ...CORE_SETTINGS },
       display: {
         layoutMode: LayoutMode.Page,
         staveProfile: StaveProfile.Tab,

@@ -24,6 +24,9 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // console.log printed STOMP frames with the token and chat text (KAN-107); warnings, errors and debug output
+      // stay allowed, but must not contain tokens, SDP, ICE candidates or message text (CLAUDE.md)
+      'no-console': ['error', { allow: ['warn', 'error', 'debug'] }],
     },
   },
   {
@@ -31,6 +34,10 @@ export default defineConfig([
     files: ['e2e/**/*.js', 'playwright.config.js'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
+    },
+    // They print their measurements (drift, quality) to the test output, not to a user's browser
+    rules: {
+      'no-console': 'off',
     },
   },
 ])

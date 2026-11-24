@@ -2,6 +2,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { API_URL } from '../config';
 import { authPath } from './authRedirect';
+import { redactAxiosError } from './redact';
 
 const axiosClient = axios.create({
   baseURL: API_URL,
@@ -28,6 +29,8 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Callers log failed requests with console.error; the token and the request body must not go with them (KAN-107)
+    redactAxiosError(error);
     const status = error.response?.status;
     const errorMessage = error.response?.data?.message || 'Transmission Error';
 

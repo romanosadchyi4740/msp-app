@@ -7,7 +7,7 @@ The EC2 instance from `infra/terraform` runs the whole app with Docker Compose:
 | `caddy` | Ports 80 and 443. Gets and renews the Let's Encrypt certificate for `APP_DOMAIN`, sends `/api/*`, `/auth/*`, `/ws`, `/ws/*` and `/actuator/health` to the backend and everything else to the frontend |
 | `frontend` | The `frontend/Dockerfile` image (nginx), built with an empty `VITE_API_URL`, so it calls the API on its own origin |
 | `backend` | `prod` profile, JVM capped at 384 MB heap, Hikari pool of 5, S3 through the instance role (no AWS keys) |
-| `postgres` | PostgreSQL 15 tuned down (`shared_buffers=64MB`, `max_connections=20`), data in the `pgdata` volume, no published port |
+| `postgres` | PostgreSQL 15 tuned down (`shared_buffers=64MB`, `max_connections=20`), data in the `pgdata` volume, published only on the instance's loopback (`127.0.0.1:5432`) for an SSM tunnel |
 | `coturn` | TURN/STUN on 3478 (UDP + TCP) and UDP relay ports 49160–49359, host network, `use-auth-secret`, no TCP relaying, at most 12 allocations per user |
 
 Files on the instance, all in `/opt/syncchord`: `docker-compose.prod.yml`, `Caddyfile`, `syncchord-up.sh` (from this
@@ -119,6 +119,7 @@ All from `/opt/syncchord` as root:
 | After editing `.env` or the Compose file | `./syncchord-up.sh` (recreates only what changed) |
 | Restart the backend | `docker compose -f docker-compose.prod.yml restart backend` |
 | Database shell | `docker compose -f docker-compose.prod.yml exec postgres psql -U syncchord music_app_db` |
+| Database client on your PC | see [Database from your PC](#database-from-your-pc) |
 | Back up the database | `docker compose -f docker-compose.prod.yml exec postgres pg_dump -U syncchord music_app_db > dump.sql` |
 | Stop everything | `systemctl stop syncchord && docker compose -f docker-compose.prod.yml stop` |
 
@@ -129,6 +130,27 @@ itself; the site is back after 1–2 minutes.
 **Memory**: the JVM limits in `docker-compose.prod.yml` fit `t4g.micro` (1 GB + 2 GB swap). On `t4g.small`, set e.g.
 `BACKEND_JAVA_OPTS=-Xmx768m -XX:MaxMetaspaceSize=192m -XX:+UseSerialGC -Xss512k` and `BACKEND_MEM_LIMIT=1100m` in
 `.env`, and run `./syncchord-up.sh`.
+
+### Database from your PC
+
+Postgres listens on the instance's loopback interface only (`127.0.0.1:5432`), so it is reachable through an SSM
+port-forwarding session; no SSH, and port 5432 stays closed to the internet. Needs the AWS CLI with the Session Manager
+plugin and your AWS profile (the same as for the shell).
+
+1. Start the tunnel and keep the window open while you work. Local port 15432 avoids the local docker-compose Postgres
+   on 5432:
+   ```powershell
+   aws ssm start-session --region eu-central-1 --target <instance_id> `
+     --document-name AWS-StartPortForwardingSession `
+     --parameters "portNumber=5432,localPortNumber=15432"
+   ```
+2. In IntelliJ (Database tool window → + → Data Source → PostgreSQL) or any client, connect to `localhost:15432`,
+   database `music_app_db`, user `syncchord`, with `DB_PASSWORD` from `/opt/syncchord/.env`
+   (`sudo grep '^DB_PASSWORD=' /opt/syncchord/.env` in an SSM shell). No SSH tunnel in the client.
+3. Tick **Read-only** on the data source. This is the live database and Flyway owns the schema: no manual changes and
+   no migrations from the IDE. Chat message contents are stored encrypted (`v2:...`).
+
+The session closes when the window is closed, or after about 20 minutes without traffic.
 
 **Destroying** the instance (`terraform destroy`) deletes the database and the certificate. Let's Encrypt issues at
 most 5 certificates a week for the same name; Caddy falls back to ZeroSSL when that limit is hit.
