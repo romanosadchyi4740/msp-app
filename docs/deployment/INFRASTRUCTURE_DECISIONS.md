@@ -118,7 +118,9 @@ not rewrite them for the demo. The demo work lives only in KAN-102.
 - **Secrets** (`JWT_SECRET`, `ENCRYPTION_SECRET`, `TURN_SECRET`, DB password) live only on the instance in
   `/opt/syncchord/.env` (mode 600), or in SSM Parameter Store under `/syncchord/`. Never in the repository: the
   `prod` profile and `SecretsStartupCheck` refuse to start with a missing value or one committed to the repo.
-- Postgres has **no published port**; it is reachable only inside the Compose network.
+- Postgres is published only on the instance's **loopback interface** (`127.0.0.1:5432`, changed on 2026-11-24,
+  KAN-108): the owner reaches it from a database client through an SSM port-forwarding session. The security group
+  keeps 5432 closed, and a loopback address cannot be reached from outside the instance.
 - Not planned for the demo: database backups (could later be a nightly `pg_dump` to S3).
 
 ### Terraform
