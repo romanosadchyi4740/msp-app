@@ -153,7 +153,8 @@ and `frontend/.env.example` lists them for builds.
   the MinIO clients are package-private to `storage`); clients get presigned GET URLs (1 h expiry).
 - Seeders: `music.internal.config.ReferenceDataSeeder` (genres) runs in every profile; `users.internal.config.DemoDataSeeder`
   (`artist@example.com`) only in `local` and only when `data-seeder.enabled=true` (`DATA_SEEDER_ENABLED`). Never add demo data to the reference seeder.
-- `GET /actuator/health` is public and returns only the overall status (ALB health check); no other actuator
+- `GET /actuator/health` is public and returns only `{"status":"UP"}` (health checks: Compose and the deploy workflow on
+  the demo, an ALB later; probe groups are off, KAN-106); no other actuator
   endpoints are exposed.
 
 ## 4. Modular monolith (Spring Modulith 2) and repository layout
