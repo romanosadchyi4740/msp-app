@@ -10,3 +10,5 @@ budget_email = "you@example.com"
 # root_volume_gb        = 20
 # budget_limit_usd      = 20
 # uploads_force_destroy = false        # true just before `terraform destroy` after the demo
+# github_repository           = "romanosadchyi4740/msp-app"  # its main branch may deploy (KAN-105)
+# create_github_oidc_provider = true   # false if the account already has the GitHub OIDC provider

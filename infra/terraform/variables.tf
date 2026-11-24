@@ -71,6 +71,23 @@ variable "uploads_force_destroy" {
   default     = false
 }
 
+variable "github_repository" {
+  description = "GitHub repository (owner/name) whose main branch may assume the deploy role (KAN-105)"
+  type        = string
+  default     = "romanosadchyi4740/msp-app"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$", var.github_repository))
+    error_message = "github_repository is owner/name, e.g. octocat/hello-world."
+  }
+}
+
+variable "create_github_oidc_provider" {
+  description = "Create the account's GitHub Actions OIDC provider; false when the account already has one (it exists once per account)"
+  type        = bool
+  default     = true
+}
+
 variable "budget_limit_usd" {
   description = "Monthly cost budget in USD for the AWS Budgets alert"
   type        = number

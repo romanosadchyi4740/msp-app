@@ -42,7 +42,7 @@ Out of scope for the MVP (Won't): UI localization (the UI is English only; do no
 
 ## 2. Tech stack (as in the repo)
 
-- **Backend** `backend/`: Java 25, Spring Boot 4.1.1, Spring Modulith 2 (structure verification only),
+- **Backend** `backend/`: Java 25, Spring Boot 4.1.3, Spring Modulith 2 (structure verification only),
   Maven wrapper. webmvc, websocket (STOMP + SockJS),
   security (stateless JWT, BCrypt, Google sign-in), data-jpa (Hibernate), Flyway, actuator, Lombok,
   MinIO client (S3-compatible). Base package `com.romanosadchyi.smp.music_app`.
@@ -76,6 +76,7 @@ cd frontend && npm test                      # unit tests (node:test, src/**/*.t
 cd frontend && npm run test:e2e              # Playwright e2e (needs the backend running, and coturn for the audio test; uses the installed Chrome)
 cd infra/terraform && terraform fmt -check -recursive   # demo AWS infra (KAN-103); validate with `init -backend=false`, never plan/apply (owner only; README there)
 # deploy/: the demo instance's production stack (Compose, Caddy, coturn, boot script; KAN-104); its README has the first start
+# .github/workflows/deploy.yml: CD on every merge into main, rollback by running it with an older SHA (KAN-105)
 ```
 
 Local defaults: Postgres `postgres/postgres` db `music_app_db` on 5432; MinIO API :9000, console :9001
@@ -361,6 +362,10 @@ and `RoomParticipant.rttMs`.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
   CI (`.github/workflows/ci.yml`) runs on every PR and push to `development`/`main`: `./mvnw verify` with the JaCoCo
   report (`backend/target/site/jacoco`), the Java style check, and `npm ci`, lint, `npm test`, build.
+- Releases (KAN-105): the owner opens and merges a PR from `development` into `main`; when CI passes on `main`,
+  `.github/workflows/deploy.yml` builds the arm64 images, pushes them to GHCR and deploys that SHA to the demo instance
+  through SSM. Rollback: Actions → Deploy → Run workflow on `main` with the full SHA of an earlier `main` commit. Setup
+  and troubleshooting: `deploy/README.md`.
 - Project skills in `.claude/skills/`: `kan-ticket` (ticket, branch, PR and Jira workflow), `modulith-extract`
   (extracting a module), `split-service` (splitting an oversized service), `contract-first-api` (adding a REST
   endpoint from an OpenAPI spec), `browser-check` (running the app and checking a frontend change in Chrome),

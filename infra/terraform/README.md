@@ -17,8 +17,11 @@ The owner runs `plan`/`apply` with their own credentials. Region: `eu-central-1`
 | `iam.tf` | instance role: `AmazonSSMManagedInstanceCore`, read/write on the uploads bucket, read of `/syncchord/*` parameters only (a deny blocks the rest, which the managed policy would allow) |
 | `s3.tf` | `syncchord-uploads-<account id>`: private, owner-enforced, SSE-S3, CORS GET from `https://<app_domain>`, unfinished multipart uploads removed after a day |
 | `budget.tf` | monthly AWS Budgets alert: e-mail at 80% actual and 100% forecast (default limit 20 USD) |
+| `deploy.tf` | GitHub Actions OIDC provider and the `syncchord-github-deploy` role: assumable only from `main` of `github_repository`, may only run `AWS-RunShellScript` on the instance through SSM and read the result (KAN-105) |
 
-The app stack (Compose file, Caddy, coturn, `.env`) is in `deploy/` (KAN-104, see `deploy/README.md`); deploys are KAN-105.
+The app stack (Compose file, Caddy, coturn, `.env`) is in `deploy/` (KAN-104, see `deploy/README.md`); the deploy
+workflow and its setup are in the same README (KAN-105). An AWS account has at most one GitHub OIDC provider: if it
+already exists, set `create_github_oidc_provider = false` and the role uses the existing one.
 
 Expected cost while running: about 13 USD/month on `t4g.micro`, about 20 on `t4g.small` (instance ~7 / ~14, public
 IPv4 ~3.6, volume ~2, S3 cents). Stopped: about 2 USD/month (the volume only; the public IP is released).
@@ -67,7 +70,7 @@ script (`deploy/syncchord-up.sh`, KAN-104) points the DuckDNS name at the new ad
    terraform apply tfplan
    ```
    PowerShell: `terraform init -backend-config="bucket=$(terraform -chdir=bootstrap output -raw state_bucket)"` works the
-   same. The plan should list only the resources in the table above (about 20).
+   same. The plan should list only the resources in the table above (about 23).
 
 4. **DuckDNS**: nothing to do by hand once the stack runs: `syncchord-up.sh` sets the record at every boot (needs the
    DuckDNS token in `/opt/syncchord/.env`, see `deploy/README.md`). Before that, the current address is the `public_ip`
@@ -102,7 +105,8 @@ nc -vz -w 5 <public_ip> 5432   # times out
 | Output | Used for |
 |---|---|
 | `public_ip` | address at the last apply (changes on stop/start; `terraform refresh` updates it) |
-| `instance_id` | SSM target; deploy workflow (KAN-105) |
+| `instance_id` | SSM target; repository variable `AWS_INSTANCE_ID` of the deploy workflow (KAN-105) |
+| `deploy_role_arn` | repository variable `AWS_DEPLOY_ROLE_ARN` of the deploy workflow (KAN-105) |
 | `uploads_bucket` | `MINIO_BUCKET_NAME` in the app's `.env` (KAN-104) |
 | `app_origin` | `CORS_ALLOWED_ORIGINS` of the backend |
 | `ssm_connect_command` | shell on the instance |

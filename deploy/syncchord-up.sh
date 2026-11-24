@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Starts (or updates) the stack in /opt/syncchord (KAN-104). Run at every boot by syncchord.service, and by hand after
-# changing .env or the Compose file. `syncchord-up.sh --pull` pulls newer images first.
+# changing .env or the Compose file. `syncchord-up.sh --pull` pulls newer images first; `syncchord-up.sh --tag <tag>`
+# pulls that image tag (a commit SHA, as the deploy workflow does, KAN-105) and then sets IMAGE_TAG in .env to it.
 #
 # The instance has no Elastic IP, so its public address changes on every stop/start. This script reads the current
 # public and private IP from the instance metadata (IMDSv2), points the DuckDNS name at the public one, and writes
@@ -9,6 +10,32 @@
 set -euo pipefail
 
 cd "$(dirname "$(readlink -f "$0")")"
+
+PULL=false
+TAG=
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pull) PULL=true ;;
+    --tag)
+      TAG="${2:-}"
+      if [[ -z "$TAG" ]]; then
+        echo "--tag needs an image tag" >&2
+        exit 2
+      fi
+      shift
+      ;;
+    *)
+      echo "Usage: $0 [--pull] [--tag <image tag>]" >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+# A Docker tag; the check also keeps sed and .env safe from whatever was passed
+if [[ -n "$TAG" && ! "$TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+  echo "Not a valid image tag: $TAG" >&2
+  exit 2
+fi
 
 # Reads one variable from .env without executing the file
 env_value() {
@@ -53,7 +80,13 @@ else
   echo "No DUCKDNS_TOKEN or not a duckdns.org name: point $APP_DOMAIN at $PUBLIC_IP yourself"
 fi
 
-if [[ "${1:-}" == "--pull" ]]; then
+if [[ -n "$TAG" ]]; then
+  # Pull first (the shell's IMAGE_TAG wins over .env) and pin the tag only once the images are here, so a failed
+  # pull leaves .env, and the next boot, on the version that is running
+  IMAGE_TAG="$TAG" docker compose -f docker-compose.prod.yml pull
+  set_env_value IMAGE_TAG "$TAG"
+  echo "Image tag $TAG"
+elif [[ "$PULL" == true ]]; then
   docker compose -f docker-compose.prod.yml pull
 fi
 # Recreates only the containers whose settings changed, e.g. coturn after a new public IP
