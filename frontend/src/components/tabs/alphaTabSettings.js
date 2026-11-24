@@ -6,6 +6,7 @@
  * which Vite serves at `/font/` under the dev server and in the build. Without this setting alphaTab derives the
  * directory from its own script URL: that works under the dev server, but in the build the script is a hashed bundle
  * in `/assets/`, so it asked for `/assets/font/` (404) and no tab rendered (KAN-108).
+ * Assumes Vite's `base` is `/` (vite.config.js sets none); with another base this must become `<base>font/`.
  */
 export const FONT_DIRECTORY = '/font/';
 
