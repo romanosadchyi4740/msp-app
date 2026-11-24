@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Music, Mail, Lock, Loader2 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../store/authStore';
+import { authPath, safeNextPath } from '../api/authRedirect';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, loginWithGoogle, loading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const next = safeNextPath(searchParams.get('next'));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const success = await login(email, password);
     if (success) {
-      navigate('/');
+      navigate(next, { replace: true });
     }
   };
 
@@ -22,7 +25,7 @@ const LoginPage = () => {
     if (credentialResponse.credential) {
       const success = await loginWithGoogle(credentialResponse.credential);
       if (success) {
-        navigate('/');
+        navigate(next, { replace: true });
       }
     }
   };
@@ -37,7 +40,7 @@ const LoginPage = () => {
           <h2 className="mt-8 text-3xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white">
             Access Archive
           </h2>
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">
             Identify your credentials
           </p>
         </div>
@@ -54,7 +57,7 @@ const LoginPage = () => {
               <input
                 type="email"
                 required
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors"
                 placeholder="EMAIL@DOMAIN.COM"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -64,7 +67,7 @@ const LoginPage = () => {
               <input
                 type="password"
                 required
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-4 px-6 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors"
                 placeholder="PASSWORD"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -76,7 +79,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-4 px-4 bg-zinc-900 text-white dark:bg-white dark:text-black text-[11px] font-black uppercase tracking-[0.3em] hover:bg-zinc-800 dark:hover:bg-zinc-200 focus:outline-none transition-colors disabled:opacity-50"
+              className="group relative w-full flex justify-center py-4 px-4 bg-zinc-900 text-white dark:bg-white dark:text-black text-[11px] font-black uppercase tracking-[0.3em] hover:bg-zinc-800 dark:hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-white transition-colors disabled:opacity-50"
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Execute Login'}
             </button>
@@ -88,7 +91,7 @@ const LoginPage = () => {
             <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Or continue with</span>
+            <span className="px-2 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Or continue with</span>
           </div>
         </div>
 
@@ -105,9 +108,9 @@ const LoginPage = () => {
           />
         </div>
 
-        <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+        <p className="text-center mt-8 text-[10px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
           New User?{' '}
-          <Link to="/register" className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
+          <Link to={authPath('/register', next)} className="text-zinc-900 dark:text-white hover:underline underline-offset-4">
             Create Identity
           </Link>
         </p>

@@ -139,7 +139,7 @@ const ChatAudioPlayer = ({ url, id }) => {
       <button 
         onClick={handlePlayPause}
         disabled={loading || !presignedUrl}
-        className="w-8 h-8 flex-shrink-0 bg-white text-black flex items-center justify-center hover:bg-zinc-200 transition-colors disabled:opacity-50"
+        className="w-8 h-8 flex-shrink-0 bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-black dark:hover:bg-zinc-200 flex items-center justify-center transition-colors disabled:opacity-50"
       >
         {loading ? <Loader2 size={14} className="animate-spin" /> : isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
       </button>
@@ -169,7 +169,7 @@ const ChatAudioPlayer = ({ url, id }) => {
       <button 
         onClick={handleDownload}
         disabled={loading || !presignedUrl}
-        className="text-muted hover:text-white transition-colors disabled:opacity-50 p-1 flex-shrink-0"
+        className="text-muted hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-50 p-1 flex-shrink-0"
         title="Download Audio"
       >
         <Download size={14} />

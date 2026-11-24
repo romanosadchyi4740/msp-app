@@ -6,7 +6,7 @@ const safeParse = (key) => {
   if (!item || item === 'undefined') return null;
   try {
     return JSON.parse(item);
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -27,7 +27,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, signedOut: false, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -47,7 +47,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, signedOut: false, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -67,7 +67,7 @@ const useAuthStore = create((set) => ({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       
-      set({ user, token: accessToken, isAuthenticated: true, loading: false });
+      set({ user, token: accessToken, isAuthenticated: true, signedOut: false, loading: false });
       return true;
     } catch (error) {
       set({ 
@@ -83,6 +83,14 @@ const useAuthStore = create((set) => ({
     try {
       const response = await axiosClient.post('/api/users/me/become-artist');
       const updatedUser = response.data;
+
+      // The role is a token claim, so the backend sends a new token with ROLE_ARTIST
+      const authorization = response.headers.authorization;
+      if (authorization?.startsWith('Bearer ')) {
+        const newToken = authorization.substring(7);
+        localStorage.setItem('token', newToken);
+        set({ token: newToken });
+      }
       
       // Update local storage and state with the new role
       const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -135,7 +143,8 @@ const useAuthStore = create((set) => ({
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    set({ user: null, token: null, isAuthenticated: false });
+    // Signed out on purpose: the sign-in page does not lead back to the page they were on
+    set({ user: null, token: null, isAuthenticated: false, signedOut: true });
   },
 }));
 

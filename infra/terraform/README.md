@@ -1,0 +1,142 @@
+# Terraform: demo deployment (KAN-103, epic KAN-102)
+
+AWS resources for the course demo: one EC2 instance that runs the whole stack with Docker Compose. Why it looks like
+this (no RDS, no ALB, default VPC, no SSH, DuckDNS) is in `docs/deployment/INFRASTRUCTURE_DECISIONS.md`. The full-scale
+plan (own VPC, ALB, RDS, CloudFront) is epic KAN-6 and is not here.
+
+The owner runs `plan`/`apply` with their own credentials. Region: `eu-central-1`.
+
+## What gets created
+
+| File | Resources |
+|---|---|
+| `bootstrap/main.tf` | `syncchord-tfstate-<account id>`: versioned, encrypted, private, TLS-only bucket for the state (applied once) |
+| `network.tf` | security group in the default VPC: TCP 80, 443; TCP + UDP 3478; UDP 49160–49359 (`turn_relay_port_*`). **No 22** |
+| `instance.tf` | `t4g.micro` (Ubuntu 24.04 arm64), 20 GB encrypted gp3, IMDSv2 with hop limit 2, auto-assigned public IP (no Elastic IP) |
+| `cloud-init.yaml` | first boot: 2 GB swap file, Docker Engine + compose plugin, log rotation, `/opt/syncchord` |
+| `iam.tf` | instance role: `AmazonSSMManagedInstanceCore`, read/write on the uploads bucket, read of `/syncchord/*` parameters only (a deny blocks the rest, which the managed policy would allow) |
+| `s3.tf` | `syncchord-uploads-<account id>`: private, owner-enforced, SSE-S3, CORS GET from `https://<app_domain>`, unfinished multipart uploads removed after a day |
+| `budget.tf` | monthly AWS Budgets alert: e-mail at 80% actual and 100% forecast (default limit 20 USD) |
+| `deploy.tf` | GitHub Actions OIDC provider and the `syncchord-github-deploy` role: assumable only from `main` of `github_repository`, may only run `AWS-RunShellScript` on the instance through SSM and read the result (KAN-105) |
+
+The app stack (Compose file, Caddy, coturn, `.env`) is in `deploy/` (KAN-104, see `deploy/README.md`); the deploy
+workflow and its setup are in the same README (KAN-105). An AWS account has at most one GitHub OIDC provider: if it
+already exists, set `create_github_oidc_provider = false` and the role uses the existing one.
+
+Expected cost while running: about 13 USD/month on `t4g.micro`, about 20 on `t4g.small` (instance ~7 / ~14, public
+IPv4 ~3.6, volume ~2, S3 cents). Stopped: about 2 USD/month (the volume only; the public IP is released).
+
+**No Elastic IP.** AWS bills every public IPv4 address the same while the instance runs, but an Elastic IP also costs
+money while the instance is stopped. The auto-assigned address changes on every stop/start instead; the stack's boot
+script (`deploy/syncchord-up.sh`, KAN-104) points the DuckDNS name at the new address and gives it to coturn.
+
+## Prerequisites
+
+- **Terraform ≥ 1.10** (native S3 state locking). CI uses 1.13. Without a local install it runs in Docker, from this folder:
+  `docker run --rm -it -v "${PWD}:/w" -w /w -v "$HOME/.aws:/root/.aws:ro" -e AWS_PROFILE hashicorp/terraform:1.13 <command>`.
+  In that case the `$(terraform ... output ...)` in step 3 below does not work; paste the bucket name instead.
+- A **default VPC** in `eu-central-1` (every account has one unless it was deleted; `aws ec2 create-default-vpc`
+  creates it again).
+- **AWS CLI v2** with a profile allowed to create EC2, IAM, S3 and Budgets resources. Credentials never go into this
+  folder: Terraform's AWS provider reads the profile from `~/.aws` (outside the repository) through `AWS_PROFILE`.
+  - Preferred: IAM Identity Center, short-lived credentials: `aws configure sso --profile syncchord`, then
+    `aws sso login --profile syncchord` before a session.
+  - Otherwise an IAM user's access key (not the root user's): `aws configure --profile syncchord`, stored in
+    `~/.aws/credentials`; deactivate the key after the demo.
+
+  Then `export AWS_PROFILE=syncchord` (PowerShell: `$env:AWS_PROFILE = "syncchord"`) and check with
+  `aws sts get-caller-identity`.
+- The **Session Manager plugin** for the AWS CLI, for the shell on the instance:
+  <https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html>.
+- A **DuckDNS** subdomain (sign in at <https://www.duckdns.org>), e.g. `myname.duckdns.org`.
+
+## First apply
+
+1. **State bucket** (once per account):
+   ```bash
+   cd infra/terraform/bootstrap
+   terraform init
+   terraform apply
+   ```
+   Its own state is the local `bootstrap/terraform.tfstate` (gitignored). Keep that file; the bucket has
+   `prevent_destroy`, so it is not removed by accident.
+
+2. **Variables**: copy `example.tfvars` to `terraform.tfvars` (gitignored) and set `app_domain` and `budget_email`.
+
+3. **Main config**, from `infra/terraform`:
+   ```bash
+   terraform init -backend-config="bucket=$(terraform -chdir=bootstrap output -raw state_bucket)"
+   terraform plan -out tfplan
+   terraform apply tfplan
+   ```
+   PowerShell: `terraform init -backend-config="bucket=$(terraform -chdir=bootstrap output -raw state_bucket)"` works the
+   same. The plan should list only the resources in the table above (about 23).
+
+4. **DuckDNS**: nothing to do by hand once the stack runs: `syncchord-up.sh` sets the record at every boot (needs the
+   DuckDNS token in `/opt/syncchord/.env`, see `deploy/README.md`). Before that, the current address is the `public_ip`
+   output.
+
+5. **Budget alert**: AWS sends the alerts to `budget_email`; check that the address is right under
+   Billing → Budgets → `syncchord-monthly`.
+
+## Checks after apply (KAN-103 acceptance)
+
+Cloud-init needs 2–4 minutes after the instance starts (package upgrade and Docker install).
+
+```bash
+terraform output -raw ssm_connect_command   # then run the printed command
+# on the instance:
+cloud-init status --wait                    # "status: done"
+sudo docker compose version
+swapon --show                               # /swapfile, 2G
+ls -ld /opt/syncchord                       # drwxr-x--- root root
+```
+
+From your own machine, ports 22 and 5432 must not answer:
+
+```bash
+nc -vz -w 5 <public_ip> 22     # times out
+nc -vz -w 5 <public_ip> 5432   # times out
+```
+(PowerShell: `Test-NetConnection <public_ip> -Port 22`.) Port 443 answers only once the stack from `deploy/` runs.
+
+## Outputs
+
+| Output | Used for |
+|---|---|
+| `public_ip` | address at the last apply (changes on stop/start; `terraform refresh` updates it) |
+| `instance_id` | SSM target; repository variable `AWS_INSTANCE_ID` of the deploy workflow (KAN-105) |
+| `deploy_role_arn` | repository variable `AWS_DEPLOY_ROLE_ARN` of the deploy workflow (KAN-105) |
+| `uploads_bucket` | `MINIO_BUCKET_NAME` in the app's `.env` (KAN-104) |
+| `app_origin` | `CORS_ALLOWED_ORIGINS` of the backend |
+| `ssm_connect_command` | shell on the instance |
+
+## Changing things later
+
+- **Instance type**: set `instance_type = "t4g.small"` (2 GB) in `terraform.tfvars` and apply; the instance is stopped
+  and resized in place; the disk stays, the public IP changes (the boot script updates DuckDNS). Keep to arm64 (`t4g.*`).
+- **CPU credits**: the default `standard` keeps the bill fixed; under sustained load the CPU is throttled to the
+  baseline (10% for `t4g.micro`). `unlimited` keeps bursting and bills the extra credits.
+- **Domain**: change `app_domain`; the bucket CORS follows. The backend's `CORS_ALLOWED_ORIGINS` and the Google OAuth
+  client's JavaScript origins have to be changed by hand.
+- **New Ubuntu AMI**: ignored on purpose (`lifecycle.ignore_changes = [ami]`), because replacing the instance would
+  delete the Postgres data on its root volume. Updates come from unattended-upgrades.
+- **`cloud-init.yaml`** runs only on the first boot. Changing it later updates the instance's user data (with a stop and
+  start) but does not run it again; apply such changes on the instance by hand, or replace the instance on purpose with
+  `terraform apply -replace=aws_instance.app` (this deletes the database).
+
+## After the demo: destroy
+
+The database lives only on the instance and is deleted with it; take a `pg_dump` first if anything should be kept.
+
+```bash
+# allow deleting the uploads bucket with its files
+terraform apply -var uploads_force_destroy=true
+terraform destroy
+```
+
+What remains is the state bucket (a few cents a month). To remove it too, empty it (all versions) in the S3 console,
+delete `prevent_destroy` from `bootstrap/main.tf` and run `terraform destroy` in `bootstrap/`.
+
+Stopping the instance instead of destroying it costs about 2 USD/month (the volume) and keeps the database and the
+certificate; on the next start the boot script points DuckDNS at the new address.

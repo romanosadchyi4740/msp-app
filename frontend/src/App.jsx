@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import useUiStore from './store/uiStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -17,8 +17,19 @@ import PlaylistsPage from './pages/PlaylistsPage';
 import PlaylistPage from './pages/PlaylistPage';
 import LikedTracksPage from './pages/LikedTracksPage';
 import TelemetryPage from './pages/TelemetryPage';
+import TabsPage from './pages/TabsPage';
+import TabNewPage from './pages/TabNewPage';
+import TabPage from './pages/TabPage';
+import RoomsPage from './pages/RoomsPage';
+import RoomNewPage from './pages/RoomNewPage';
+import RoomPage from './pages/RoomPage';
+import JoinRoomPage from './pages/JoinRoomPage';
+import DeviceCheckPage from './pages/DeviceCheckPage';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+
+// Development only: not part of production builds
+const TabCanvasDemoPage = import.meta.env.DEV ? lazy(() => import('./pages/TabCanvasDemoPage')) : null;
 
 function App() {
   const theme = useUiStore((state) => state.theme);
@@ -74,6 +85,20 @@ function App() {
           <Route path="/collection/tracks" element={<LikedTracksPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/upload" element={<UploadPage />} />
+          <Route path="/tabs" element={<TabsPage />} />
+          <Route path="/tabs/new" element={<TabNewPage />} />
+          <Route path="/tabs/:id" element={<TabPage />} />
+          <Route path="/rooms" element={<RoomsPage />} />
+          <Route path="/rooms/new" element={<RoomNewPage />} />
+          <Route path="/rooms/:id" element={<RoomPage />} />
+          <Route path="/join/:code" element={<JoinRoomPage />} />
+          <Route path="/device-check" element={<DeviceCheckPage />} />
+          {import.meta.env.DEV && (
+            <Route
+              path="/dev/tab-canvas"
+              element={<Suspense fallback={null}><TabCanvasDemoPage /></Suspense>}
+            />
+          )}
         </Route>
 
         {/* Redirect unknown routes */}

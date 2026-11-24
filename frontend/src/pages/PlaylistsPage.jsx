@@ -31,8 +31,8 @@ const PlaylistsPage = () => {
   if (loading && myPlaylists.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <Loader2 size={32} className="text-zinc-500 dark:text-zinc-400 animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">Accessing Library</p>
+        <Loader2 size={32} className="text-zinc-600 dark:text-zinc-400 animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-400">Accessing Library</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ const PlaylistsPage = () => {
     <div className="space-y-16 pb-32">
       <header className="flex flex-col md:flex-row items-end gap-8 pb-12 border-b border-zinc-200 dark:border-zinc-800">
         <div className="w-48 h-48 flex-shrink-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
-          <Library size={64} className="text-zinc-400 dark:text-zinc-500" />
+          <Library size={64} className="text-zinc-600 dark:text-zinc-400" />
         </div>
         
         <div className="flex-1 w-full space-y-4">
@@ -51,11 +51,11 @@ const PlaylistsPage = () => {
           
           <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter truncate text-zinc-900 dark:text-white">Your Collections</h1>
           
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 font-bold uppercase tracking-widest">
             Curated collections of audio transmissions.
           </p>
 
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
              Total: {myPlaylists.length}
           </p>
         </div>
@@ -65,7 +65,7 @@ const PlaylistsPage = () => {
         <div className="lg:col-span-2">
           {myPlaylists.length === 0 ? (
              <div className="border border-zinc-200 dark:border-zinc-800 border-dashed p-16 text-center">
-               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">No playlists created yet.</p>
+               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">No playlists created yet.</p>
              </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
@@ -92,7 +92,7 @@ const PlaylistsPage = () => {
                     <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">
                       {playlist.title}
                     </h3>
-                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 truncate">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400 truncate">
                       {playlist.tracksCount || 0} Tracks
                     </p>
                   </div>
@@ -107,22 +107,22 @@ const PlaylistsPage = () => {
           <h2 className="text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-white mb-6">Create New</h2>
           <form onSubmit={handleCreate} className="space-y-6">
             <div className="space-y-2">
-              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Title</label>
+              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Title</label>
               <input 
                 required
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
                 placeholder="COLLECTION TITLE"
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Description (Optional)</label>
+              <label className="block text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Description (Optional)</label>
               <textarea 
                 value={newDesc}
                 onChange={e => setNewDesc(e.target.value)}
                 placeholder="DESCRIPTION"
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-colors resize-none h-24 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
               />
             </div>
             <button 

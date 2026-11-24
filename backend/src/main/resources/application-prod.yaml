@@ -1,0 +1,37 @@
+# Production. No defaults: the application fails to start if a variable is missing.
+spring:
+  datasource:
+    url: ${DB_DATASOURCE_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+minio:
+  url: ${MINIO_URL}
+  public-url: ${MINIO_PUBLIC_URL:${MINIO_URL}}
+  region: ${MINIO_REGION}
+  # Both empty on AWS: the backend then uses the EC2 instance role (KAN-104)
+  access-key: ${MINIO_USER:}
+  secret-key: ${MINIO_PASSWORD:}
+  bucket-name: ${MINIO_BUCKET_NAME}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+encryption:
+  secret-key: ${ENCRYPTION_SECRET}
+
+turn:
+  secret: ${TURN_SECRET}
+  # Comma-separated, e.g. turn:host:3478?transport=udp,turn:host:3478?transport=tcp,turns:host:443?transport=tcp
+  urls: "${TURN_URLS}"
+  # Comma-separated; may be empty
+  stun-urls: "${STUN_URLS:}"
+
+google:
+  client:
+    id: ${GOOGLE_CLIENT_ID}
+
+app:
+  cors:
+    # Comma-separated list of allowed origins
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}

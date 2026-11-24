@@ -1,0 +1,104 @@
+package com.romanosadchyi.smp.music_app.users.internal.mapping;
+
+import com.romanosadchyi.smp.music_app.users.external.UserResponseDto;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.internal.dto.CurrentUserResponseDto;
+import com.romanosadchyi.smp.music_app.users.internal.entity.User;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+class UserMappingServiceTest {
+
+    final UserMappingService userMappingService = new UserMappingService();
+
+    @Test
+    void map_ReturnsDto() {
+        UUID id = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now();
+        User follower = User.builder().id(UUID.randomUUID()).build();
+        User following = User.builder().id(UUID.randomUUID()).build();
+        
+        User user = User.builder()
+                .id(id)
+                .email("test@test.com")
+                .displayName("Name")
+                .avatarUrl("avatar")
+                .biography("bio")
+                .role(UserRole.ROLE_ARTIST)
+                .createdAt(now)
+                .followers(new HashSet<>(List.of(follower)))
+                .following(new HashSet<>(List.of(following)))
+                .build();
+
+        UserResponseDto result = userMappingService.map(user);
+
+        assertNotNull(result);
+        assertEquals(id, result.id());
+        assertEquals("Name", result.displayName());
+        assertEquals("avatar", result.avatarUrl());
+        assertEquals("bio", result.biography());
+        assertEquals("ROLE_ARTIST", result.role());
+        assertEquals(now, result.createdAt());
+        assertEquals(1, result.followersCount());
+        assertEquals(1, result.followingCount());
+    }
+
+    @Test
+    void map_NullCollections_ReturnsZeroCounts() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .role(UserRole.ROLE_USER)
+                .followers(null)
+                .following(null)
+                .build();
+
+        UserResponseDto result = userMappingService.map(user);
+
+        assertEquals(0, result.followersCount());
+        assertEquals(0, result.followingCount());
+    }
+
+    @Test
+    void map_WithCounts_UsesTheGivenCountsNotTheCollections() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .role(UserRole.ROLE_USER)
+                .followers(null)
+                .following(null)
+                .build();
+
+        UserResponseDto result = userMappingService.map(user, 3, 5);
+
+        assertEquals(3, result.followersCount());
+        assertEquals(5, result.followingCount());
+    }
+
+    @Test
+    void mapCurrentUser_IncludesTheEmail() {
+        UUID id = UUID.randomUUID();
+        User user = User.builder()
+                .id(id)
+                .email("me@test.com")
+                .displayName("Me")
+                .role(UserRole.ROLE_USER)
+                .followers(new HashSet<>(List.of(User.builder().id(UUID.randomUUID()).build())))
+                .following(null)
+                .build();
+
+        CurrentUserResponseDto result = userMappingService.mapCurrentUser(user);
+
+        assertEquals(id, result.id());
+        assertEquals("me@test.com", result.email());
+        assertEquals("Me", result.displayName());
+        assertEquals("ROLE_USER", result.role());
+        assertEquals(1, result.followersCount());
+        assertEquals(0, result.followingCount());
+    }
+}

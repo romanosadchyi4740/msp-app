@@ -134,12 +134,12 @@ const ChatPage = () => {
               {isGroup ? chat.name : otherUser?.displayName}
             </p>
             {chat.lastMessage && (
-              <span className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400 tabular-nums">
+              <span className="text-[9px] font-medium text-zinc-600 dark:text-zinc-400 tabular-nums">
                 {formatTime(chat.lastMessage.timestamp)}
               </span>
             )}
           </div>
-          <p className={`text-[10px] font-medium uppercase tracking-wider truncate ${isActive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-500 dark:text-zinc-500'}`}>
+          <p className={`text-[10px] font-medium uppercase tracking-wider truncate ${isActive ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-600 dark:text-zinc-400'}`}>
             {chat.lastMessage 
               ? (chat.lastMessage.content || (chat.lastMessage.fileUrl ? 'Recording' : (chat.lastMessage.sharedTrack ? 'Shared Track' : 'Connection Initialized')))
               : 'New Connection'}
@@ -158,19 +158,19 @@ const ChatPage = () => {
             <h2 className="text-sm font-black uppercase tracking-[0.3em] text-zinc-900 dark:text-white">Comms Link</h2>
             <button 
               onClick={() => setIsNewChatModalOpen(true)}
-              className="p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-900 dark:hover:border-white transition-colors text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              className="p-2 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-900 dark:hover:border-white transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             >
               <Plus size={16} />
             </button>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={14} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 dark:text-zinc-400" size={14} />
             <input 
               type="text" 
               placeholder="SEARCH IDENTITIES..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-2.5 pl-10 pr-4 text-[10px] font-bold uppercase tracking-widest focus:outline-none focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 py-2.5 pl-10 pr-4 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden focus:border-zinc-900 dark:focus:border-white transition-all text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
             />
           </div>
         </div>
@@ -178,12 +178,12 @@ const ChatPage = () => {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center p-12">
-              <Loader2 className="animate-spin text-zinc-400 dark:text-zinc-500 mb-2" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Loading...</p>
+              <Loader2 className="animate-spin text-zinc-600 dark:text-zinc-400 mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Loading...</p>
             </div>
           ) : (chatsList.length === 0 && requestsList.length === 0) ? (
             <div className="p-12 text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
                 {searchQuery ? "No active nodes match your query" : "No transmissions found"}
               </p>
             </div>
@@ -191,7 +191,7 @@ const ChatPage = () => {
             <>
               {requestsList.length > 0 && (
                 <div className="mb-4">
-                  <div className="px-6 py-2 bg-zinc-100 dark:bg-white/5 border-y border-zinc-200 dark:border-zinc-800/50 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                  <div className="px-6 py-2 bg-zinc-100 dark:bg-white/5 border-y border-zinc-200 dark:border-zinc-800/50 text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
                     Pending Requests ({requestsList.length})
                   </div>
                   {requestsList.map(chat => renderChat(chat))}
@@ -199,7 +199,7 @@ const ChatPage = () => {
               )}
               {chatsList.length > 0 && (
                 <div>
-                  <div className="px-6 py-2 bg-zinc-100 dark:bg-white/5 border-y border-zinc-200 dark:border-zinc-800/50 text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                  <div className="px-6 py-2 bg-zinc-100 dark:bg-white/5 border-y border-zinc-200 dark:border-zinc-800/50 text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
                     Active Connections
                   </div>
                   {chatsList.map(chat => renderChat(chat))}
@@ -229,13 +229,13 @@ const ChatPage = () => {
                       <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white leading-tight">
                         {activeChat.name}
                       </h3>
-                      <span className="text-[8px] border border-zinc-900/20 dark:border-white/20 bg-zinc-900/5 dark:bg-white/5 px-1 font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+                      <span className="text-[8px] border border-zinc-900/20 dark:border-white/20 bg-zinc-900/5 dark:bg-white/5 px-1 font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                         Info
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="w-1.5 h-1.5 bg-zinc-900 dark:bg-white rounded-full"></div>
-                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-widest">Active State</span>
+                      <span className="text-[9px] text-zinc-600 dark:text-zinc-400 font-black uppercase tracking-widest">Active State</span>
                     </div>
                   </button>
                 ) : (
@@ -245,7 +245,7 @@ const ChatPage = () => {
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="w-1.5 h-1.5 bg-zinc-900 dark:bg-white rounded-full"></div>
-                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-widest">Active State</span>
+                      <span className="text-[9px] text-zinc-600 dark:text-zinc-400 font-black uppercase tracking-widest">Active State</span>
                     </div>
                   </div>
                 )}
@@ -295,7 +295,7 @@ const ChatPage = () => {
                     <div key={msg.id || idx} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[70%]`}>
                         {activeChat.isGroup && !isOwn && (
-                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1 ml-1">{msg.sender.displayName}</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 mb-1 ml-1">{msg.sender.displayName}</p>
                         )}
                         {msg.sharedTrack && (
                           <div className={`mb-2 p-2 flex items-center gap-3 transition-colors cursor-pointer border ${isOwn ? 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 dark:bg-white/10 dark:border-white/20 dark:hover:bg-white/20' : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`} onClick={() => playTrack(msg.sharedTrack, [], msg.sharedTrackTimestamp != null ? msg.sharedTrackTimestamp : null)}>
@@ -303,7 +303,7 @@ const ChatPage = () => {
                               {msg.sharedTrack.coverUrl ? (
                                 <img src={msg.sharedTrack.coverUrl} alt="Cover" className="w-full h-full object-cover grayscale" />
                               ) : (
-                                <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center"><Music size={12} className="text-zinc-400 dark:text-zinc-500" /></div>
+                                <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center"><Music size={12} className="text-zinc-600 dark:text-zinc-400" /></div>
                               )}
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
                                 <Play size={14} className="text-white ml-0.5" />
@@ -312,9 +312,9 @@ const ChatPage = () => {
                             <div className="overflow-hidden">
                               <p className={`text-[10px] font-black uppercase tracking-tight truncate ${isOwn ? 'text-white dark:text-white' : 'text-zinc-900 dark:text-white'}`}>
                                 {msg.sharedTrack.title}
-                                {msg.sharedTrackTimestamp != null && <span className="text-zinc-400 font-medium ml-1">[{formatAudioTime(msg.sharedTrackTimestamp)}]</span>}
+                                {msg.sharedTrackTimestamp != null && <span className={`font-medium ml-1 ${isOwn ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>[{formatAudioTime(msg.sharedTrackTimestamp)}]</span>}
                               </p>
-                              <p className={`text-[9px] font-medium uppercase tracking-widest truncate ${isOwn ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'}`}>{msg.sharedTrack.authorName}</p>
+                              <p className={`text-[9px] font-medium uppercase tracking-widest truncate ${isOwn ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>{msg.sharedTrack.authorName}</p>
                             </div>
                           </div>
                         )}
@@ -335,7 +335,7 @@ const ChatPage = () => {
                               </div>
                             ) : (
                               <button 
-                                onClick={() => joinBroadcast(broadcastId)}
+                                onClick={() => joinBroadcast(broadcastId, activeChat.id)}
                                 disabled={broadcastStatus === 'SYNC' && activeBroadcastId === broadcastId}
                                 className={`px-4 py-2 border border-current text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity ${broadcastStatus === 'SYNC' && activeBroadcastId === broadcastId ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-70'}`}
                               >
@@ -358,7 +358,7 @@ const ChatPage = () => {
                             <ChatAudioPlayer url={msg.fileUrl} id={msg.id} />
                           </div>
                         )}
-                        <p className={`text-[9px] mt-2 font-medium text-zinc-400 dark:text-zinc-500 tabular-nums uppercase tracking-widest ${isOwn ? 'text-right' : 'text-left'}`}>
+                        <p className={`text-[9px] mt-2 font-medium text-zinc-600 dark:text-zinc-400 tabular-nums uppercase tracking-widest ${isOwn ? 'text-right' : 'text-left'}`}>
                           {formatTime(msg.timestamp || new Date())}
                         </p>
                       </div>
@@ -403,21 +403,21 @@ const ChatPage = () => {
                       {activeAttachment.coverUrl ? (
                         <img src={activeAttachment.coverUrl} className="w-8 h-8 object-cover grayscale" alt="attachment" />
                       ) : (
-                        <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center"><Music size={12} className="text-zinc-500" /></div>
+                        <div className="w-8 h-8 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center"><Music size={12} className="text-zinc-600 dark:text-zinc-400" /></div>
                       )}
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-tight text-zinc-900 dark:text-white">{activeAttachment.title}</p>
-                        <p className="text-[9px] font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{activeAttachment.authorName}</p>
+                        <p className="text-[9px] font-medium uppercase tracking-widest text-zinc-600 dark:text-zinc-400">{activeAttachment.authorName}</p>
                       </div>
                     </div>
-                    <button onClick={clearAttachment} className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white p-1">
+                    <button onClick={clearAttachment} className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white p-1">
                       <X size={14} />
                     </button>
                   </div>
                 )}
                 <form 
                   onSubmit={handleSend}
-                  className="flex items-center gap-4 border border-zinc-200 dark:border-zinc-800 p-1 bg-white dark:bg-zinc-900 m-8 mt-6"
+                  className="flex items-center gap-4 border border-zinc-200 dark:border-zinc-800 focus-within:border-zinc-900 dark:focus-within:border-white transition-colors p-1 bg-white dark:bg-zinc-900 m-8 mt-6"
                 >
                   <input 
                     type="file"
@@ -430,7 +430,7 @@ const ChatPage = () => {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="p-3 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors disabled:opacity-50"
+                    className="p-3 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors disabled:opacity-50"
                   >
                     {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
                   </button>
@@ -438,7 +438,7 @@ const ChatPage = () => {
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="INPUT TRANSMISSION..." 
-                    className="flex-1 bg-transparent px-2 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-none text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
+                    className="flex-1 bg-transparent px-2 py-3 text-[10px] font-bold uppercase tracking-widest focus:outline-hidden text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600"
                   />
                   <button 
                     type="submit"
@@ -452,7 +452,7 @@ const ChatPage = () => {
             )}
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 text-center p-12">
+          <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 dark:text-zinc-400 text-center p-12">
             <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-4 uppercase tracking-tighter">Secure Messaging</h3>
             <p className="max-w-xs text-[10px] font-bold uppercase tracking-widest leading-loose">
               Establish a connection with artists in the network. Server-side encrypted digital transmission active.

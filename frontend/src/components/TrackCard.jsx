@@ -1,6 +1,5 @@
 import React from 'react';
 import { Play, Pause, Music, MessageCircle, Heart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import usePlayerStore from '../store/playerStore';
 import useChatStore from '../store/chatStore';
 import useLikeStore from '../store/likeStore';
@@ -72,19 +71,19 @@ const TrackCard = ({ track, queue = [], showGenre = true }) => {
           {track.title}
         </h3>
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400 truncate">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-600 dark:text-zinc-400 truncate">
             {track.authorName}
           </p>
           <div className="flex items-center gap-2">
             <button 
               onClick={handleLike}
-              className={`transition-colors ${isLiked ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'}`}
+              className={`transition-colors ${isLiked ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'}`}
             >
               <Heart size={12} fill={isLiked ? "currentColor" : "none"} />
             </button>
             <button 
               onClick={handleStartChat}
-              className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
             >
               <MessageCircle size={12} />
             </button>

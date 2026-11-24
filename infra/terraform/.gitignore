@@ -1,0 +1,12 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+
+# Variable values hold the budget e-mail and the domain; only the example is committed
+*.tfvars
+*.tfvars.json
+!example.tfvars

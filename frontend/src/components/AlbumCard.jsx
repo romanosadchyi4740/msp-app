@@ -28,7 +28,7 @@ const AlbumCard = ({ album }) => {
         <h3 className="text-sm font-black uppercase tracking-tight text-zinc-900 dark:text-white truncate">
           {album.title}
         </h3>
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 truncate">
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400 truncate">
           {album.authorName}
         </p>
       </div>

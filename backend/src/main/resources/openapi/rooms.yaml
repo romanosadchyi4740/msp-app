@@ -1,0 +1,653 @@
+openapi: 3.0.3
+info:
+  title: SyncChord rooms API
+  description: |
+    Rooms for live lessons (KAN-34, UR-1, FR-5). Every endpoint needs a JWT. The creator of a room is its host; others
+    join with the room's invite code. A room holds the host and up to 4 participants, and a closed room takes no new
+    participants. A room is readable only by its participants; anyone else gets 404. Input is checked by the service,
+    so schemas carry no validation constraints.
+
+    Presence and role changes go to `/topic/rooms/{id}/participants` (KAN-36): `JOINED`, `LEFT`, `ONLINE`, `OFFLINE`
+    and `HOST_CHANGED`, and reported connection quality as `RTT` (KAN-48). A host who stays offline for more than
+    60 seconds hands the role to the participant who joined earliest among those online, and the lesson's playback
+    is paused.
+
+    Room chat (KAN-51, FR-12): a participant sends `SEND /app/rooms/{id}/chat` with `{"content": "..."}` (1 to 2000
+    characters after trimming) while the room is open; the stored message goes to `/topic/rooms/{id}/chat` as a
+    `RoomMessageResponse`. A refused message is answered on the sender's `/user/queue/rooms/{id}/chat-errors` with an
+    `ErrorResponse`. Message content is stored encrypted (AES-256-GCM).
+
+    A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
+    that response comes from Spring Security and has no ErrorResponse body.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: Rooms
+  - name: Lessons
+  - name: RoomChat
+paths:
+  /api/rooms:
+    post:
+      tags: [Rooms]
+      operationId: createRoom
+      summary: Create a room; the current user becomes its host
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomCreateRequest'
+      responses:
+        '201':
+          description: The created room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/rooms/my:
+    get:
+      tags: [Rooms]
+      operationId: getMyRooms
+      summary: The rooms the current user takes part in, most recently joined first
+      responses:
+        '200':
+          description: The rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoomListItem'
+  /api/rooms/invite/{code}:
+    parameters:
+      - $ref: '#/components/parameters/InviteCode'
+    get:
+      tags: [Rooms]
+      operationId: getRoomPreview
+      summary: What an invite leads to, shown before joining
+      responses:
+        '200':
+          description: The room's preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomPreview'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/join/{code}:
+    parameters:
+      - $ref: '#/components/parameters/InviteCode'
+    post:
+      tags: [Rooms]
+      operationId: joinRoom
+      summary: Join a room by its invite code; joining a room the user is already in changes nothing
+      responses:
+        '200':
+          description: The joined room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The room is full or closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [Rooms]
+      operationId: getRoom
+      summary: A room with its participants
+      responses:
+        '200':
+          description: The room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/invite:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: regenerateInvite
+      summary: Replace the room's invite code, so the old link stops working; host only
+      responses:
+        '200':
+          description: The room with its new invite code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '403':
+          description: The user is a participant but not the host
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The room is closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: closeRoom
+      summary: Close the room and end its lesson; host only. Closing a closed room changes nothing
+      responses:
+        '200':
+          description: The closed room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/host:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: transferHost
+      summary: Hand the host role to another participant; host only (KAN-36, FR-11)
+      description: |
+        The current host becomes a participant. Playback goes on as it is; only the new host can control it. The
+        change goes to `/topic/rooms/{id}/participants` as `HOST_CHANGED`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostTransferRequest'
+      responses:
+        '200':
+          description: The room with its new host
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, or a new host who is not in the room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The room is closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/leave:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Rooms]
+      operationId: leaveRoom
+      summary: Leave the room (KAN-36)
+      description: |
+        The user's place is freed and their subscriptions to the room's topics end. A leaving host hands the role
+        to the participant who joined earliest among those online, or among all if nobody is online, and the
+        lesson's playback is paused; a host who is the last one in the room closes it, which ends its lesson.
+        Joining again needs the invite link. The changes go to `/topic/rooms/{id}/participants`.
+      responses:
+        '204':
+          description: Left the room
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/quality:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    put:
+      tags: [Rooms]
+      operationId: reportQuality
+      summary: Report the current user's connection quality to the other participants (KAN-48)
+      description: |
+        Browsers send the average round-trip time of their audio connections about every 10 seconds. It is stored
+        with the participant, and a change goes to `/topic/rooms/{id}/participants` as an `RTT` event with `rttMs`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QualityReport'
+      responses:
+        '204':
+          description: Stored
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/messages:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [RoomChat]
+      operationId: getRoomMessages
+      summary: A page of the room's chat history, newest first; participants only (KAN-51)
+      description: |
+        Readable by the room's current participants, also after the room closed. Messages of participants who left
+        stay; those of deleted accounts are removed with the account.
+      parameters:
+        - name: pageNo
+          in: query
+          description: From 0.
+          schema:
+            type: integer
+            default: 0
+        - name: pageSize
+          in: query
+          description: 1 to 100.
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: The page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomMessagePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/rooms/{id}/sessions:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Lessons]
+      operationId: startLesson
+      summary: Start a lesson with a tab; host only (KAN-35)
+      description: |
+        The tab must be the host's own or a public one. Playback starts stopped at the tab's tempo (120 BPM if the
+        tab has none). Without Premium the lesson ends after 40 minutes, with a warning 5 minutes before; the events
+        go to `/topic/rooms/{id}/state`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonTabRequest'
+      responses:
+        '201':
+          description: The started lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, or a tab the host may not read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The room is closed or already has an active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/sessions/current:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [Lessons]
+      operationId: getCurrentLesson
+      summary: The room's active lesson
+      responses:
+        '200':
+          description: The active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '404':
+          description: No such room, one the user does not take part in, or no active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/sessions/current/tab:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    put:
+      tags: [Lessons]
+      operationId: changeLessonTab
+      summary: Put another tab on screen; playback starts over, stopped, at the new tab's tempo; host only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonTabRequest'
+      responses:
+        '200':
+          description: The lesson with its new tab
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, no active lesson, or a tab the host may not read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rooms/{id}/sessions/current/end:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Lessons]
+      operationId: endLesson
+      summary: End the active lesson; host only
+      responses:
+        '200':
+          description: The ended lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '403':
+          $ref: '#/components/responses/NotHost'
+        '404':
+          description: No such room, one the user does not take part in, or no active lesson
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RoomId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InviteCode:
+      name: code
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: No such room, or one the user does not take part in
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotHost:
+      description: The user is a participant but not the host
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RoomStatus:
+      type: string
+      enum: [OPEN, CLOSED]
+    RoomRole:
+      type: string
+      enum: [HOST, PARTICIPANT]
+    RoomCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Required, at most 100 characters.
+    RoomResponse:
+      type: object
+      required: [id, name, hostId, status, capacity, myRole, participants, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hostId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/RoomStatus'
+        capacity:
+          type: integer
+          description: The most participants the room holds, the host included.
+        inviteCode:
+          type: string
+          description: Set only for the host.
+        myRole:
+          $ref: '#/components/schemas/RoomRole'
+        participants:
+          type: array
+          description: In the order they joined, the host first.
+          items:
+            $ref: '#/components/schemas/ParticipantResponse'
+        createdAt:
+          type: string
+          format: date-time
+    ParticipantResponse:
+      type: object
+      required: [userId, role, joinedAt, online]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          $ref: '#/components/schemas/RoomRole'
+        joinedAt:
+          type: string
+          format: date-time
+        online:
+          type: boolean
+          description: |
+            Whether the participant has the room open, i.e. is subscribed to `/topic/rooms/{id}/participants`
+            (KAN-36).
+        rttMs:
+          type: integer
+          description: |
+            The participant's last reported average round-trip time to the others in milliseconds (KAN-48); absent
+            until the first report.
+    QualityReport:
+      type: object
+      properties:
+        rttMs:
+          type: integer
+          description: Required, the average round-trip time in milliseconds, 0 to 60000.
+    RoomPreview:
+      type: object
+      required: [id, name, status, participantCount, capacity, full]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hostName:
+          type: string
+        status:
+          $ref: '#/components/schemas/RoomStatus'
+        participantCount:
+          type: integer
+        capacity:
+          type: integer
+        full:
+          type: boolean
+    RoomListItem:
+      type: object
+      required: [id, name, hostId, status, myRole, participantCount, capacity, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hostId:
+          type: string
+          format: uuid
+        hostName:
+          type: string
+        status:
+          $ref: '#/components/schemas/RoomStatus'
+        myRole:
+          $ref: '#/components/schemas/RoomRole'
+        participantCount:
+          type: integer
+        capacity:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    HostTransferRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Required; a participant of the room other than the current host.
+    LessonTabRequest:
+      type: object
+      properties:
+        tabId:
+          type: string
+          format: uuid
+          description: Required; the host's own tab or a public one.
+    LessonEndReason:
+      type: string
+      enum: [HOST_ENDED, LIMIT_REACHED, ROOM_CLOSED]
+    LessonResponse:
+      type: object
+      required: [id, roomId, startedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        tabId:
+          type: string
+          format: uuid
+          description: Missing once the tab is deleted.
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+          description: Set once the lesson has ended.
+        limitMinutes:
+          type: integer
+          description: The lesson's length limit; missing for no limit (Premium).
+        endsAt:
+          type: string
+          format: date-time
+          description: When the limit ends the lesson; missing for no limit.
+        endReason:
+          $ref: '#/components/schemas/LessonEndReason'
+    RoomMessageResponse:
+      type: object
+      description: A chat message, as the history and `/topic/rooms/{id}/chat` send it.
+      required: [id, roomId, authorId, content, sentAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        authorAvatarUrl:
+          type: string
+        content:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+    RoomMessagePage:
+      type: object
+      properties:
+        content:
+          type: array
+          description: Newest first.
+          items:
+            $ref: '#/components/schemas/RoomMessageResponse'
+        number:
+          type: integer
+          description: The page number, from 0.
+        size:
+          type: integer
+        numberOfElements:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+    ErrorResponse:
+      type: object
+      description: The error body of every endpoint, from GlobalExceptionHandler.
+      properties:
+        code:
+          type: string
+          example: 404 NOT_FOUND
+        message:
+          type: string

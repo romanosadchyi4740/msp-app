@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.romanosadchyi.smp.music_app.shared.config.SecretsStartupCheck

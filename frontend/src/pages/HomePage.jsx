@@ -3,6 +3,7 @@ import {Music} from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import TrackCard from '../components/TrackCard';
 import AlbumCard from '../components/AlbumCard';
+import StartLessonBanner from '../components/rooms/StartLessonBanner';
 
 const HomePage = () => {
   const [tracks, setTracks] = useState([]);
@@ -37,28 +38,34 @@ const HomePage = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <div className="w-12 h-12 border border-border flex items-center justify-center relative">
-          <div className="w-full h-[1px] bg-white absolute animate-[ping_2s_infinite]"></div>
-          <Music size={16} className="text-muted" />
+      <div className="space-y-12">
+        <StartLessonBanner />
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <div className="w-12 h-12 border border-border flex items-center justify-center relative">
+            <div className="w-full h-[1px] bg-white absolute animate-[ping_2s_infinite]"></div>
+            <Music size={16} className="text-muted" />
+          </div>
+          <p className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-muted animate-pulse">Loading Archive</p>
         </div>
-        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-muted animate-pulse">Loading Archive</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[60vh] px-4">
-        <div className="border border-border p-12 max-w-md text-center">
-          <p className="text-xs font-black uppercase tracking-widest mb-4">Connection Error</p>
-          <p className="text-muted text-[11px] leading-relaxed mb-8">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-8 py-3 border border-white text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
-          >
-            Retry
-          </button>
+      <div className="space-y-12">
+        <StartLessonBanner />
+        <div className="flex items-center justify-center h-[60vh] px-4">
+          <div className="border border-border p-12 max-w-md text-center">
+            <p className="text-xs font-black uppercase tracking-widest mb-4">Connection Error</p>
+            <p className="text-muted text-[11px] leading-relaxed mb-8">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-8 py-3 border border-white text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -66,6 +73,8 @@ const HomePage = () => {
 
   return (
     <div className="space-y-32 pb-32">
+      <StartLessonBanner />
+
       {/* Editorial Hero */}
       <header className="py-24 border-b border-border">
         <div className="max-w-4xl">

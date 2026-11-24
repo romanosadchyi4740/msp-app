@@ -1,0 +1,132 @@
+# Production stack of the demo instance (KAN-104). Lives in /opt/syncchord next to Caddyfile and .env (see README.md).
+# Start it with syncchord-up.sh rather than a bare `docker compose up`: the script writes the instance's current public
+# and private IP (PUBLIC_IP, PRIVATE_IP, which coturn announces) into .env and points the DuckDNS name at the public one.
+name: syncchord
+
+x-defaults: &defaults
+  restart: unless-stopped
+
+services:
+  # HTTPS for everything except TURN: certificate from Let's Encrypt for APP_DOMAIN, then routes to backend/frontend
+  caddy:
+    <<: *defaults
+    image: caddy:2.10-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and the ACME account survive `docker compose down`; only `down -v` or a new instance loses them
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    mem_limit: 128m
+
+  # Static build behind nginx, built with an empty VITE_API_URL (same origin as the API)
+  frontend:
+    <<: *defaults
+    image: ${IMAGE_REGISTRY:?set IMAGE_REGISTRY in .env}/msp-app-frontend:${IMAGE_TAG:-latest}
+    mem_limit: 64m
+
+  backend:
+    <<: *defaults
+    image: ${IMAGE_REGISTRY}/msp-app-backend:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # -Xmx overrides the image's MaxRAMPercentage. The defaults fit t4g.micro (1 GB + swap); raise them on t4g.small
+      JAVA_TOOL_OPTIONS: ${BACKEND_JAVA_OPTS:--Xmx384m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC -Xss512k}
+      DB_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-music_app_db}
+      DB_USERNAME: ${DB_USERNAME:-syncchord}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:?set ENCRYPTION_SECRET in .env}
+      TURN_SECRET: ${TURN_SECRET:?set TURN_SECRET in .env}
+      TURN_URLS: ${TURN_URLS:-turn:${APP_DOMAIN}:3478?transport=udp,turn:${APP_DOMAIN}:3478?transport=tcp}
+      STUN_URLS: ${STUN_URLS:-stun:${APP_DOMAIN}:3478}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}
+      CORS_ALLOWED_ORIGINS: https://${APP_DOMAIN}
+      # S3 through the MinIO client. Empty keys: credentials come from the instance role (IMDSv2, hop limit 2)
+      MINIO_URL: ${MINIO_URL:-https://s3.${AWS_REGION:-eu-central-1}.amazonaws.com}
+      MINIO_REGION: ${AWS_REGION:-eu-central-1}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:?set MINIO_BUCKET_NAME in .env (terraform output uploads_bucket)}
+      MINIO_USER: ${MINIO_USER:-}
+      MINIO_PASSWORD: ${MINIO_PASSWORD:-}
+    healthcheck:
+      # The JRE image has no curl or wget; bash can speak HTTP over /dev/tcp
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    # Heap + metaspace + threads and code cache; raise with BACKEND_JAVA_OPTS
+    mem_limit: ${BACKEND_MEM_LIMIT:-700m}
+
+  # Data in a named volume on the root disk; no published port, reachable only inside this Compose network
+  postgres:
+    <<: *defaults
+    image: postgres:15-alpine
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=20"]
+    environment:
+      POSTGRES_DB: ${DB_NAME:-music_app_db}
+      POSTGRES_USER: ${DB_USERNAME:-syncchord}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+
+  # TURN/STUN, reached directly (not through Caddy). Host network, so the relay ports need no Docker port mapping.
+  # The instance is behind AWS's 1:1 NAT: coturn listens on the private IP and announces the public one.
+  coturn:
+    <<: *defaults
+    image: coturn/coturn:4.7.0
+    network_mode: host
+    command:
+      - --log-file=stdout
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --fingerprint
+      - --realm=${APP_DOMAIN}
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET}
+      - --listening-port=3478
+      - --external-ip=${PUBLIC_IP:?run syncchord-up.sh once, it writes PUBLIC_IP to .env}/${PRIVATE_IP:?run syncchord-up.sh once}
+      # Must match turn_relay_port_min/max of the security group (infra/terraform). One port per allocation: a full
+      # relay-only room of 5 needs up to 40 (4 peer connections x UDP and TCP TURN URLs per participant)
+      - --min-port=${TURN_MIN_PORT:-49160}
+      - --max-port=${TURN_MAX_PORT:-49359}
+      # One signed-in user cannot take the whole range (2 per peer connection, 4 peers, some slack)
+      - --user-quota=12
+      # A TURN relay must not reach into the VPC, the Docker networks or the instance metadata (the instance role's
+      # credentials); peers are browsers on the internet, or this coturn's own relay addresses. Browsers only use UDP
+      # relays, so TCP relaying (RFC 6062), which could reach host services such as sshd, is off
+      - --no-tcp-relay
+      - --no-multicast-peers
+      - --denied-peer-ip=0.0.0.0-0.255.255.255
+      - --denied-peer-ip=10.0.0.0-10.255.255.255
+      - --denied-peer-ip=100.64.0.0-100.127.255.255
+      - --denied-peer-ip=127.0.0.0-127.255.255.255
+      - --denied-peer-ip=169.254.0.0-169.254.255.255
+      - --denied-peer-ip=172.16.0.0-172.31.255.255
+      - --denied-peer-ip=192.168.0.0-192.168.255.255
+      # The instance's own address stays allowed for relay-to-relay traffic between two relay-only browsers
+      - --allowed-peer-ip=${PRIVATE_IP}
+    mem_limit: 128m
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,83 @@
+package com.romanosadchyi.smp.music_app.music.internal.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+@Entity
+@Table(name = "tracks", indexes = {
+        @Index(name = "idx_tracks_title", columnList = "title"),
+        @Index(name = "idx_tracks_author_id", columnList = "author_id"),
+        @Index(name = "idx_tracks_file_hash", columnList = "file_hash", unique = true)
+})
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class Track {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    UUID id;
+
+    @Column(name = "title", nullable = false)
+    String title;
+
+    @Column(name = "file_hash", unique = true)
+    String fileHash;
+
+    @Column(name = "duration", nullable = false)
+    Integer duration;
+
+    @Column(name = "file_key", nullable = false)
+    String fileKey;
+
+    @Column(name = "track_number")
+    Integer trackNumber;
+
+    @Column(name = "author_id", nullable = false)
+    UUID authorId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "album_id")
+    Album album;
+
+    @ManyToMany
+    @JoinTable(
+            name = "track_genres",
+            joinColumns = @JoinColumn(name = "track_id"),
+            inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
+    @Builder.Default
+    Set<Genre> genres = new HashSet<>();
+
+    /**
+     * Ids of the users who liked the track; the {@code user_liked_tracks} rows are owned here.
+     */
+    @ElementCollection
+    @CollectionTable(name = "user_liked_tracks", joinColumns = @JoinColumn(name = "track_id"))
+    @Column(name = "user_id")
+    @Builder.Default
+    Set<UUID> likedByUserIds = new HashSet<>();
+
+    @Column(name = "cover_url")
+    String coverUrl;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    LocalDateTime updatedAt;
+}

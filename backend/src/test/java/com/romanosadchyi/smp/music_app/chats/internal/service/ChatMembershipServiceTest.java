@@ -1,0 +1,188 @@
+package com.romanosadchyi.smp.music_app.chats.internal.service;
+
+import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatMembershipDto;
+import com.romanosadchyi.smp.music_app.chats.internal.dto.ChatResponseDto;
+import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
+import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
+import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
+import com.romanosadchyi.smp.music_app.chats.internal.mapping.ChatMappingService;
+import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatMembershipRepository;
+import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
+import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedException;
+import com.romanosadchyi.smp.music_app.users.external.UserLookup;
+import com.romanosadchyi.smp.music_app.users.external.UserRole;
+import com.romanosadchyi.smp.music_app.users.external.UserSummary;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class ChatMembershipServiceTest {
+
+    @Mock
+    ChatRepository chatRepository;
+
+    @Mock
+    ChatMembershipRepository chatMembershipRepository;
+
+    @Mock
+    UserLookup userLookup;
+
+    @Mock
+    ChatMappingService chatMappingService;
+
+    @Mock
+    BroadcastSubscriptionTracker broadcastSubscriptionTracker;
+
+    @InjectMocks
+    ChatMembershipService chatService;
+
+    @Test
+    void acceptChat_UserIsPendingParticipant_UpdatesStatus() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        
+        Chat chat = Chat.builder().id(chatId).build();
+        ChatMembership membership = ChatMembership.builder()
+                .chat(chat)
+                .userId(userId)
+                .status(ChatStatus.PENDING)
+                .isAdmin(false)
+                .build();
+        chat.getMemberships().add(membership);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        when(chatMappingService.map(any(Chat.class), eq(userId))).thenReturn(
+            new ChatResponseDto(chatId, false, null, null, null, null, "ACCEPTED")
+        );
+
+        ChatResponseDto response = chatService.acceptChat(chatId, userId);
+
+        assertEquals(ChatStatus.ACCEPTED, membership.getStatus());
+        assertEquals("ACCEPTED", response.status());
+        verify(chatMembershipRepository).save(membership);
+    }
+
+    @Test
+    void acceptChat_UserIsAdmin_ThrowsIllegalArgumentException() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        
+        Chat chat = Chat.builder().id(chatId).build();
+        ChatMembership membership = ChatMembership.builder()
+                .chat(chat)
+                .userId(userId)
+                .status(ChatStatus.ACCEPTED)
+                .isAdmin(true) // Initiator
+                .build();
+        chat.getMemberships().add(membership);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+
+        assertThrows(IllegalArgumentException.class, () -> chatService.acceptChat(chatId, userId));
+        verify(chatMembershipRepository, never()).save(any(ChatMembership.class));
+    }
+
+    @Test
+    void acceptAndRejectChat_NotAMember_IsForbidden() {
+        UUID chatId = UUID.randomUUID();
+        Chat chat = Chat.builder().id(chatId).build();
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+        UUID stranger = UUID.randomUUID();
+
+        assertThrows(UserNotAuthorizedException.class, () -> chatService.acceptChat(chatId, stranger));
+        assertThrows(UserNotAuthorizedException.class, () -> chatService.rejectChat(chatId, stranger));
+        verify(chatMembershipRepository, never()).save(any(ChatMembership.class));
+    }
+
+    @Test
+    void rejectChat_UserIsParticipant_UpdatesStatusToRejected() {
+        UUID chatId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        
+        Chat chat = Chat.builder().id(chatId).build();
+        ChatMembership membership = ChatMembership.builder()
+                .chat(chat)
+                .userId(userId)
+                .status(ChatStatus.PENDING)
+                .build();
+        chat.getMemberships().add(membership);
+
+        when(chatRepository.findById(chatId)).thenReturn(Optional.of(chat));
+
+        chatService.rejectChat(chatId, userId);
+
+        assertEquals(ChatStatus.REJECTED, membership.getStatus());
+        verify(chatMembershipRepository).save(membership);
+    }
+
+    @Test
+    void rejectChat_Group_EndsTheMembersBroadcastSubscriptions() {
+        UUID userId = UUID.randomUUID();
+        Chat group = Chat.builder().id(UUID.randomUUID()).isGroup(true).build();
+        ChatMemberships.add(group, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(group, userId, ChatStatus.ACCEPTED, false);
+        when(chatRepository.findById(group.getId())).thenReturn(Optional.of(group));
+
+        chatService.rejectChat(group.getId(), userId);
+
+        // Outside a transaction AfterCommit runs at once
+        verify(broadcastSubscriptionTracker).revoke(group.getId(), userId);
+    }
+
+    @Test
+    void rejectChat_DirectChat_KeepsTheSubscriptions() {
+        UUID userId = UUID.randomUUID();
+        Chat direct = Chat.builder().id(UUID.randomUUID()).isGroup(false).build();
+        ChatMemberships.add(direct, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(direct, userId, ChatStatus.PENDING, false);
+        when(chatRepository.findById(direct.getId())).thenReturn(Optional.of(direct));
+
+        chatService.rejectChat(direct.getId(), userId);
+
+        // A rejected direct chat stays readable, so its broadcasts stay open
+        verifyNoInteractions(broadcastSubscriptionTracker);
+    }
+
+    @Test
+    void getChatMembers_ReturnsMembersWithNames() {
+        UUID requester = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        Chat chat = Chat.builder().id(UUID.randomUUID()).build();
+        ChatMemberships.add(chat, requester, ChatStatus.ACCEPTED, true);
+        ChatMemberships.add(chat, other, ChatStatus.PENDING, false);
+        when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
+        when(userLookup.findSummaries(anyList())).thenReturn(Map.of(
+                requester, new UserSummary(requester, "Me", "me.png", UserRole.ROLE_USER),
+                other, new UserSummary(other, "Other", null, UserRole.ROLE_USER)));
+
+        List<ChatMembershipDto> members = chatService.getChatMembers(chat.getId(), requester);
+
+        assertEquals(2, members.size());
+        ChatMembershipDto otherDto = members.stream().filter(m -> m.userId().equals(other)).findFirst().orElseThrow();
+        assertEquals("Other", otherDto.displayName());
+        assertEquals(ChatStatus.PENDING, otherDto.status());
+    }
+
+    @Test
+    void getChatMembers_NotAMember_IsNotAuthorized() {
+        Chat chat = Chat.builder().id(UUID.randomUUID()).build();
+        ChatMemberships.add(chat, UUID.randomUUID(), ChatStatus.ACCEPTED, true);
+        when(chatRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
+
+        assertThrows(UserNotAuthorizedException.class, () -> chatService.getChatMembers(chat.getId(), UUID.randomUUID()));
+        verifyNoInteractions(userLookup);
+    }
+}

@@ -2,10 +2,13 @@ import React, {useEffect, useState} from 'react';
 import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {
   Activity,
+  Guitar,
+  Headphones,
   Layers,
   Loader2,
   LogOut,
   Music,
+  Plus,
   Radar,
   RadioReceiver,
   Satellite,
@@ -13,6 +16,7 @@ import {
   Settings,
   Star,
   Terminal,
+  Users,
   Sun,
   Moon
 } from 'lucide-react';
@@ -26,7 +30,7 @@ import ShareTrackModal from '../components/modals/ShareTrackModal';
 import AddToPlaylistModal from '../components/modals/AddToPlaylistModal';
 
 const MainLayout = () => {
-  const { user, logout, becomeArtist, loading } = useAuthStore();
+  const { user, logout, becomeArtist } = useAuthStore();
   const { fetchLikedTracks, initialized } = useLikeStore();
   const { fetchFollowing, initialized: followInitialized } = useFollowStore();
   const { initSocket, closeSocket } = useChatStore();
@@ -85,6 +89,39 @@ const MainLayout = () => {
     navItems.push({ icon: Satellite, label: 'Data Uplink', path: '/upload' });
   }
 
+  // SyncChord: live guitar lessons, next to the music platform (KAN-53)
+  const syncChordItems = [
+    { icon: Users, label: 'Rooms', path: '/rooms' },
+    { icon: Plus, label: 'New room', path: '/rooms/new' },
+    { icon: Guitar, label: 'Tabs', path: '/tabs' },
+    { icon: Headphones, label: 'Device check', path: '/device-check' },
+  ];
+  // The most specific item wins, so /rooms/new does not also light up Rooms
+  const activePath = [...navItems, ...syncChordItems]
+    .map((item) => item.path)
+    .filter((path) => location.pathname === path || (path !== '/' && location.pathname.startsWith(`${path}/`)))
+    .sort((a, b) => b.length - a.length)[0];
+
+  const renderNavItem = (item) => {
+    const Icon = item.icon;
+    const isActive = item.path === activePath;
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        aria-current={isActive ? 'page' : undefined}
+        className={`flex items-center gap-4 px-4 py-3 text-sm transition-all duration-200 group ${
+          isActive
+            ? 'text-zinc-900 dark:text-white font-bold'
+            : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+        }`}
+      >
+        <Icon size={18} className={isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'} />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
+
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white overflow-hidden transition-colors duration-300">
       {/* Sidebar */}
@@ -94,32 +131,23 @@ const MainLayout = () => {
           <h1 className="text-xl font-black tracking-tighter uppercase">MusicSocial</h1>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-4 px-4 py-3 text-sm transition-all duration-200 group ${
-                  isActive 
-                    ? 'text-zinc-900 dark:text-white font-bold' 
-                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                }`}
-              >
-                <Icon size={18} className={isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white'} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-4 space-y-6 overflow-y-auto" aria-label="Main">
+          <div className="space-y-1">
+            <h2 className="px-4 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">
+              SyncChord
+            </h2>
+            {syncChordItems.map(renderNavItem)}
+          </div>
+          <div className="space-y-1 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+            {navItems.map(renderNavItem)}
+          </div>
         </nav>
 
         {/* Become Artist Promo */}
         {user?.role !== 'ROLE_ARTIST' && (
           <div className="mx-6 mb-8 p-6 border border-zinc-200 dark:border-zinc-800 space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Artist Mode</h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">Artist Mode</h4>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
               Share your music with the community.
             </p>
             <button
@@ -144,20 +172,20 @@ const MainLayout = () => {
               <p className="text-xs font-bold truncate uppercase tracking-tight group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors">
                 {user?.displayName || 'Unknown User'}
               </p>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">{user?.userId}</p>
+              <p className="text-[10px] text-zinc-600 dark:text-zinc-400 truncate">{user?.userId}</p>
             </div>
           </Link>
           <div className="flex flex-col gap-2">
             <button
               onClick={toggleTheme}
-              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               <span>Invert Polarity</span>
             </button>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
+              className="w-full flex items-center gap-4 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all"
             >
               <LogOut size={16} />
               <span>Logout</span>

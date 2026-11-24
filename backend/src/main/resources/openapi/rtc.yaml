@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: SyncChord WebRTC API
+  description: |
+    What a browser needs to open the P2P audio connections of a room (KAN-46, FR-7). Every endpoint needs a JWT.
+
+    The TURN credentials follow the coturn `use-auth-secret` scheme: the username is `<expiry epoch seconds>:<user id>`
+    and the credential is `base64(HMAC-SHA1(shared secret, username))`. They stop working at `expiresAt`, so a client
+    asks again before building connections after that time. The signaling itself goes over STOMP
+    (`/app/rooms/{roomId}/signal`, KAN-45).
+
+    A missing, invalid or expired token is rejected with 401 by the security filter, before any endpoint runs, so
+    that response comes from Spring Security and has no ErrorResponse body.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: Rtc
+paths:
+  /api/rtc/ice-servers:
+    get:
+      tags: [Rtc]
+      operationId: getIceServers
+      summary: The STUN and TURN servers for the current user, with short-lived TURN credentials
+      responses:
+        '200':
+          description: The servers, in the shape of the browser's RTCConfiguration.iceServers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IceServersResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    IceServersResponse:
+      type: object
+      required: [iceServers, expiresAt]
+      properties:
+        iceServers:
+          type: array
+          items:
+            $ref: '#/components/schemas/IceServer'
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the TURN credentials stop working.
+    IceServer:
+      type: object
+      description: One entry of RTCConfiguration.iceServers; a STUN entry has no username and credential.
+      required: [urls]
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+        username:
+          type: string
+        credential:
+          type: string
