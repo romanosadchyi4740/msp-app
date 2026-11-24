@@ -4,6 +4,7 @@ import com.romanosadchyi.smp.music_app.chats.internal.entity.Chat;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatMembership;
 import com.romanosadchyi.smp.music_app.chats.internal.entity.ChatStatus;
 import com.romanosadchyi.smp.music_app.chats.internal.repository.ChatRepository;
+import com.romanosadchyi.smp.music_app.shared.util.AfterCommit;
 import com.romanosadchyi.smp.music_app.users.external.UserDataCleanup;
 import com.romanosadchyi.smp.music_app.users.external.UserLookup;
 import lombok.AccessLevel;
@@ -27,9 +28,12 @@ class ChatsUserDataCleanup implements UserDataCleanup {
 
     ChatRepository chatRepository;
     UserLookup userLookup;
+    BroadcastStateService broadcastStateService;
 
     @Override
     public void deleteUserData(UUID userId) {
+        // Their listening broadcasts end once the deletion commits (KAN-109); they live in memory only
+        AfterCommit.run(() -> broadcastStateService.endHostedBy(userId));
         // Locked first: a member deleting their account at the same time waits and then sees this one as deleted
         List<Chat> chats = chatRepository.findAllByParticipantIdForUpdate(userId);
         Set<UUID> deletedIds = userLookup.findDeletedIds(otherMemberIds(chats, userId));

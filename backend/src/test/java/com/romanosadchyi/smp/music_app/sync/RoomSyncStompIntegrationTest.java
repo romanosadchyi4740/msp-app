@@ -239,10 +239,11 @@ class RoomSyncStompIntegrationTest {
         BlockingQueue<Map<String, Object>> heard = subscribe(memberClient.session(), "/topic/broadcast/" + broadcast);
         subscribe(outsiderClient.session(), "/topic/broadcast/" + broadcast);
         Thread.sleep(SUBSCRIBE_SETTLE_MS);
-        masterClient.session().send("/app/broadcast/" + broadcast + "/sync", Map.of("command", "PLAY",
-                "timestamp", 12.5));
+        // The server keeps the broadcast since KAN-109: the host starts it with its state, which members hear
+        masterClient.session().send("/app/broadcast/" + broadcast + "/sync", Map.of("command", "START",
+                "position", 12.5, "playing", false));
 
-        assertThat(poll(heard)).containsEntry("command", "PLAY");
+        assertThat(poll(heard)).containsEntry("status", "ACTIVE").containsEntry("position", 12.5);
         assertThat(outsiderClient.errors().poll(5, TimeUnit.SECONDS)).isNotNull();
         assertThat(memberClient.errors()).isEmpty();
     }

@@ -111,12 +111,19 @@ and `frontend/.env.example` lists them for builds.
   random 12-byte IV per value, stored as `v2:` + base64; anything else throws `EncryptionException`, KAN-21) and
   `ChatMessageNotifier` fans out with `convertAndSendToUser(..., "/queue/messages")` to each member. The `socketClient` singleton subscribes to `/user/queue/messages` in `onConnect`. Its
   `subscribe()` returns `null` when not connected, so callers must subscribe after connect.
-- **Broadcast rooms (the existing sync feature)**: `BroadcastController` is a **stateless relay**
-  (`/app/broadcast/{id}/sync` → `@SendTo /topic/broadcast/{id}`) with no role check. All logic is
-  client-side in `components/AudioPlayer.jsx` + `store/playerStore.js`: the MASTER client publishes
-  play/pause/seek/track events, and SYNC clients send `REQUEST_SYNC` that the MASTER answers. SyncChord rooms
-  must **not** copy this pattern. They use the server-authoritative, versioned anchor-time state from
-  section 6. Treat the broadcast code as a reference for the STOMP client plumbing only.
+- **Listening broadcasts** (msp-app, module `chats`; server-side since KAN-109/KAN-110): a chat member hosts one,
+  the others listen. `BroadcastController` `/app/broadcast/{chatId}/{broadcastId}/sync` → `BroadcastStateService`
+  keeps each broadcast **in memory** with the same anchor-time model as rooms (section 6): track, position at the
+  anchor, playing, `anchorTime`, `version`.
+  - Commands: `START` (the sender becomes host; also resumes after a reconnect), `UPDATE` (full host state, with an
+    increasing `sequence` so an overtaken one is ignored; inbound STOMP messages of one session are handled in
+    parallel), `TERMINATE`. Only the host may send them; others get 403 on `/user/queue/broadcast-errors`.
+  - `REQUEST_SYNC` from any member gets a snapshot on `/user/queue/broadcast/{chatId}/{broadcastId}/snapshot`; every
+    change goes to `/topic/broadcast/{chatId}/{broadcastId}`.
+  - `BroadcastScheduler` ends a broadcast 30 s after its host's session disconnected, and posts the
+    `[BROADCAST_NODE_TERMINATED]` chat message. Leaving the chat or deleting the account ends it too.
+  - Client: `sync/useBroadcast.js` (pure parts in `sync/broadcastState.js`) with `store/playerStore.js`. A listener
+    corrects drift above 1 s once a second, and a local pause holds until play rejoins at the host's position.
 - **WebRTC signaling** (module `rtc`): `SignalController` `@MessageMapping("/rooms/{roomId}/signal")` →
   `SignalingService` sets `fromId` and `roomId` from the session and the destination, checks both peers with
   `rooms.external.RoomMembership` (participants of an open room), and relays to the recipient's `/user/queue/signal`. Payloads are opaque strings

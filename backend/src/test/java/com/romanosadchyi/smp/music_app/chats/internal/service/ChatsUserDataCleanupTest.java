@@ -34,6 +34,9 @@ class ChatsUserDataCleanupTest {
     @Mock
     UserLookup userLookup;
 
+    @Mock
+    BroadcastStateService broadcastStateService;
+
     @InjectMocks
     ChatsUserDataCleanup cleanup;
 
@@ -154,5 +157,16 @@ class ChatsUserDataCleanupTest {
 
         verify(userLookup).findDeletedIds(idsCaptor.capture());
         assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(otherId, thirdId);
+    }
+
+    @Test
+    void deleteUserData_EndsTheUsersListeningBroadcasts() {
+        when(chatRepository.findAllByParticipantIdForUpdate(userId)).thenReturn(List.of());
+        when(userLookup.findDeletedIds(List.of())).thenReturn(Set.of());
+
+        cleanup.deleteUserData(userId);
+
+        // Outside a transaction AfterCommit runs at once (KAN-109)
+        verify(broadcastStateService).endHostedBy(userId);
     }
 }

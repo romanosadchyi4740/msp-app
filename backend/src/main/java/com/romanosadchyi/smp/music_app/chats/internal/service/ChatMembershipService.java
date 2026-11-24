@@ -36,6 +36,7 @@ public class ChatMembershipService {
     UserLookup userLookup;
     ChatMappingService chatMappingService;
     BroadcastSubscriptionTracker broadcastSubscriptionTracker;
+    BroadcastStateService broadcastStateService;
 
     @Transactional
     public ChatResponseDto acceptChat(UUID chatId, UUID userId) {
@@ -53,7 +54,8 @@ public class ChatMembershipService {
 
     /**
      * Rejects or declines the chat. A member who rejects a group may no longer read it, so once that commits, their
-     * open subscriptions to the chat's listening broadcasts end too (KAN-93); a direct chat stays readable.
+     * open subscriptions to the chat's listening broadcasts end too (KAN-93), and so do the broadcasts they host there
+     * (KAN-109); a direct chat stays readable.
      */
     @Transactional
     public void rejectChat(UUID chatId, UUID userId) {
@@ -62,7 +64,10 @@ public class ChatMembershipService {
         membership.setStatus(ChatStatus.REJECTED);
         chatMembershipRepository.save(membership);
         if (!ChatMemberships.mayRead(chat, userId)) {
-            AfterCommit.run(() -> broadcastSubscriptionTracker.revoke(chatId, userId));
+            AfterCommit.run(() -> {
+                broadcastSubscriptionTracker.revoke(chatId, userId);
+                broadcastStateService.endHostedBy(userId, chatId);
+            });
         }
     }
 
