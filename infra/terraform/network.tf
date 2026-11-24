@@ -4,7 +4,7 @@ data "aws_vpc" "default" {
 }
 
 # One security group for the instance. Port 22 is deliberately missing: a shell comes from SSM Session Manager.
-# Postgres (5432) is never published by Docker Compose, so it needs no rule either.
+# Postgres (5432) is published only on the instance's loopback (127.0.0.1, for an SSM tunnel), so it needs no rule either.
 resource "aws_security_group" "app" {
   name        = "${var.project}-app"
   description = "SyncChord demo: Caddy (80, 443) and coturn (3478, relay range); no SSH"

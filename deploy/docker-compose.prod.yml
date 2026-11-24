@@ -69,11 +69,15 @@ services:
     # Heap + metaspace + threads and code cache; raise with BACKEND_JAVA_OPTS
     mem_limit: ${BACKEND_MEM_LIMIT:-700m}
 
-  # Data in a named volume on the root disk; no published port, reachable only inside this Compose network
+  # Data in a named volume on the root disk. Published only on the instance's loopback interface, for a database client
+  # on the owner's PC through an SSM port-forwarding session (deploy/README.md); the security group keeps 5432 closed
+  # and a loopback address cannot be reached from outside the instance
   postgres:
     <<: *defaults
     image: postgres:15-alpine
     command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=20"]
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ${DB_NAME:-music_app_db}
       POSTGRES_USER: ${DB_USERNAME:-syncchord}
