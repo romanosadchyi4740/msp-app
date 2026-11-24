@@ -9,6 +9,7 @@ import com.romanosadchyi.smp.music_app.shared.exception.UserNotAuthorizedExcepti
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,32 +42,62 @@ public class BroadcastStateService {
     static final Duration HOST_AWAY_GRACE = Duration.ofSeconds(30);
     /** How long an ended broadcast is remembered, so a late listener learns that it ended. */
     static final Duration ENDED_KEPT_FOR = Duration.ofMinutes(10);
-    static final int MAX_BROADCASTS = 10_000;
+    /** Active broadcasts at most; a host has one at a time, so this bounds the number of hosts. */
+    static final int MAX_ACTIVE_BROADCASTS = 10_000;
+    /** Ended broadcasts kept per host, so starting many cannot fill the memory with ended ones. */
+    static final int MAX_ENDED_PER_HOST = 3;
     static final double MAX_POSITION_SECONDS = 24 * 60 * 60;
 
     BroadcastNotifier notifier;
     TrackLookup trackLookup;
     Clock clock;
     Map<UUID, BroadcastState> broadcasts = new ConcurrentHashMap<>();
+    /** {@link #MAX_ACTIVE_BROADCASTS}; a field so a test can lower it. */
+    @NonFinal
+    int maxActiveBroadcasts = MAX_ACTIVE_BROADCASTS;
 
     /**
-     * Starts the broadcast with the sender as host, or, when the host starts it again from a new session after a
-     * reconnect, resumes it there. Ends the sender's other broadcasts: a host plays one at a time.
+     * Starts the broadcast with the sender as host; repeating it for the same broadcast applies the host's state.
+     * Ends the sender's other broadcasts: a host plays one at a time.
      *
      * @throws UserNotAuthorizedException if another member hosts this broadcast
      * @throws BroadcastNotFoundException if the broadcast id belongs to another chat
      * @throws BroadcastEndedException    if the broadcast has ended
-     * @throws IllegalArgumentException   if the playback state is invalid or names no existing track
+     * @throws IllegalArgumentException   if the playback state is invalid, names no existing track, or too many
+     *                                    broadcasts are active
      */
     public void start(UUID chatId, UUID broadcastId, UUID userId, String sessionId, BroadcastSyncMessage message) {
+        begin(chatId, broadcastId, userId, sessionId, message, true);
+    }
+
+    /**
+     * Continues the host's broadcast from a new session after a reconnect.
+     *
+     * @throws BroadcastEndedException    if the broadcast has ended, or the server does not know it (it forgot an
+     *                                    ended one, or restarted): it is not revived under an id the chat may
+     *                                    already show as ended
+     * @throws UserNotAuthorizedException if another member hosts this broadcast
+     * @throws BroadcastNotFoundException if the broadcast id belongs to another chat
+     * @throws IllegalArgumentException   if the playback state is invalid or names no existing track
+     */
+    public void resume(UUID chatId, UUID broadcastId, UUID userId, String sessionId, BroadcastSyncMessage message) {
+        begin(chatId, broadcastId, userId, sessionId, message, false);
+    }
+
+    private void begin(UUID chatId, UUID broadcastId, UUID userId, String sessionId, BroadcastSyncMessage message,
+                       boolean mayCreate) {
         Playback playback = playbackOf(message, broadcasts.get(broadcastId));
-        if (!broadcasts.containsKey(broadcastId) && broadcasts.size() >= MAX_BROADCASTS) {
+        // Approximate under concurrent starts; it bounds memory, it is not a quota
+        if (mayCreate && !broadcasts.containsKey(broadcastId) && activeCount() >= maxActiveBroadcasts) {
             throw new IllegalArgumentException("Too many broadcasts are running; try again later");
         }
         boolean[] changed = {false};
         BroadcastState started = broadcasts.compute(broadcastId, (id, current) -> {
             long now = clock.millis();
             if (current == null) {
+                if (!mayCreate) {
+                    throw new BroadcastEndedException("This broadcast has ended");
+                }
                 changed[0] = true;
                 return BroadcastState.builder()
                         .broadcastId(broadcastId)
@@ -94,7 +126,24 @@ public class BroadcastStateService {
         log.info("User {} started or resumed broadcast {} in chat {}", userId, broadcastId, chatId);
         endWhere(state -> state.hostId().equals(userId) && !state.broadcastId().equals(broadcastId))
                 .forEach(notifier::publish);
+        forgetSurplusEnded(userId);
         notifier.publish(started);
+    }
+
+    private long activeCount() {
+        return broadcasts.values().stream().filter(state -> state.status() == BroadcastStatus.ACTIVE).count();
+    }
+
+    /**
+     * Keeps only the host's {@link #MAX_ENDED_PER_HOST} most recently ended broadcasts.
+     */
+    private void forgetSurplusEnded(UUID hostId) {
+        broadcasts.values().stream()
+                .filter(state -> state.hostId().equals(hostId) && state.status() == BroadcastStatus.TERMINATED)
+                .sorted(Comparator.comparing(BroadcastState::endedAt).reversed())
+                .skip(MAX_ENDED_PER_HOST)
+                .toList()
+                .forEach(state -> broadcasts.remove(state.broadcastId(), state));
     }
 
     /**

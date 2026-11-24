@@ -30,16 +30,13 @@ class BroadcastNotifier {
     }
 
     void publish(BroadcastState state) {
-        messagingTemplate.convertAndSend(topic(state.chatId(), state.broadcastId()), map(state));
+        messagingTemplate.convertAndSend(topic(state.chatId(), state.broadcastId()), mappingService.map(state));
     }
 
     void sendSnapshot(UUID userId, UUID chatId, UUID broadcastId, BroadcastState state) {
-        BroadcastStateDto snapshot = state == null ? mappingService.unknown(broadcastId, chatId) : map(state);
+        BroadcastStateDto snapshot = state == null
+                ? mappingService.unknown(broadcastId, chatId)
+                : mappingService.map(state);
         messagingTemplate.convertAndSendToUser(userId.toString(), snapshotQueue(chatId, broadcastId), snapshot);
-    }
-
-    private BroadcastStateDto map(BroadcastState state) {
-        return mappingService.map(state.broadcastId(), state.chatId(), state.hostId(), state.status(),
-                state.trackId(), state.position(), state.playing(), state.anchorTime(), state.version());
     }
 }

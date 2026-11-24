@@ -9,6 +9,7 @@ import { expectedPosition, HOST_REANCHOR_MS, hostPlayback, isNewer, seekTarget, 
 const CORRECTION_INTERVAL_MS = 1000;
 const SYNC_RETRY_MS = 1500;
 const SYNC_RETRIES = 5;
+const TRACK_RETRY_MS = 3000;
 
 function unsubscribeAll(subscriptions) {
   for (const subscription of subscriptions.splice(0)) {
@@ -22,7 +23,7 @@ function unsubscribeAll(subscriptions) {
 
 /**
  * Listening broadcasts with the state kept on the server (KAN-109). The host reports its track, position and play
- * state (START on every connect, UPDATE on every change, and again every HOST_REANCHOR_MS while playing). A listener
+ * state (RESUME on every reconnect, UPDATE on every change, and again every HOST_REANCHOR_MS while playing). A listener
  * applies the server's states in version order (snapshot on every connect, then the topic), loads a new track
  * without playing it, and once a second moves its player to where the host is and plays or pauses it to match.
  *
@@ -67,10 +68,24 @@ export default function useBroadcast(audioRef) {
     };
   }, [status, broadcastId]);
 
-  // Host: START on every (re)connect resumes the broadcast from this session; re-anchor while playing
+  // Host: every reconnect continues the broadcast from the new session (RESUME, which the server refuses for one it
+  // ended or forgot), or sends the START that could not go out; re-anchor while playing
   useEffect(() => {
     if (status !== 'MASTER' || !broadcastId) return undefined;
-    const stop = socketClient.onConnect(() => sendHostState('START'));
+    // The current connection carried the START already
+    let skipCurrent = socketClient.isConnected() && !usePlayerStore.getState().broadcastStartPending;
+    const stop = socketClient.onConnect(() => {
+      if (skipCurrent) {
+        skipCurrent = false;
+        return;
+      }
+      if (usePlayerStore.getState().broadcastStartPending) {
+        usePlayerStore.setState({ broadcastStartPending: false });
+        sendHostState('START');
+      } else {
+        sendHostState('RESUME');
+      }
+    });
     const timer = setInterval(() => {
       if (audioRef.current && !audioRef.current.paused) sendHostState();
     }, HOST_REANCHOR_MS);
@@ -99,12 +114,36 @@ export default function useBroadcast(audioRef) {
     targetRef.current = null;
     startClockSync();
 
+    // Loads the host's track paused; the correction plays it. A failed load (network, a deleted track, the stream
+    // URL) is tried again by the correction after TRACK_RETRY_MS, since a paused host sends no new state
+    let loadingTrackId = null;
+    let lastLoadFailedAt = 0;
+    const loadTrack = async (state) => {
+      if (loadingTrackId === state.trackId) return;
+      loadingTrackId = state.trackId;
+      try {
+        const { data: track } = await axiosClient.get(`/api/tracks/${state.trackId}`);
+        if (cancelled || targetRef.current?.trackId !== state.trackId) return;
+        await usePlayerStore.getState().playTrack(track, [], expectedPosition(targetRef.current, serverNow()),
+          { autoplay: false, fromBroadcast: true });
+        if (usePlayerStore.getState().currentTrack?.id !== state.trackId) lastLoadFailedAt = Date.now();
+      } catch (error) {
+        lastLoadFailedAt = Date.now();
+        console.warn(`Could not load the host's track: ${error?.name}`);
+      } finally {
+        loadingTrackId = null;
+      }
+    };
+
     const correct = () => {
       const state = targetRef.current;
       const audio = audioRef.current;
       if (cancelled || !state || state.status !== 'ACTIVE') return;
       const store = usePlayerStore.getState();
-      if (state.trackId && store.currentTrack?.id !== state.trackId) return; // still loading the host's track
+      if (state.trackId && store.currentTrack?.id !== state.trackId) {
+        if (!loadingTrackId && Date.now() - lastLoadFailedAt >= TRACK_RETRY_MS) loadTrack(state);
+        return;
+      }
       const want = shouldPlay(state, store.broadcastHeld);
       if (state.trackId && !store.broadcastHeld && audio && audio.readyState >= 1) {
         const target = seekTarget(audio.currentTime, expectedPosition(state, serverNow()), audio.duration);
@@ -124,12 +163,8 @@ export default function useBroadcast(audioRef) {
       }
       lastVersion = state.version;
       targetRef.current = state;
-      const store = usePlayerStore.getState();
-      if (state.trackId && state.trackId !== store.currentTrack?.id) {
-        const { data: track } = await axiosClient.get(`/api/tracks/${state.trackId}`);
-        if (cancelled) return;
-        await store.playTrack(track, [], expectedPosition(state, serverNow()),
-          { autoplay: false, fromBroadcast: true });
+      if (state.trackId && state.trackId !== usePlayerStore.getState().currentTrack?.id) {
+        await loadTrack(state);
       }
       correct();
     };
@@ -156,6 +191,8 @@ export default function useBroadcast(audioRef) {
 
     const stop = socketClient.onConnect(() => {
       unsubscribeAll(subscriptions);
+      // The snapshot of this connection decides; versions do not carry over if the server restarted meanwhile
+      lastVersion = null;
       subscriptions.push(socketClient.subscribe(`/topic/broadcast/${chatId}/${broadcastId}`, enqueue));
       subscriptions.push(socketClient.subscribe(`/user/queue/broadcast/${chatId}/${broadcastId}/snapshot`, enqueue));
       requestSync();

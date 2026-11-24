@@ -2,6 +2,7 @@ package com.romanosadchyi.smp.music_app.chats.internal.mapping;
 
 import com.romanosadchyi.smp.music_app.chats.internal.dto.BroadcastStateDto;
 import com.romanosadchyi.smp.music_app.chats.internal.dto.BroadcastStatus;
+import com.romanosadchyi.smp.music_app.chats.internal.service.BroadcastState;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -11,7 +12,8 @@ import java.time.Clock;
 import java.util.UUID;
 
 /**
- * Builds the {@link BroadcastStateDto} clients receive, stamped with the server time of sending.
+ * Builds the {@link BroadcastStateDto} clients receive, stamped with the server time of sending. The host's
+ * session and sequence stay on the server.
  */
 @Service
 @RequiredArgsConstructor
@@ -20,19 +22,18 @@ public class BroadcastStateMappingService {
 
     Clock clock;
 
-    public BroadcastStateDto map(UUID broadcastId, UUID chatId, UUID hostId, BroadcastStatus status, UUID trackId,
-                                 double position, boolean playing, long anchorTime, long version) {
+    public BroadcastStateDto map(BroadcastState state) {
         return BroadcastStateDto.builder()
-                .broadcastId(broadcastId)
-                .chatId(chatId)
-                .hostId(hostId)
-                .status(status)
-                .trackId(trackId)
-                .position(position)
-                .playing(playing)
-                .anchorTime(anchorTime)
+                .broadcastId(state.broadcastId())
+                .chatId(state.chatId())
+                .hostId(state.hostId())
+                .status(state.status())
+                .trackId(state.trackId())
+                .position(state.position())
+                .playing(state.playing())
+                .anchorTime(state.anchorTime())
                 .serverTime(clock.millis())
-                .version(version)
+                .version(state.version())
                 .build();
     }
 

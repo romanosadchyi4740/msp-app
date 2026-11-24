@@ -35,20 +35,25 @@ const usePlayerStore = create((set, get) => ({
   // A listener who paused locally (or whose player a voice message paused) stays paused until they press play,
   // which rejoins at the host's position (KAN-109)
   broadcastHeld: false,
+  // The host's START could not be sent (no connection); the next connect sends it instead of RESUME
+  broadcastStartPending: false,
 
   /**
-   * Starts hosting a broadcast. The server learns about it (START) before the chat message that announces its id
-   * is sent, so nobody else can claim it (KAN-110). A host runs one broadcast at a time.
+   * Starts hosting a broadcast. START is sent before the chat message that announces the id, so the server knows the
+   * host before anyone else can learn the id (KAN-110); the server handles a session's messages in parallel, so this
+   * is not a strict guarantee, but a member who reads the message and answers is far slower. A host runs one
+   * broadcast at a time. When the socket is down now, the next connect sends START (useBroadcast).
    */
   initiateBroadcast: (broadcastId, chatId) => {
     get().leaveBroadcast();
     set({ broadcastStatus: 'MASTER', activeBroadcastId: broadcastId, activeBroadcastChatId: chatId,
       broadcastHeld: false });
-    socketClient.sendMessage(broadcastSyncDestination(chatId, broadcastId), {
+    const sent = socketClient.sendMessage(broadcastSyncDestination(chatId, broadcastId), {
       command: 'START',
       ...hostPlayback(get().currentTrack?.id, audioElement),
       sequence: nextBroadcastSequence(),
     });
+    set({ broadcastStartPending: !sent });
   },
   /**
    * Starts listening. The listener's own queue and loop mode are dropped, so the end of a track waits for the

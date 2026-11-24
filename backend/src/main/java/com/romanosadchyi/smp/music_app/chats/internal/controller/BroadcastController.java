@@ -43,6 +43,7 @@ public class BroadcastController {
         }
         switch (message.command()) {
             case START -> broadcastStateService.start(chatId, broadcastId, userId, sessionId, message);
+            case RESUME -> broadcastStateService.resume(chatId, broadcastId, userId, sessionId, message);
             case UPDATE -> broadcastStateService.update(chatId, broadcastId, userId, sessionId, message);
             case TERMINATE -> broadcastStateService.terminate(chatId, broadcastId, userId);
             case REQUEST_SYNC -> broadcastStateService.requestSync(chatId, broadcastId, userId);

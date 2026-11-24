@@ -19,7 +19,10 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -359,6 +362,87 @@ class BroadcastStateServiceTest {
         service.requestSync(chatId, broadcastId, listenerId);
 
         verify(notifier).sendSnapshot(eq(listenerId), eq(chatId), eq(broadcastId), isNull());
+    }
+
+    @Test
+    void resume_OfABroadcastTheServerDoesNotKnow_IsEndedAndNotRevived() {
+        // After a restart, or a host away longer than the ended ones are kept
+        assertThatThrownBy(() -> service.resume(chatId, broadcastId, hostId, "new-session",
+                state(trackId, 10.0, true)))
+                .isInstanceOf(BroadcastEndedException.class);
+
+        verify(notifier, never()).publish(any());
+        service.requestSync(chatId, broadcastId, listenerId);
+        verify(notifier).sendSnapshot(eq(listenerId), eq(chatId), eq(broadcastId), isNull());
+    }
+
+    @Test
+    void resume_OfAnEndedBroadcast_IsRefused() {
+        service.start(chatId, broadcastId, hostId, "host-session", state(trackId, 0.0, true));
+        service.terminate(chatId, broadcastId, hostId);
+
+        assertThatThrownBy(() -> service.resume(chatId, broadcastId, hostId, "new-session",
+                state(trackId, 1.0, true)))
+                .isInstanceOf(BroadcastEndedException.class);
+    }
+
+    @Test
+    void resume_ByAnotherMember_IsRefused() {
+        service.start(chatId, broadcastId, hostId, "host-session", state(trackId, 0.0, true));
+
+        assertThatThrownBy(() -> service.resume(chatId, broadcastId, listenerId, "listener-session",
+                state(trackId, 1.0, true)))
+                .isInstanceOf(UserNotAuthorizedException.class);
+    }
+
+    @Test
+    void start_WhenTooManyAreActive_IsRefused() {
+        ReflectionTestUtils.setField(service, "maxActiveBroadcasts", 2);
+        service.start(chatId, UUID.randomUUID(), UUID.randomUUID(), "a", state(trackId, 0.0, true));
+        service.start(chatId, UUID.randomUUID(), UUID.randomUUID(), "b", state(trackId, 0.0, true));
+
+        assertThatThrownBy(() -> service.start(chatId, broadcastId, hostId, "host-session",
+                state(trackId, 0.0, true)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void start_EndedBroadcastsDoNotCountTowardTheLimit() {
+        ReflectionTestUtils.setField(service, "maxActiveBroadcasts", 1);
+        UUID first = UUID.randomUUID();
+        service.start(chatId, first, hostId, "host-session", state(trackId, 0.0, true));
+        service.terminate(chatId, first, hostId);
+
+        service.start(chatId, broadcastId, hostId, "host-session", state(trackId, 0.0, true));
+
+        verify(notifier, times(3)).publish(any());
+    }
+
+    @Test
+    void start_KeepsOnlyTheHostsLatestEndedBroadcasts() {
+        List<UUID> ids = new ArrayList<>();
+        for (int i = 0; i <= BroadcastStateService.MAX_ENDED_PER_HOST + 1; i++) {
+            UUID id = UUID.randomUUID();
+            ids.add(id);
+            now += 1_000;
+            // Each start ends the host's previous broadcast
+            service.start(chatId, id, hostId, "host-session", state(trackId, 0.0, true));
+        }
+
+        // The oldest ended one is forgotten; the newer ones are still answered with their state
+        service.requestSync(chatId, ids.getFirst(), listenerId);
+        verify(notifier).sendSnapshot(eq(listenerId), eq(chatId), eq(ids.getFirst()), isNull());
+        service.requestSync(chatId, ids.get(1), listenerId);
+        verify(notifier).sendSnapshot(eq(listenerId), eq(chatId), eq(ids.get(1)), published.capture());
+        assertThat(published.getValue().status()).isEqualTo(BroadcastStatus.TERMINATED);
+    }
+
+    @Test
+    void terminate_UnderAnotherChat_IsNotFound() {
+        service.start(chatId, broadcastId, hostId, "host-session", state(trackId, 0.0, true));
+
+        assertThatThrownBy(() -> service.terminate(UUID.randomUUID(), broadcastId, hostId))
+                .isInstanceOf(BroadcastNotFoundException.class);
     }
 
     @Test

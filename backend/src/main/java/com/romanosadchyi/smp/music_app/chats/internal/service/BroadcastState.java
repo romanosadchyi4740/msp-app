@@ -15,7 +15,7 @@ import java.util.UUID;
  * @param endedAt       server epoch milliseconds when the broadcast ended, or null while it is active
  */
 @Builder(toBuilder = true)
-record BroadcastState(
+public record BroadcastState(
         UUID broadcastId,
         UUID chatId,
         UUID hostId,
