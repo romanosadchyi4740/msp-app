@@ -51,3 +51,7 @@ management:
     health:
       show-details: never
       show-components: never
+      # No liveness/readiness groups: nothing uses them (Caddy, the Compose healthcheck and the deploy workflow call
+      # /actuator/health), and the response would list their names (KAN-106)
+      probes:
+        enabled: false
