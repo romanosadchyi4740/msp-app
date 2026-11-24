@@ -1,12 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Music, VolumeX, Repeat, Repeat1, Heart, MessageSquare, Plus, Radio, X } from 'lucide-react';
-import usePlayerStore from '../store/playerStore';
+import usePlayerStore, { registerAudioElement } from '../store/playerStore';
 import useLikeStore from '../store/likeStore';
 import useChatStore from '../store/chatStore';
 import usePlaylistStore from '../store/playlistStore';
-import socketClient from '../api/socketClient';
-import axiosClient from '../api/axiosClient';
-import toast from 'react-hot-toast';
+import useBroadcast from '../sync/useBroadcast';
 
 const AudioPlayer = () => {
   const audioRef = useRef(null);
@@ -16,20 +14,16 @@ const AudioPlayer = () => {
     volume, 
     audioUrl, 
     initialSeekTime,
-    togglePlayPause, 
+    togglePlayPause,
     setVolume,
     toggleMute,
-    setIsPlaying,
     playNext,
     playPrevious,
     queue,
     loopMode,
     toggleLoopMode,
     broadcastStatus,
-    activeBroadcastId,
-    activeBroadcastChatId,
     leaveBroadcast,
-    playTrack
   } = usePlayerStore();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -38,82 +32,14 @@ const AudioPlayer = () => {
   const { openShareModal } = useChatStore();
   const { openPlaylistModal } = usePlaylistStore();
   const isLiked = currentTrack ? !!likedTrackIds[currentTrack.id] : false;
-  // A broadcast is addressed by its chat and its id, so the server opens it only to the chat's members
-  const broadcastPath = activeBroadcastId && activeBroadcastChatId
-    ? `${activeBroadcastChatId}/${activeBroadcastId}`
-    : null;
+  // The store reads the element when a broadcast starts, to report where the host is
+  const setAudioElement = (element) => {
+    audioRef.current = element;
+    registerAudioElement(element);
+  };
 
-  // Master Broadcast Effect (LOAD_TRACK)
-  useEffect(() => {
-    if (broadcastStatus === 'MASTER' && broadcastPath && currentTrack) {
-      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-        command: 'LOAD_TRACK',
-        trackId: currentTrack.id,
-        timestamp: audioRef.current ? audioRef.current.currentTime : 0
-      });
-    }
-  }, [currentTrack?.id, broadcastStatus, broadcastPath]);
-
-  // Broadcast Subscription (Master & Sync)
-  useEffect(() => {
-    if (broadcastPath) {
-      const sub = socketClient.subscribe(`/topic/broadcast/${broadcastPath}`, async (msg) => {
-        try {
-          if (msg.command === 'REQUEST_SYNC' && broadcastStatus === 'MASTER') {
-            const state = usePlayerStore.getState();
-            if (state.currentTrack) {
-              socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-                command: 'LOAD_TRACK',
-                trackId: state.currentTrack.id,
-                timestamp: audioRef.current ? audioRef.current.currentTime : 0
-              });
-              socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-                command: state.isPlaying ? 'PLAY' : 'PAUSE',
-                timestamp: audioRef.current ? audioRef.current.currentTime : 0
-              });
-            }
-          } else if (broadcastStatus === 'SYNC') {
-            if (msg.command === 'LOAD_TRACK' && msg.trackId) {
-              const res = await axiosClient.get(`/api/tracks/${msg.trackId}`);
-              playTrack(res.data, [], msg.timestamp);
-            } else if (msg.command === 'PLAY') {
-              if (audioRef.current) {
-                audioRef.current.currentTime = msg.timestamp;
-                audioRef.current.play().catch(e => console.error("Sync play error", e));
-                setIsPlaying(true);
-              }
-            } else if (msg.command === 'PAUSE') {
-              if (audioRef.current) {
-                audioRef.current.currentTime = msg.timestamp;
-                audioRef.current.pause();
-                setIsPlaying(false);
-              }
-            } else if (msg.command === 'SEEK') {
-              if (audioRef.current) {
-                audioRef.current.currentTime = msg.timestamp;
-              }
-            } else if (msg.command === 'TERMINATE') {
-              leaveBroadcast();
-              toast.error('Broadcast Node Terminated by Master');
-            }
-          }
-        } catch (err) {
-          console.error('Broadcast sync error:', err);
-        }
-      });
-
-      if (broadcastStatus === 'SYNC') {
-        socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-          command: 'REQUEST_SYNC',
-          timestamp: 0
-        });
-      }
-
-      return () => {
-        if (sub) sub.unsubscribe();
-      };
-    }
-  }, [broadcastStatus, broadcastPath, playTrack, setIsPlaying, leaveBroadcast]);
+  // Listening broadcasts: the server keeps the state; the host reports, listeners follow (KAN-109)
+  const broadcastEvents = useBroadcast(audioRef);
 
   // Sync isPlaying with audio element
   useEffect(() => {
@@ -188,34 +114,6 @@ const AudioPlayer = () => {
     openShareModal(currentTrack, currentAudioTime);
   };
 
-  // Master Broadcast Events Hook
-  const onPlayEvent = () => {
-    if (broadcastStatus === 'MASTER' && broadcastPath) {
-      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-        command: 'PLAY',
-        timestamp: audioRef.current ? audioRef.current.currentTime : 0
-      });
-    }
-  };
-
-  const onPauseEvent = () => {
-    if (broadcastStatus === 'MASTER' && broadcastPath) {
-      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-        command: 'PAUSE',
-        timestamp: audioRef.current ? audioRef.current.currentTime : 0
-      });
-    }
-  };
-
-  const onSeekedEvent = () => {
-    if (broadcastStatus === 'MASTER' && broadcastPath) {
-      socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-        command: 'SEEK',
-        timestamp: audioRef.current ? audioRef.current.currentTime : 0
-      });
-    }
-  };
-
   if (!currentTrack) return null;
 
   const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
@@ -264,15 +162,7 @@ const AudioPlayer = () => {
             </span>
           </div>
           <button 
-            onClick={() => {
-              if (broadcastStatus === 'MASTER' && broadcastPath) {
-                socketClient.sendMessage(`/broadcast/${broadcastPath}/sync`, {
-                  command: 'TERMINATE',
-                  timestamp: 0
-                });
-              }
-              leaveBroadcast();
-            }}
+            onClick={leaveBroadcast}
             className="flex items-center gap-2 px-4 hover:text-red-800 dark:hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
           >
             <X size={14} />
@@ -282,14 +172,15 @@ const AudioPlayer = () => {
       )}
 
       <audio
-        ref={audioRef}
+        ref={setAudioElement}
         src={audioUrl}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => playNext(false)}
-        onPlay={onPlayEvent}
-        onPause={onPauseEvent}
-        onSeeked={onSeekedEvent}
+        // A listener waits for the host's next track instead of playing on
+        onEnded={() => broadcastStatus !== 'SYNC' && playNext(false)}
+        onPlay={broadcastEvents.onPlay}
+        onPause={broadcastEvents.onPause}
+        onSeeked={broadcastEvents.onSeeked}
         loop={isLooping}
       />
 
@@ -353,8 +244,9 @@ const AudioPlayer = () => {
           </button>
           
           <button 
-            onClick={() => broadcastStatus !== 'SYNC' && togglePlayPause()}
-            disabled={broadcastStatus === 'SYNC'}
+            // A listener pauses locally; play rejoins at the host's position (KAN-109)
+            onClick={togglePlayPause}
+            title={broadcastStatus === 'SYNC' ? (isPlaying ? 'Pause for you only' : 'Rejoin the broadcast') : undefined}
             className="text-zinc-900 dark:text-white hover:scale-110 transition-transform p-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}

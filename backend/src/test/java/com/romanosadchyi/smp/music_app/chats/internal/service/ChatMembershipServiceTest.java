@@ -46,6 +46,9 @@ class ChatMembershipServiceTest {
     @Mock
     BroadcastSubscriptionTracker broadcastSubscriptionTracker;
 
+    @Mock
+    BroadcastStateService broadcastStateService;
+
     @InjectMocks
     ChatMembershipService chatService;
 
@@ -140,6 +143,8 @@ class ChatMembershipServiceTest {
 
         // Outside a transaction AfterCommit runs at once
         verify(broadcastSubscriptionTracker).revoke(group.getId(), userId);
+        // A broadcast they host there ends for its listeners (KAN-109)
+        verify(broadcastStateService).endHostedBy(userId, group.getId());
     }
 
     @Test
@@ -153,7 +158,7 @@ class ChatMembershipServiceTest {
         chatService.rejectChat(direct.getId(), userId);
 
         // A rejected direct chat stays readable, so its broadcasts stay open
-        verifyNoInteractions(broadcastSubscriptionTracker);
+        verifyNoInteractions(broadcastSubscriptionTracker, broadcastStateService);
     }
 
     @Test

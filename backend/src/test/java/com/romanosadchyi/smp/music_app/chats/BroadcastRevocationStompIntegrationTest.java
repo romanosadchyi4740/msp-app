@@ -94,25 +94,32 @@ class BroadcastRevocationStompIntegrationTest {
         BlockingQueue<Map<String, Object>> stayingHears = StompTestClient.subscribe(stayingClient.session(),
                 "/topic/broadcast/" + broadcast);
         Thread.sleep(SUBSCRIBE_SETTLE_MS);
+        // The server keeps the broadcast since KAN-109: the host starts it before sending its state
+        send(masterClient, broadcast, "START", 0.0);
+        assertThat(StompTestClient.poll(leavingHears)).containsEntry("status", "ACTIVE");
+        assertThat(StompTestClient.poll(stayingHears)).containsEntry("status", "ACTIVE");
 
         // Both members hear the broadcast while they are in the chat
-        play(masterClient, broadcast, 1.0);
-        assertThat(StompTestClient.poll(leavingHears)).containsEntry("command", "PLAY");
-        assertThat(StompTestClient.poll(stayingHears)).containsEntry("command", "PLAY");
+        send(masterClient, broadcast, "UPDATE", 1.0);
+        assertThat(StompTestClient.poll(leavingHears)).containsEntry("position", 1.0);
+        assertThat(StompTestClient.poll(stayingHears)).containsEntry("position", 1.0);
 
         mockMvc.perform(leave).andExpect(status().isOk());
 
-        play(masterClient, broadcast, 2.0);
-        assertThat(StompTestClient.poll(stayingHears)).containsEntry("command", "PLAY");
+        send(masterClient, broadcast, "UPDATE", 2.0);
+        assertThat(StompTestClient.poll(stayingHears)).containsEntry("position", 2.0);
         assertThat(leavingHears.poll(SUBSCRIBE_SETTLE_MS, TimeUnit.MILLISECONDS)).isNull();
         // The connection itself stays open: nothing was refused, the subscription just ended
         assertThat(leavingClient.errors()).isEmpty();
         assertThat(leavingClient.session().isConnected()).isTrue();
     }
 
-    private static void play(Client master, String broadcast, double timestamp) {
-        master.session().send("/app/broadcast/" + broadcast + "/sync", Map.of("command", "PLAY", "timestamp",
-                timestamp));
+    /**
+     * A paused broadcast without a track, so the test needs no track rows: only the position changes.
+     */
+    private static void send(Client master, String broadcast, String command, double position) {
+        master.session().send("/app/broadcast/" + broadcast + "/sync", Map.of("command", command, "position",
+                position, "playing", false));
     }
 
     /**
