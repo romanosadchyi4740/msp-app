@@ -41,7 +41,8 @@ app:
   websocket:
     raw-endpoint-enabled: false
 
-# Only /actuator/health is exposed, and it returns just {"status": ...} (public, for the ALB health check)
+# Only /actuator/health is exposed, and it returns just {"status": ...} (public, for health checks: the Compose
+# healthcheck and the deploy workflow on the demo, an ALB in the full-scale setup)
 management:
   endpoints:
     web:
@@ -51,3 +52,7 @@ management:
     health:
       show-details: never
       show-components: never
+      # No liveness/readiness groups: nothing uses them (Caddy, the Compose healthcheck and the deploy workflow call
+      # /actuator/health), and the response would list their names (KAN-106)
+      probes:
+        enabled: false
