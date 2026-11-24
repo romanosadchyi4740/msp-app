@@ -115,7 +115,7 @@ All from `/opt/syncchord` as root:
 |---|---|
 | Logs | `docker compose -f docker-compose.prod.yml logs -f --tail 200 backend` (or `caddy`, `coturn`, `postgres`) |
 | New images (after pushing new `latest`) | `./syncchord-up.sh --pull && docker image prune -f` (with `IMAGE_TAG=latest`) |
-| A specific build | `./syncchord-up.sh --tag <commit SHA>` (sets `IMAGE_TAG` in `.env` and pulls; what the deploy workflow runs) |
+| A specific build | `./syncchord-up.sh --tag <commit SHA>` (pulls it, then sets `IMAGE_TAG` in `.env`; what the deploy workflow runs) |
 | After editing `.env` or the Compose file | `./syncchord-up.sh` (recreates only what changed) |
 | Restart the backend | `docker compose -f docker-compose.prod.yml restart backend` |
 | Database shell | `docker compose -f docker-compose.prod.yml exec postgres psql -U syncchord music_app_db` |
@@ -135,7 +135,8 @@ most 5 certificates a week for the same name; Caddy falls back to ZeroSSL when t
 
 ## Continuous deployment
 
-`.github/workflows/deploy.yml` (KAN-105). A release is a PR from `development` into `main`; after the merge the
+`.github/workflows/deploy.yml` (KAN-105). A release is a PR from `development` into `main`. After the merge, CI runs
+on `main`; when it passes, the Deploy workflow (Actions tab) starts for that commit. A red CI deploys nothing. The
 workflow:
 
 1. builds both images natively on GitHub's arm64 runner and pushes them to GHCR as `<commit SHA>` and `latest`, with
@@ -145,13 +146,24 @@ workflow:
 3. through SSM, as root in `/opt/syncchord`: downloads `docker-compose.prod.yml`, `Caddyfile` and `syncchord-up.sh`
    of the same commit, runs `./syncchord-up.sh --tag <SHA>` (pins `IMAGE_TAG` in `.env`), restarts Caddy if the
    Caddyfile changed and prunes old images;
-4. waits for `https://<APP_DOMAIN>/actuator/health` to answer `UP` (up to 5 minutes).
+4. waits for `https://<APP_DOMAIN>/actuator/health` to answer `UP` (up to 5 minutes). If that or step 3 fails, it
+   prints the containers' state and the backend's recent warnings, errors and stack traces. It shows no INFO lines,
+   which name user ids, because the run log of a public repository is public. Read the full log on the instance.
+
+If the pull or the start in step 3 fails, the instance puts back the previous `deploy/` files and `IMAGE_TAG` and
+starts that version again, so neither the running stack nor the next boot is left on a half-deployed commit. A health
+check that fails after a successful start leaves the new version running: roll back by hand (below).
+
+A CI re-run of an older `main` commit deploys nothing (a notice says so); only the newest commit of `main` deploys
+itself.
 
 `.env` and `syncchord.service` are never touched; change those by hand. A deploy restarts the backend, so open
 lessons drop for about a minute.
 
-**Rollback**: Actions → Deploy → Run workflow (on `main`), with the full SHA of an earlier `main` commit. It skips the
-build, checks that both images of that SHA exist, and deploys them with the `deploy/` files of that commit.
+**Rollback**: Actions → Deploy → Run workflow (on `main`), with the full SHA of an earlier `main` commit. It refuses a
+commit that is not on `main`, skips the build, checks that both images of that SHA exist (only commits this workflow
+built have them), and deploys them with the `deploy/` files of that commit. Only one deploy runs at a time, and GitHub
+keeps a single waiting run: a newer waiting run (release or rollback) replaces an older waiting one.
 
 **One-time setup**
 
@@ -165,6 +177,7 @@ build, checks that both images of that SHA exist, and deploys them with the `dep
    | `AWS_INSTANCE_ID` | `terraform output -raw instance_id` |
    | `APP_DOMAIN` | the same as in `.env`, e.g. `myname.duckdns.org` |
    | `GOOGLE_CLIENT_ID` | the OAuth client id (the same as `GOOGLE_CLIENT_ID` in `.env`) |
+   | `AWS_REGION` | optional; only if Terraform's `region` is not `eu-central-1` |
 3. `.env` on the instance: `IMAGE_REGISTRY=ghcr.io/<owner in lower case>`, the owner of this repository.
 4. If the packages `msp-app-backend` and `msp-app-frontend` were first pushed by hand (section 1), give the repository
    write access to each once: the package → Package settings → Manage Actions access → Add repository → Write.

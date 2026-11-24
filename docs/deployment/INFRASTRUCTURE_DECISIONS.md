@@ -164,7 +164,8 @@ runs.
 
 ## 7. CD (KAN-105)
 
-- **Release** = merge `development` into `main` (PR). The workflow `.github/workflows/deploy.yml` then:
+- **Release** = merge `development` into `main` (PR). Once CI has passed for that push (`workflow_run` on CI), the
+  workflow `.github/workflows/deploy.yml`:
   1. builds the backend and frontend images on GitHub's **arm64** runner (`ubuntu-24.04-arm`, no emulation), tags them
      with the commit SHA and `latest`, and pushes them to **GHCR** with the workflow's own `GITHUB_TOKEN`;
   2. gets AWS credentials through **GitHub OIDC**, so no AWS keys are stored in GitHub. The deploy role trusts only this
@@ -173,8 +174,12 @@ runs.
      `IMAGE_TAG` in `.env` to that SHA, pulls and recreates what changed; then checks `https://<domain>/actuator/health`.
 - **Images pinned by SHA**, not `latest`: the instance always runs a known commit, and a reboot or a manual
   `syncchord-up.sh` keeps it.
-- **Rollback**: run the workflow manually (`workflow_dispatch`) with an older SHA; it skips the build, checks the
-  images exist and deploys them with that commit's `deploy/` files.
+- **Rollback**: run the workflow manually (`workflow_dispatch`) with an older SHA of `main` (other commits are
+  refused); it skips the build, checks the images exist and deploys them with that commit's `deploy/` files.
+- A failed pull or start puts the previous files and `IMAGE_TAG` back and starts that version again.
+- **Who can deploy**: anyone who can push to `main` or start the workflow there gets root on the instance through
+  the deploy role. That fits a single-owner repository. A GitHub environment with required reviewers would add an
+  approval gate, but it changes the OIDC subject, so the role's trust policy would have to change with it.
 - A restart of about a minute per deploy (the backend start) is acceptable; no blue/green.
 - Not deployed by the workflow: `.env` (secrets stay only on the instance) and `syncchord.service`.
 - Setup (repository variables, package access): `deploy/README.md`, Continuous deployment.

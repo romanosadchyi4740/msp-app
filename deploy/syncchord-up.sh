@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Starts (or updates) the stack in /opt/syncchord (KAN-104). Run at every boot by syncchord.service, and by hand after
 # changing .env or the Compose file. `syncchord-up.sh --pull` pulls newer images first; `syncchord-up.sh --tag <tag>`
-# sets IMAGE_TAG in .env to that image tag (a commit SHA, as the deploy workflow does, KAN-105) and pulls it.
+# pulls that image tag (a commit SHA, as the deploy workflow does, KAN-105) and then sets IMAGE_TAG in .env to it.
 #
 # The instance has no Elastic IP, so its public address changes on every stop/start. This script reads the current
 # public and private IP from the instance metadata (IMDSv2), points the DuckDNS name at the public one, and writes
@@ -81,12 +81,12 @@ else
 fi
 
 if [[ -n "$TAG" ]]; then
+  # Pull first (the shell's IMAGE_TAG wins over .env) and pin the tag only once the images are here, so a failed
+  # pull leaves .env, and the next boot, on the version that is running
+  IMAGE_TAG="$TAG" docker compose -f docker-compose.prod.yml pull
   set_env_value IMAGE_TAG "$TAG"
   echo "Image tag $TAG"
-  PULL=true
-fi
-
-if [[ "$PULL" == true ]]; then
+elif [[ "$PULL" == true ]]; then
   docker compose -f docker-compose.prod.yml pull
 fi
 # Recreates only the containers whose settings changed, e.g. coturn after a new public IP

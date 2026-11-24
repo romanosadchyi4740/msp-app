@@ -60,10 +60,11 @@ data "aws_iam_policy_document" "deploy" {
     ]
   }
 
-  # These actions support no resource-level restriction; they only read command results
+  # The workflow waits for its command and prints the output. GetCommandInvocation has no resource-level restriction,
+  # so the role can read the output of any SSM command in the account and region (only this project uses SSM here)
   statement {
     sid       = "ReadCommandResults"
-    actions   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations"]
+    actions   = ["ssm:GetCommandInvocation"]
     resources = ["*"]
   }
 }

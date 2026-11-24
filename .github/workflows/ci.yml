@@ -1,6 +1,6 @@
 # CI (KAN-18): every pull request and every push to development or main builds and tests the backend and the
 # frontend, and checks the Terraform code (KAN-103). The job names are what branch protection requires; rename
-# them together with the protection rule.
+# them together with the protection rule. deploy.yml (KAN-105) starts after this workflow by its name: rename both.
 name: CI
 
 on:

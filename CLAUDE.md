@@ -362,6 +362,10 @@ and `RoomParticipant.rttMs`.
 - Small PRs; each backend change ships with unit tests; run `./mvnw test` and `npm run lint` before PRs.
   CI (`.github/workflows/ci.yml`) runs on every PR and push to `development`/`main`: `./mvnw verify` with the JaCoCo
   report (`backend/target/site/jacoco`), the Java style check, and `npm ci`, lint, `npm test`, build.
+- Releases (KAN-105): the owner opens and merges a PR from `development` into `main`; when CI passes on `main`,
+  `.github/workflows/deploy.yml` builds the arm64 images, pushes them to GHCR and deploys that SHA to the demo instance
+  through SSM. Rollback: Actions → Deploy → Run workflow on `main` with the full SHA of an earlier `main` commit. Setup
+  and troubleshooting: `deploy/README.md`.
 - Project skills in `.claude/skills/`: `kan-ticket` (ticket, branch, PR and Jira workflow), `modulith-extract`
   (extracting a module), `split-service` (splitting an oversized service), `contract-first-api` (adding a REST
   endpoint from an OpenAPI spec), `browser-check` (running the app and checking a frontend change in Chrome),
